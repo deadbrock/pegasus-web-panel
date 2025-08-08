@@ -29,6 +29,13 @@ import { StockLocationsTable } from '@/components/estoque/stock-locations-table'
 import { StockChart } from '@/components/estoque/stock-chart'
 import { StockLevelChart } from '@/components/estoque/stock-level-chart'
 import { ImportExportButtons } from '@/components/estoque/import-export'
+import { 
+  exportRelatorioEstoqueAtual,
+  exportRelatorioProdutosCriticos,
+  exportRelatorioValorizacaoEstoque,
+  exportRelatorioAnaliseABC,
+  exportRelatorioMovimentacoesTemplate,
+} from '@/components/estoque/reports'
 
 export default function EstoquePage() {
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false)
@@ -320,23 +327,23 @@ export default function EstoquePage() {
                 <CardTitle>Relatórios Disponíveis</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start" onClick={exportRelatorioEstoqueAtual}>
                   <Download className="w-4 h-4 mr-2" />
                   Relatório de Estoque Atual
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start" onClick={exportRelatorioMovimentacoesTemplate}>
                   <Download className="w-4 h-4 mr-2" />
                   Movimentações por Período
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start" onClick={exportRelatorioProdutosCriticos}>
                   <Download className="w-4 h-4 mr-2" />
                   Produtos Críticos
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start" onClick={exportRelatorioValorizacaoEstoque}>
                   <Download className="w-4 h-4 mr-2" />
                   Valorização do Estoque
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start" onClick={exportRelatorioAnaliseABC}>
                   <Download className="w-4 h-4 mr-2" />
                   Análise ABC
                 </Button>
