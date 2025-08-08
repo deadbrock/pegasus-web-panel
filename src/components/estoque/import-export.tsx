@@ -78,9 +78,29 @@ export function ImportExportButtons() {
       return
     }
 
-    // Aqui integrar com Supabase para inserir/upsert em massa
-    // Por enquanto, apenas relatório de contagem
-    setParseResult({ ok: true, total: data.length })
+    // Validação de tipos básicos
+    const numericFields = ['estoqueMinimo', 'quantidade', 'valorUnitario']
+    const errors: string[] = []
+    const normalized = data.map((row, idx) => {
+      const obj: Record<string, any> = { ...row }
+      for (const f of numericFields) {
+        const n = Number(String(obj[f]).replace(',', '.'))
+        if (Number.isNaN(n)) {
+          errors.push(`Linha ${idx + 2}: campo "${f}" inválido (valor: ${obj[f]})`)
+        } else {
+          obj[f] = n
+        }
+      }
+      return obj
+    })
+
+    if (errors.length) {
+      setParseResult({ ok: false, erros: errors })
+      return
+    }
+
+    // TODO: integrar com Supabase (upsert em massa)
+    setParseResult({ ok: true, total: normalized.length })
   }
 
   return (
@@ -99,11 +119,20 @@ export function ImportExportButtons() {
               Baixe o modelo, preencha e envie a planilha na aba Produtos.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-4">
             <Button variant="outline" onClick={downloadTemplate} className="w-full justify-start">
               <FileSpreadsheet className="w-4 h-4 mr-2" />
               Baixar modelo de importação
             </Button>
+            <div className="rounded-md border p-3 text-sm">
+              <p className="font-medium mb-2">Estrutura da planilha</p>
+              <ul className="list-disc ml-6 space-y-1">
+                <li>Aba obrigatória: <span className="font-mono">Produtos</span></li>
+                <li>Colunas obrigatórias: <span className="font-mono">{REQUIRED_COLUMNS.join(', ')}</span></li>
+                <li>Tipos: <span className="font-mono">estoqueMinimo</span>, <span className="font-mono">quantidade</span> e <span className="font-mono">valorUnitario</span> devem ser numéricos.</li>
+                <li>Use ponto ou vírgula para decimais; ambos são aceitos.</li>
+              </ul>
+            </div>
             <input
               ref={inputRef}
               type="file"
