@@ -3,13 +3,41 @@
 import * as XLSX from "xlsx"
 import { stockData } from "./stock-data"
 
+function saveWorkbook(filename: string, workbook: XLSX.WorkBook) {
+  try {
+    const data = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
+    const blob = new Blob([data], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  } catch (err) {
+    // fallback
+    // eslint-disable-next-line no-console
+    console.error('Falha ao gerar XLSX, tentando fallback:', err)
+    try {
+      // Tenta método nativo da lib
+      XLSX.writeFile(workbook, filename)
+    } catch (err2) {
+      // eslint-disable-next-line no-console
+      console.error('Fallback também falhou:', err2)
+    }
+  }
+}
+
 function downloadWorkbook(filename: string, sheets: Array<{ name: string; rows: any[] }>) {
   const wb = XLSX.utils.book_new()
   for (const sheet of sheets) {
     const ws = XLSX.utils.json_to_sheet(sheet.rows)
     XLSX.utils.book_append_sheet(wb, ws, sheet.name)
   }
-  XLSX.writeFile(wb, filename)
+  saveWorkbook(filename, wb)
 }
 
 export function exportRelatorioEstoqueAtual() {
