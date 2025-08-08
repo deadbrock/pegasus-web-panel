@@ -28,6 +28,7 @@ import { StockMovementsTable } from '@/components/estoque/stock-movements-table'
 import { StockLocationsTable } from '@/components/estoque/stock-locations-table'
 import { StockChart } from '@/components/estoque/stock-chart'
 import { StockLevelChart } from '@/components/estoque/stock-level-chart'
+import { ImportExportButtons } from '@/components/estoque/import-export'
 
 export default function EstoquePage() {
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false)
@@ -60,14 +61,7 @@ export default function EstoquePage() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" size="sm">
-            <Upload className="w-4 h-4 mr-2" />
-            Importar
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="w-4 h-4 mr-2" />
-            Exportar
-          </Button>
+          <ImportExportButtons />
           <Button onClick={handleNewProduct}>
             <Plus className="w-4 h-4 mr-2" />
             Novo Produto

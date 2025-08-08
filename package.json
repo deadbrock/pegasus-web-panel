@@ -12,7 +12,8 @@
     "clean": "rm -rf .next out",
     "export": "next export",
     "deploy:vercel": "vercel --prod",
-    "deploy:netlify": "npm run build && netlify deploy --prod --dir=out"
+    "deploy:netlify": "npm run build && netlify deploy --prod --dir=out",
+    "postinstall": "next telemetry disable"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.2",
@@ -42,6 +43,7 @@
     "recharts": "^2.15.4",
     "tailwind-merge": "^2.0.0",
     "tailwindcss-animate": "^1.0.7",
+    "xlsx": "^0.18.5",
     "zod": "^3.22.4",
     "zustand": "^4.4.7"
   },
