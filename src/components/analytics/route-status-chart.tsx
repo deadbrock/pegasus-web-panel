@@ -1,15 +1,9 @@
 'use client'
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
-
-// Mock data - substituir por dados do Supabase
-const data = [
-  { name: 'Em Andamento', value: 12, color: '#f59e0b' },
-  { name: 'Concluídas', value: 34, color: '#10b981' },
-  { name: 'Programadas', value: 8, color: '#3b82f6' },
-  { name: 'Canceladas', value: 3, color: '#ef4444' },
-  { name: 'Atrasadas', value: 2, color: '#8b5cf6' }
-]
+import { useEffect, useState } from 'react'
+import { getRouteStatus } from '@/lib/services/analytics-service'
+const palette = ['#f59e0b','#10b981','#3b82f6','#ef4444','#8b5cf6']
 
 const RADIAN = Math.PI / 180
 const renderCustomizedLabel = ({
@@ -43,6 +37,8 @@ const renderCustomizedLabel = ({
 }
 
 export function RouteStatusChart() {
+  const [data, setData] = useState<any[]>([])
+  useEffect(() => { getRouteStatus().then(setData) }, [])
   return (
     <div className="h-80">
       <ResponsiveContainer width="100%" height="100%">
@@ -58,7 +54,7 @@ export function RouteStatusChart() {
             dataKey="value"
           >
             {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.color} />
+              <Cell key={`cell-${index}`} fill={entry.color || palette[index % palette.length]} />
             ))}
           </Pie>
           <Tooltip 

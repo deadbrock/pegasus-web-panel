@@ -1,15 +1,9 @@
 'use client'
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
-
-// Mock data - substituir por dados do Supabase
-const data = [
-  { name: 'Combustível', value: 35200, color: '#3b82f6' },
-  { name: 'Manutenção', value: 28450, color: '#10b981' },
-  { name: 'Salários', value: 22300, color: '#f59e0b' },
-  { name: 'Seguro', value: 8500, color: '#ef4444' },
-  { name: 'Outros', value: 5050, color: '#8b5cf6' }
-]
+import { useEffect, useState } from 'react'
+import { getCostsByCategory } from '@/lib/services/analytics-service'
+const pal = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6']
 
 const RADIAN = Math.PI / 180
 const renderCustomizedLabel = ({
@@ -40,6 +34,8 @@ const renderCustomizedLabel = ({
 }
 
 export function CostsCategoryChart() {
+  const [data, setData] = useState<any[]>([])
+  useEffect(() => { getCostsByCategory().then(setData) }, [])
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',

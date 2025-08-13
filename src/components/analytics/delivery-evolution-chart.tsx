@@ -1,84 +1,14 @@
 'use client'
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
-
-// Mock data - substituir por dados do Supabase
-const data = [
-  {
-    data: '01/07',
-    entregas: 65,
-    meta: 70,
-    concluidas: 62
-  },
-  {
-    data: '02/07',
-    entregas: 72,
-    meta: 70,
-    concluidas: 68
-  },
-  {
-    data: '03/07',
-    entregas: 68,
-    meta: 70,
-    concluidas: 65
-  },
-  {
-    data: '04/07',
-    entregas: 85,
-    meta: 70,
-    concluidas: 82
-  },
-  {
-    data: '05/07',
-    entregas: 78,
-    meta: 70,
-    concluidas: 75
-  },
-  {
-    data: '06/07',
-    entregas: 92,
-    meta: 70,
-    concluidas: 89
-  },
-  {
-    data: '07/07',
-    entregas: 88,
-    meta: 70,
-    concluidas: 84
-  },
-  {
-    data: '08/07',
-    entregas: 95,
-    meta: 70,
-    concluidas: 91
-  },
-  {
-    data: '09/07',
-    entregas: 82,
-    meta: 70,
-    concluidas: 78
-  },
-  {
-    data: '10/07',
-    entregas: 89,
-    meta: 70,
-    concluidas: 86
-  },
-  {
-    data: '11/07',
-    entregas: 96,
-    meta: 70,
-    concluidas: 93
-  },
-  {
-    data: '12/07',
-    entregas: 102,
-    meta: 70,
-    concluidas: 98
-  }
-]
+import { useEffect, useState } from 'react'
+import { getDeliveryEvolution } from '@/lib/services/analytics-service'
 
 export function DeliveryEvolutionChart() {
+  const [data, setData] = useState<any[]>([])
+  useEffect(() => {
+    getDeliveryEvolution(30).then(setData)
+  }, [])
   return (
     <div className="h-80">
       <ResponsiveContainer width="100%" height="100%">
