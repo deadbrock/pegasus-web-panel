@@ -451,6 +451,106 @@ class FiscalService {
       return null
     }
   }
+
+  // Importação a partir de XML já parseado (DadosXML)
+  async importarNotaDeDadosXML(dados: DadosXML, confirmarEntrada: boolean): Promise<{ nota_id: string; novos_produtos: string[] }> {
+    // 1) Fornecedor por CNPJ
+    const cnpj = dados.cnpj_emitente
+    let fornecedorId: string | null = null
+    {
+      const { data: f } = await supabase
+        .from('fornecedores')
+        .select('id')
+        .eq('cpf_cnpj', cnpj)
+        .maybeSingle()
+      if (f?.id) {
+        fornecedorId = f.id
+      } else {
+        const { data: novoFornecedor, error: errF } = await supabase
+          .from('fornecedores')
+          .insert({ razao_social: dados.razao_social_emitente, cpf_cnpj: cnpj, ativo: true } as any)
+          .select('id')
+          .single()
+        if (errF) throw errF
+        fornecedorId = novoFornecedor.id
+      }
+    }
+
+    // 2) Nota fiscal por chave de acesso
+    let notaId: string
+    {
+      const { data: nfExiste } = await supabase
+        .from('notas_fiscais')
+        .select('id')
+        .eq('chave_acesso', dados.chave_acesso)
+        .maybeSingle()
+      if (nfExiste?.id) {
+        notaId = nfExiste.id
+      } else {
+        const insert: NotaFiscalInsert = {
+          numero: dados.numero,
+          serie: dados.serie,
+          chave_acesso: dados.chave_acesso,
+          cnpj: dados.cnpj_emitente,
+          razao_social: dados.razao_social_emitente,
+          fornecedor_id: fornecedorId || undefined,
+          data_emissao: dados.data_emissao,
+          valor_total: dados.valor_total,
+          tipo_operacao: 'entrada',
+          status: confirmarEntrada ? 'Processada' : 'Pendente',
+        }
+        const { data: novaNF, error: errNF } = await supabase
+          .from('notas_fiscais')
+          .insert(insert as any)
+          .select('id')
+          .single()
+        if (errNF) throw errNF
+        notaId = novaNF.id
+      }
+    }
+
+    // 3) Itens + pré-cadastro de produtos se necessário
+    const novosProdutos: string[] = []
+    for (const item of dados.itens) {
+      const produtoCodigo = item.codigo
+      // pré-cadastro: assumimos tabela produtos opcional; se não existir, apenas registramos o código
+      // Inserção do item
+      const itemInsert: ItemNotaFiscalInsert = {
+        nota_fiscal_id: notaId,
+        produto_codigo: produtoCodigo,
+        quantidade: item.quantidade,
+        valor_unitario: item.valor_unitario,
+        valor_total: item.valor_total,
+        cfop: item.cfop,
+        ncm: item.ncm,
+        processado: confirmarEntrada,
+      }
+      const { error: errItem } = await supabase.from('itens_nota_fiscal').insert(itemInsert as any)
+      if (errItem) throw errItem
+      novosProdutos.push(produtoCodigo)
+    }
+
+    // 4) Movimentações de estoque (entrada de nota) se confirmar
+    if (confirmarEntrada) {
+      const movimentos = dados.itens.map((i) => ({
+        nota_fiscal_id: notaId,
+        produto_codigo: i.codigo,
+        quantidade: i.quantidade,
+        tipo: 'entrada_nota',
+        custo_unitario: i.valor_unitario,
+      }))
+      const { error: errMov } = await supabase.from('movimentacoes_estoque').insert(movimentos as any)
+      if (errMov) throw errMov
+
+      // data_entrada
+      await supabase
+        .from('notas_fiscais')
+        .update({ data_entrada: new Date().toISOString(), status: 'Processada' })
+        .eq('id', notaId)
+    }
+
+    return { nota_id: notaId, novos_produtos: novosProdutos }
+  }
 }
 
 export const fiscalService = new FiscalService() 

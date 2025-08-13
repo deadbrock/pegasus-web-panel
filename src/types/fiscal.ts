@@ -193,3 +193,26 @@ export interface ItemXML {
   cfop: string
   ncm: string
 } 
+
+// Movimentações de estoque (entrada por NF)
+export interface MovimentacaoEstoque {
+  id: string
+  tipo: 'entrada' | 'saida'
+  nota_fiscal_id?: string | null
+  item_nota_id?: string | null
+  produto_codigo: string
+  quantidade: number
+  custo_unitario?: number | null
+  localizacao?: string | null
+  created_at: string
+}
+
+export interface MovimentacaoEstoqueInsert {
+  tipo: 'entrada' | 'saida'
+  nota_fiscal_id?: string | null
+  item_nota_id?: string | null
+  produto_codigo: string
+  quantidade: number
+  custo_unitario?: number | null
+  localizacao?: string | null
+}
