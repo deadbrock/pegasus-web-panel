@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import * as XLSX from 'xlsx'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Filter, FileText, Upload, Download, Eye, Edit, Trash2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -100,27 +101,27 @@ export default function FiscalPage() {
   }
 
   const handleExportarRelatorio = () => {
-    // Gerar relatório em CSV
-    const csvContent = [
-      'Número,Série,Chave de Acesso,CNPJ,Razão Social,Data Emissão,Valor Total,Status,Tipo Operação',
-      ...notasFiscais.map(nota => [
-        nota.numero,
-        nota.serie,
-        nota.chave_acesso,
-        nota.cnpj,
-        nota.razao_social,
-        nota.data_emissao,
-        nota.valor_total,
-        nota.status,
-        nota.tipo_operacao
-      ].join(','))
-    ].join('\n')
-
-    const blob = new Blob([csvContent], { type: 'text/csv' })
+    const rows = (notasFiscais || []).map(nota => ({
+      Numero: nota.numero,
+      Serie: nota.serie,
+      ChaveAcesso: nota.chave_acesso,
+      CNPJ: nota.cnpj,
+      RazaoSocial: nota.razao_social || nota.fornecedor?.razao_social || '',
+      DataEmissao: nota.data_emissao,
+      ValorTotal: nota.valor_total,
+      ValorICMS: nota.valor_icms ?? '',
+      Status: nota.status,
+      TipoOperacao: nota.tipo_operacao,
+    }))
+    const ws = XLSX.utils.json_to_sheet(rows)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Notas')
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `relatorio_fiscal_${new Date().toISOString().split('T')[0]}.csv`
+    a.download = `relatorio_fiscal_${new Date().toISOString().split('T')[0]}.xlsx`
     a.click()
     URL.revokeObjectURL(url)
   }
