@@ -169,7 +169,7 @@ export default function FiscalPage() {
       </div>
 
       {/* Estatísticas */}
-      {stats && <FiscalStats stats={stats} />}
+      {stats ? <FiscalStats stats={stats} /> : null}
 
       {/* Filtros */}
       {showFilters && (

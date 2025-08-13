@@ -1,23 +1,24 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string | undefined
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string | undefined
 
-// Evita múltiplas instâncias no mesmo contexto e usa storageKey exclusivo
-const globalForSupabase = globalThis as unknown as { __pegasus_supabase__: SupabaseClient | undefined }
+let cached: SupabaseClient | null = null
 
-export const supabase: SupabaseClient =
-  globalForSupabase.__pegasus_supabase__ ??
-  createClient(supabaseUrl, supabaseAnonKey, {
+export function getSupabaseClient(): SupabaseClient {
+  if (cached) return cached
+  const url = supabaseUrl ?? 'https://placeholder.supabase.co'
+  const key = supabaseAnonKey ?? 'anon-placeholder'
+  cached = createClient(url, key, {
     auth: {
       storageKey: 'pegasus-web-auth',
       persistSession: true,
       autoRefreshToken: true,
     },
   })
-
-if (typeof window !== 'undefined') {
-  globalForSupabase.__pegasus_supabase__ = supabase
+  return cached
 }
+
+export const supabase: SupabaseClient = getSupabaseClient()
 
 
