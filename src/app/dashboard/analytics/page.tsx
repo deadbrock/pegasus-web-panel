@@ -3,6 +3,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar as CalendarComp } from '@/components/ui/calendar'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import * as XLSX from 'xlsx'
+import { getDeliveryEvolutionRange, getRouteStatusRange, getCostsByCategoryRange, getDriversPerformanceRange } from '@/lib/services/analytics-service'
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -24,6 +30,32 @@ import { RouteStatusChart } from '@/components/analytics/route-status-chart'
 import { AnalyticsTable } from '@/components/analytics/analytics-table'
 
 export default function AnalyticsPage() {
+  const [range, setRange] = React.useState<{ from: Date; to: Date }>({ from: new Date(new Date().getFullYear(), new Date().getMonth(), 1), to: new Date() })
+
+  const exportXlsx = async () => {
+    const { from, to } = range
+    const [evol, status, costs, perf] = await Promise.all([
+      getDeliveryEvolutionRange(from, to),
+      getRouteStatusRange(from, to),
+      getCostsByCategoryRange(from, to),
+      getDriversPerformanceRange(from, to),
+    ])
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(evol), 'Evolucao')
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(status), 'StatusRotas')
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(costs), 'Custos')
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(perf), 'Performance')
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `analytics_${format(from, 'yyyy-MM-dd')}_${format(to, 'yyyy-MM-dd')}.xlsx`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }
   return (
     <div className="space-y-6">
       {/* Header Section */}
@@ -35,11 +67,26 @@ export default function AnalyticsPage() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" size="sm">
-            <Calendar className="w-4 h-4 mr-2" />
-            Período
-          </Button>
-          <Button variant="outline" size="sm">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Calendar className="w-4 h-4 mr-2" />
+                {`${format(range.from, 'dd/MM', { locale: ptBR })} - ${format(range.to, 'dd/MM', { locale: ptBR })}`}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <div className="p-2">
+                <CalendarComp
+                  mode="range"
+                  selected={{ from: range.from, to: range.to } as any}
+                  onSelect={(r: any) => r?.from && r?.to && setRange({ from: r.from, to: r.to })}
+                  numberOfMonths={2}
+                  initialFocus
+                />
+              </div>
+            </PopoverContent>
+          </Popover>
+          <Button variant="outline" size="sm" onClick={exportXlsx}>
             <Download className="w-4 h-4 mr-2" />
             Exportar
           </Button>

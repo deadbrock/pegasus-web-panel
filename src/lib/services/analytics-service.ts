@@ -38,6 +38,33 @@ export async function getDeliveryEvolution(lastDays = 30): Promise<DeliveryPoint
   }
 }
 
+export async function getDeliveryEvolutionRange(start: Date, end: Date): Promise<DeliveryPoint[]> {
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('status, data_entrega, data_pedido')
+      .gte('data_pedido', start.toISOString())
+      .lte('data_pedido', end.toISOString())
+    if (error) throw error
+    const days = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / 86400000) + 1)
+    const byDay: Record<string, { total: number; concluidas: number }> = {}
+    for (let i = 0; i < days; i++) {
+      const d = new Date(start.getTime() + i * 86400000)
+      byDay[formatDay(d)] = { total: 0, concluidas: 0 }
+    }
+    for (const r of data || []) {
+      const d = new Date((r as any).data_pedido)
+      const key = formatDay(d)
+      if (!byDay[key]) byDay[key] = { total: 0, concluidas: 0 }
+      byDay[key].total++
+      if ((r as any).status === 'Entregue') byDay[key].concluidas++
+    }
+    return Object.entries(byDay).map(([k, v]) => ({ data: k, entregas: v.total, concluidas: v.concluidas, meta: 70 }))
+  } catch {
+    return []
+  }
+}
+
 export async function getRouteStatus(): Promise<PieItem[]> {
   try {
     const { data, error } = await supabase.from('orders').select('status')
@@ -56,6 +83,25 @@ export async function getRouteStatus(): Promise<PieItem[]> {
       { name: 'Canceladas', value: 3 },
       { name: 'Atrasadas', value: 2 },
     ]
+  }
+}
+
+export async function getRouteStatusRange(start: Date, end: Date): Promise<PieItem[]> {
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('status, data_pedido')
+      .gte('data_pedido', start.toISOString())
+      .lte('data_pedido', end.toISOString())
+    if (error) throw error
+    const counts: Record<string, number> = {}
+    for (const r of data || []) {
+      const s = (r as any).status || 'Pendente'
+      counts[s] = (counts[s] || 0) + 1
+    }
+    return Object.entries(counts).map(([name, value]) => ({ name, value }))
+  } catch {
+    return []
   }
 }
 
@@ -94,6 +140,29 @@ export async function getCostsByCategory(month?: number, year?: number): Promise
   }
 }
 
+export async function getCostsByCategoryRange(start: Date, end: Date): Promise<PieItem[]> {
+  try {
+    const { data, error } = await supabase
+      .from('notas_fiscais')
+      .select('valor_total, razao_social, data_emissao')
+      .gte('data_emissao', start.toISOString().slice(0,10))
+      .lte('data_emissao', end.toISOString().slice(0,10))
+    if (error) throw error
+    const buckets: Record<string, number> = { Combustível: 0, Manutenção: 0, Seguro: 0, Outros: 0 }
+    for (const nf of data || []) {
+      const nome = ((nf as any).razao_social || '').toLowerCase()
+      const v = Number((nf as any).valor_total || 0)
+      if (nome.includes('posto') || nome.includes('combust')) buckets['Combustível'] += v
+      else if (nome.includes('oficina') || nome.includes('mec') || nome.includes('manut')) buckets['Manutenção'] += v
+      else if (nome.includes('segur')) buckets['Seguro'] += v
+      else buckets['Outros'] += v
+    }
+    return Object.entries(buckets).map(([name, value]) => ({ name, value }))
+  } catch {
+    return []
+  }
+}
+
 export async function getDriversPerformance(): Promise<{ name: string; entregas: number; pontuacao: number }[]> {
   try {
     const { data, error } = await supabase.from('orders').select('motorista, status')
@@ -110,6 +179,26 @@ export async function getDriversPerformance(): Promise<{ name: string; entregas:
       { name: 'João Silva', entregas: 45, pontuacao: 92 },
       { name: 'Maria Santos', entregas: 52, pontuacao: 96 },
     ]
+  }
+}
+
+export async function getDriversPerformanceRange(start: Date, end: Date): Promise<{ name: string; entregas: number; pontuacao: number }[]> {
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('motorista, status, data_pedido')
+      .gte('data_pedido', start.toISOString())
+      .lte('data_pedido', end.toISOString())
+    if (error) throw error
+    const stats: Record<string, { entregas: number; pontuacao: number }> = {}
+    for (const r of data || []) {
+      const m = (r as any).motorista || '—'
+      if (!stats[m]) stats[m] = { entregas: 0, pontuacao: 85 }
+      if ((r as any).status === 'Entregue') stats[m].entregas++
+    }
+    return Object.entries(stats).map(([name, v]) => ({ name, entregas: v.entregas, pontuacao: v.pontuacao }))
+  } catch {
+    return []
   }
 }
 
