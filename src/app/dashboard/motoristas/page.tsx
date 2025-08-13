@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -21,6 +21,9 @@ import {
 import { MetricCard } from '@/components/dashboard/metric-card'
 import { DriversTable } from '@/components/motoristas/drivers-table'
 import { DriverDialog } from '@/components/motoristas/driver-dialog'
+import { fetchDrivers, createDriver, updateDriver, DriverRecord } from '@/services/driversService'
+import * as XLSX from 'xlsx'
+import { useToast } from '@/hooks/use-toast'
 import { DriverStatusChart } from '@/components/motoristas/driver-status-chart'
 import { DriverLicenseChart } from '@/components/motoristas/driver-license-chart'
 import { DriverPerformanceOverview } from '@/components/motoristas/driver-performance-overview'
@@ -28,7 +31,18 @@ import { DriverDocumentsStatus } from '@/components/motoristas/driver-documents-
 
 export default function MotoristasPage() {
   const [isDriverDialogOpen, setIsDriverDialogOpen] = useState(false)
-  const [selectedDriver, setSelectedDriver] = useState(null)
+  const [selectedDriver, setSelectedDriver] = useState<DriverRecord | null>(null)
+  const [drivers, setDrivers] = useState<DriverRecord[]>([])
+  const { toast } = useToast()
+
+  const load = async () => {
+    const rows = await fetchDrivers()
+    setDrivers(rows)
+  }
+
+  useEffect(() => {
+    load()
+  }, [])
 
   const handleNewDriver = () => {
     setSelectedDriver(null)
@@ -38,6 +52,50 @@ export default function MotoristasPage() {
   const handleEditDriver = (driver: any) => {
     setSelectedDriver(driver)
     setIsDriverDialogOpen(true)
+  }
+
+  const handleSave = async (payload: any) => {
+    try {
+      if (selectedDriver?.id) {
+        const ok = await updateDriver(selectedDriver.id, payload)
+        if (!ok) throw new Error('Falha ao atualizar motorista')
+        toast({ title: 'Motorista atualizado' })
+      } else {
+        const created = await createDriver(payload as DriverRecord)
+        if (!created) throw new Error('Falha ao criar motorista')
+        toast({ title: 'Motorista criado' })
+      }
+      setIsDriverDialogOpen(false)
+      setSelectedDriver(null)
+      await load()
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e?.message || 'Erro ao salvar motorista' })
+    }
+  }
+
+  const exportDrivers = () => {
+    const rows = (drivers || []).map(d => ({
+      Nome: d.nome,
+      CPF: d.cpf,
+      CNH: d.cnh,
+      Telefone: d.telefone || '',
+      Email: d.email || '',
+      Endereco: d.endereco || '',
+      Status: d.status || 'Ativo',
+    }))
+    const ws = XLSX.utils.json_to_sheet(rows)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Motoristas')
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'motoristas.xlsx'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
   }
 
   return (
@@ -51,11 +109,11 @@ export default function MotoristasPage() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => toast({ title: 'Importar', description: 'Em breve' })}>
             <Upload className="w-4 h-4 mr-2" />
             Importar
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={exportDrivers}>
             <Download className="w-4 h-4 mr-2" />
             Exportar
           </Button>
@@ -226,7 +284,7 @@ export default function MotoristasPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <DriversTable onEdit={handleEditDriver} />
+              <DriversTable onEdit={handleEditDriver} data={drivers} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -340,6 +398,7 @@ export default function MotoristasPage() {
         open={isDriverDialogOpen}
         onClose={() => setIsDriverDialogOpen(false)}
         driver={selectedDriver}
+        onSave={handleSave as any}
       />
     </div>
   )

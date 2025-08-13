@@ -4,8 +4,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Edit, Eye, Phone, Calendar, CreditCard, AlertTriangle, Users } from 'lucide-react'
+import { DriverRecord } from '@/services/driversService'
 
-// Mock data - substituir por dados do Supabase
+// Mock data - usado quando não há dados do Supabase
 const driversData = [
   {
     id: 1,
@@ -95,9 +96,10 @@ const driversData = [
 
 interface DriversTableProps {
   onEdit: (driver: any) => void
+  data?: DriverRecord[]
 }
 
-export function DriversTable({ onEdit }: DriversTableProps) {
+export function DriversTable({ onEdit, data }: DriversTableProps) {
   const getStatusBadge = (status: string, validadeCnh: string) => {
     const hoje = new Date()
     const vencimento = new Date(validadeCnh)
@@ -157,7 +159,7 @@ export function DriversTable({ onEdit }: DriversTableProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {driversData.map((driver) => (
+          {(data && data.length ? data : driversData).map((driver: any) => (
             <TableRow key={driver.id}>
               <TableCell>
                 <div className="flex items-center gap-2">

@@ -39,7 +39,7 @@ const statusOptions = [
   'Demitido'
 ]
 
-export function DriverDialog({ open, onClose, driver }: DriverDialogProps) {
+export function DriverDialog({ open, onClose, driver, onSave }: DriverDialogProps & { onSave?: (data: any) => void }) {
   const [formData, setFormData] = useState({
     nome: '',
     cpf: '',
@@ -106,12 +106,20 @@ export function DriverDialog({ open, onClose, driver }: DriverDialogProps) {
     setIsSubmitting(true)
 
     try {
-      // Aqui seria feita a integração com Supabase
-      console.log('Salvando motorista:', formData)
-      
-      // Simular delay da API
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
+      const payload = {
+        nome: formData.nome,
+        cpf: formData.cpf,
+        cnh: formData.cnh,
+        telefone: formData.telefone || null,
+        email: formData.email || null,
+        endereco: [formData.endereco, formData.cidade, formData.estado, formData.cep].filter(Boolean).join(', '),
+        status: formData.status,
+        categoria: formData.categoria || undefined,
+        validadeCnh: formData.validadeCnh ? formData.validadeCnh.toISOString() : null,
+        dataAdmissao: formData.dataAdmissao ? formData.dataAdmissao.toISOString() : null,
+        observacoes: formData.observacoes || null,
+      }
+      if (onSave) await onSave(payload)
       onClose()
     } catch (error) {
       console.error('Erro ao salvar motorista:', error)
