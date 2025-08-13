@@ -361,36 +361,54 @@ class FiscalService {
   }
 
   // Validação de XML (simulação)
-  async validarXML(arquivoXML: File): Promise<DadosXML | null> {
+  async validarXML(arquivoXML: File | string): Promise<DadosXML | null> {
     try {
-      // Simular processamento de XML
-      // Em uma implementação real, aqui seria feito o parsing do XML da NFe
-      
-      const chaveAcesso = `35${Date.now()}${Math.random().toString().substr(2, 8)}`
-      
-      return {
-        chave_acesso: chaveAcesso,
-        numero: Math.floor(Math.random() * 999999).toString(),
-        serie: '001',
-        data_emissao: new Date().toISOString().split('T')[0],
-        cnpj_emitente: '12.345.678/0001-90',
-        razao_social_emitente: 'Empresa Teste LTDA',
-        valor_total: Math.random() * 10000 + 1000,
-        itens: [
-          {
-            codigo: 'PROD001',
-            descricao: 'Produto de Teste',
-            quantidade: Math.floor(Math.random() * 10) + 1,
-            valor_unitario: Math.random() * 100 + 10,
-            valor_total: 0,
-            cfop: '5102',
-            ncm: '12345678'
-          }
-        ].map(item => ({
-          ...item,
-          valor_total: item.quantidade * item.valor_unitario
-        }))
+      let xmlString: string
+      if (typeof arquivoXML === 'string') xmlString = arquivoXML
+      else xmlString = await arquivoXML.text()
+
+      // Parse NFe (nfeProc → NFe → infNFe)
+      const { XMLParser } = await import('fast-xml-parser')
+      const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' })
+      const obj = parser.parse(xmlString)
+
+      const infNFe = obj?.nfeProc?.NFe?.infNFe || obj?.NFe?.infNFe
+      if (!infNFe) throw new Error('XML de NFe inválido: infNFe não encontrado')
+
+      const ide = infNFe.ide || {}
+      const emit = infNFe.emit || {}
+      const total = infNFe.total?.ICMSTot || {}
+      let det = infNFe.det || []
+      if (!Array.isArray(det)) det = [det]
+
+      const itens = det.map((d: any) => {
+        const p = d?.prod || {}
+        const qtd = Number(p.qCom ?? p.qTrib ?? 0)
+        const vUn = Number(p.vUnCom ?? p.vUnTrib ?? 0)
+        const vTot = Number(p.vProd ?? (qtd * vUn))
+        return {
+          codigo: String(p.cProd ?? ''),
+          descricao: String(p.xProd ?? ''),
+          quantidade: qtd,
+          valor_unitario: vUn,
+          valor_total: vTot,
+          cfop: String(p.CFOP ?? ''),
+          ncm: String(p.NCM ?? ''),
+        }
+      })
+
+      const chaveFromId = String(infNFe['@_Id'] ?? '').replace('NFe', '')
+      const dados: DadosXML = {
+        chave_acesso: chaveFromId || '',
+        numero: String(ide.nNF ?? ''),
+        serie: String(ide.serie ?? ''),
+        data_emissao: String(ide.dhEmi ?? ide.dEmi ?? '').slice(0, 10),
+        cnpj_emitente: String(emit.CNPJ ?? ''),
+        razao_social_emitente: String(emit.xNome ?? ''),
+        valor_total: Number(total.vNF ?? 0),
+        itens,
       }
+      return dados
     } catch (error) {
       console.error('Erro ao validar XML:', error)
       return null
