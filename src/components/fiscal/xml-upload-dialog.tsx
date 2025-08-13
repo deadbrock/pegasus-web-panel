@@ -77,12 +77,16 @@ export function XMLUploadDialog({ open, onClose }: XMLUploadDialogProps) {
     setIsValidating(false);
   };
 
-  const handleCreateFromXML = () => {
-    if (dados) {
-      // Aqui poderíamos criar a NF com fiscalService.createNotaFiscal + itens.
-      queryClient.invalidateQueries({ queryKey: ['notas-fiscais'] });
-      toast({ title: 'Sucesso', description: 'Nota fiscal criada a partir do XML (simulado).' });
-      onClose();
+  const handleCreateFromXML = async () => {
+    if (!dados) return
+    try {
+      const res = await fiscalService.importarNotaDeDadosXML(dados, true)
+      toast({ title: 'Entrada de nota registrada', description: `NF criada e movimentações geradas. Itens: ${res.novos_produtos.length}` })
+      queryClient.invalidateQueries({ queryKey: ['notas-fiscais'] })
+      queryClient.invalidateQueries({ queryKey: ['fiscal-stats'] })
+      onClose()
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e?.message || 'Falha ao importar nota', variant: 'destructive' })
     }
   };
 
