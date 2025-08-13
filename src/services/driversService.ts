@@ -116,4 +116,17 @@ export function subscribeDrivers(onChange: () => void) {
   return () => supabase.removeChannel(channel)
 }
 
+export async function upsertDriversBulk(rows: DriverRecord[]): Promise<{ ok: number; fail: number }> {
+  if (!rows.length) return { ok: 0, fail: 0 }
+  // upsert por CPF, se houver unique no schema. Caso não tenha, irá inserir duplicado.
+  const { error } = await supabase
+    .from('motoristas')
+    .upsert(rows.map(mapToDbPayload) as any, { onConflict: 'cpf' })
+  if (error) {
+    console.error('upsertDriversBulk error:', error.message)
+    return { ok: 0, fail: rows.length }
+  }
+  return { ok: rows.length, fail: 0 }
+}
+
 

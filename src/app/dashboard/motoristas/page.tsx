@@ -22,11 +22,11 @@ import { MetricCard } from '@/components/dashboard/metric-card'
 import { DriversTable } from '@/components/motoristas/drivers-table'
 import { DriverDialog } from '@/components/motoristas/driver-dialog'
 import { fetchDrivers, createDriver, updateDriver, DriverRecord } from '@/services/driversService'
-import * as XLSX from 'xlsx'
 import { useToast } from '@/hooks/use-toast'
 import { DriverStatusChart } from '@/components/motoristas/driver-status-chart'
 import { DriverLicenseChart } from '@/components/motoristas/driver-license-chart'
 import { DriverPerformanceOverview } from '@/components/motoristas/driver-performance-overview'
+import { exportListaMotoristas, exportCNHVencendo, exportDocumentosPendentesTemplate } from '@/components/motoristas/drivers-reports'
 import { DriverDocumentsStatus } from '@/components/motoristas/driver-documents-status'
 
 export default function MotoristasPage() {
@@ -73,30 +73,7 @@ export default function MotoristasPage() {
     }
   }
 
-  const exportDrivers = () => {
-    const rows = (drivers || []).map(d => ({
-      Nome: d.nome,
-      CPF: d.cpf,
-      CNH: d.cnh,
-      Telefone: d.telefone || '',
-      Email: d.email || '',
-      Endereco: d.endereco || '',
-      Status: d.status || 'Ativo',
-    }))
-    const ws = XLSX.utils.json_to_sheet(rows)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Motoristas')
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
-    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'motoristas.xlsx'
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    URL.revokeObjectURL(url)
-  }
+  const exportDrivers = () => exportListaMotoristas(drivers)
 
   return (
     <div className="space-y-6">
@@ -321,11 +298,11 @@ export default function MotoristasPage() {
                 <CardTitle>Relatórios Disponíveis</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start" onClick={() => exportListaMotoristas(drivers)}>
                   <Download className="w-4 h-4 mr-2" />
                   Lista de Motoristas
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start" onClick={() => exportCNHVencendo(drivers)}>
                   <Download className="w-4 h-4 mr-2" />
                   CNHs Vencendo
                 </Button>
@@ -337,7 +314,7 @@ export default function MotoristasPage() {
                   <Download className="w-4 h-4 mr-2" />
                   Histórico de Viagens
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start" onClick={() => exportDocumentosPendentesTemplate()}>
                   <Download className="w-4 h-4 mr-2" />
                   Documentos Pendentes
                 </Button>
