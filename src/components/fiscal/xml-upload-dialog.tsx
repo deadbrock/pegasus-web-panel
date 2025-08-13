@@ -235,7 +235,7 @@ export function XMLUploadDialog({ open, onClose }: XMLUploadDialogProps) {
           <Button variant="outline" onClick={handleClose}>
             Cancelar
           </Button>
-          {validation?.isValid && (
+          {dados && (
             <Button onClick={handleCreateFromXML}>
               Criar Nota Fiscal
             </Button>
