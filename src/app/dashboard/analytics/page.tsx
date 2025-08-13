@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -150,7 +151,7 @@ export default function AnalyticsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <DeliveryEvolutionChart from={range.from} to={range.to} />
+                 <DeliveryEvolutionChart from={range.from} to={range.to} />
               </CardContent>
             </Card>
 
@@ -163,7 +164,7 @@ export default function AnalyticsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <RouteStatusChart />
+                <RouteStatusChart from={range.from} to={range.to} />
               </CardContent>
             </Card>
 
@@ -176,7 +177,7 @@ export default function AnalyticsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <CostsCategoryChart />
+                <CostsCategoryChart from={range.from} to={range.to} />
               </CardContent>
             </Card>
           </div>

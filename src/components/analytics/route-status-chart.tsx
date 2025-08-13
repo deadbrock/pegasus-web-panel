@@ -2,7 +2,7 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
 import { useEffect, useState } from 'react'
-import { getRouteStatus } from '@/lib/services/analytics-service'
+import { getRouteStatus, getRouteStatusRange } from '@/lib/services/analytics-service'
 const palette = ['#f59e0b','#10b981','#3b82f6','#ef4444','#8b5cf6']
 
 const RADIAN = Math.PI / 180
@@ -36,9 +36,14 @@ const renderCustomizedLabel = ({
   )
 }
 
-export function RouteStatusChart() {
+interface Props { from?: Date; to?: Date }
+
+export function RouteStatusChart({ from, to }: Props) {
   const [data, setData] = useState<any[]>([])
-  useEffect(() => { getRouteStatus().then(setData) }, [])
+  useEffect(() => {
+    if (from && to) getRouteStatusRange(from, to).then(setData)
+    else getRouteStatus().then(setData)
+  }, [from?.toString(), to?.toString()])
   return (
     <div className="h-80">
       <ResponsiveContainer width="100%" height="100%">

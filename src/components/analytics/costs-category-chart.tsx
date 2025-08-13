@@ -2,7 +2,7 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
 import { useEffect, useState } from 'react'
-import { getCostsByCategory } from '@/lib/services/analytics-service'
+import { getCostsByCategory, getCostsByCategoryRange } from '@/lib/services/analytics-service'
 const pal = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6']
 
 const RADIAN = Math.PI / 180
@@ -33,9 +33,14 @@ const renderCustomizedLabel = ({
   )
 }
 
-export function CostsCategoryChart() {
+interface Props { from?: Date; to?: Date }
+
+export function CostsCategoryChart({ from, to }: Props) {
   const [data, setData] = useState<any[]>([])
-  useEffect(() => { getCostsByCategory().then(setData) }, [])
+  useEffect(() => {
+    if (from && to) getCostsByCategoryRange(from, to).then(setData)
+    else getCostsByCategory().then(setData)
+  }, [from?.toString(), to?.toString()])
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
