@@ -150,7 +150,7 @@ export default function AnalyticsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <DeliveryEvolutionChart />
+                <DeliveryEvolutionChart from={range.from} to={range.to} />
               </CardContent>
             </Card>
 

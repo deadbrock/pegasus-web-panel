@@ -2,13 +2,19 @@
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
 import { useEffect, useState } from 'react'
-import { getDeliveryEvolution } from '@/lib/services/analytics-service'
+import { getDeliveryEvolution, getDeliveryEvolutionRange } from '@/lib/services/analytics-service'
 
-export function DeliveryEvolutionChart() {
+interface Props { from?: Date; to?: Date }
+
+export function DeliveryEvolutionChart({ from, to }: Props) {
   const [data, setData] = useState<any[]>([])
   useEffect(() => {
-    getDeliveryEvolution(30).then(setData)
-  }, [])
+    if (from && to) {
+      getDeliveryEvolutionRange(from, to).then(setData)
+    } else {
+      getDeliveryEvolution(30).then(setData)
+    }
+  }, [from?.toString(), to?.toString()])
   return (
     <div className="h-80">
       <ResponsiveContainer width="100%" height="100%">
