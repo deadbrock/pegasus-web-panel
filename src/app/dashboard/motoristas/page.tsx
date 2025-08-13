@@ -28,6 +28,7 @@ import { DriverLicenseChart } from '@/components/motoristas/driver-license-chart
 import { DriverPerformanceOverview } from '@/components/motoristas/driver-performance-overview'
 import { exportListaMotoristas, exportCNHVencendo, exportDocumentosPendentesTemplate } from '@/components/motoristas/drivers-reports'
 import { DriverDocumentsStatus } from '@/components/motoristas/driver-documents-status'
+import { DriversImportExport } from '@/components/motoristas/drivers-import-export'
 
 export default function MotoristasPage() {
   const [isDriverDialogOpen, setIsDriverDialogOpen] = useState(false)
@@ -86,10 +87,7 @@ export default function MotoristasPage() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" size="sm" onClick={() => toast({ title: 'Importar', description: 'Em breve' })}>
-            <Upload className="w-4 h-4 mr-2" />
-            Importar
-          </Button>
+          <DriversImportExport onImported={load} />
           <Button variant="outline" size="sm" onClick={exportDrivers}>
             <Download className="w-4 h-4 mr-2" />
             Exportar
