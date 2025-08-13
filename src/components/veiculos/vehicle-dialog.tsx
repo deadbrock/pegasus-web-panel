@@ -51,7 +51,7 @@ const colors = [
   'Outros'
 ]
 
-export function VehicleDialog({ open, onClose, vehicle }: VehicleDialogProps) {
+export function VehicleDialog({ open, onClose, vehicle, onSave }: VehicleDialogProps & { onSave?: (data: any) => void }) {
   const [formData, setFormData] = useState({
     placa: '',
     marca: '',
@@ -112,12 +112,22 @@ export function VehicleDialog({ open, onClose, vehicle }: VehicleDialogProps) {
     setIsSubmitting(true)
 
     try {
-      // Aqui seria feita a integração com Supabase
-      console.log('Salvando veículo:', formData)
-      
-      // Simular delay da API
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
+      const payload = {
+        placa: formData.placa,
+        marca: formData.marca,
+        modelo: formData.modelo,
+        tipo: formData.tipo || null,
+        ano: formData.ano ? Number(formData.ano) : null,
+        cor: formData.cor || null,
+        combustivel: formData.combustivel || null,
+        capacidade: formData.capacidade ? Number(formData.capacidade) : null,
+        kmTotal: formData.kmTotal ? Number(formData.kmTotal) : null,
+        status: formData.status as any,
+        chassi: formData.chassi || null,
+        renavam: formData.renavam || null,
+        observacoes: formData.observacoes || null,
+      }
+      if (onSave) await onSave(payload)
       onClose()
     } catch (error) {
       console.error('Erro ao salvar veículo:', error)

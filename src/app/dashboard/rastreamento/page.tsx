@@ -19,6 +19,8 @@ import {
   Pause,
   Settings
 } from 'lucide-react'
+import { exportRastreamentoVeiculos, exportRastreamentoRotas, exportRastreamentoKPIs, exportTemplateImportPositions } from '@/components/rastreamento/reports'
+import { useToast } from '@/hooks/use-toast'
 import { MetricCard } from '@/components/dashboard/metric-card'
 import { TrackingMap } from '@/components/rastreamento/tracking-map'
 import { VehiclesTable } from '@/components/rastreamento/vehicles-table'
@@ -30,6 +32,7 @@ export default function RastreamentoPage() {
   const [isRealTimeActive, setIsRealTimeActive] = useState(true)
   const [selectedVehicle, setSelectedVehicle] = useState(null)
   const [lastUpdate, setLastUpdate] = useState(new Date())
+  const { toast } = useToast()
 
   // Atualização automática a cada 5 segundos
   useEffect(() => {
@@ -79,11 +82,14 @@ export default function RastreamentoPage() {
             <RefreshCw className="w-4 h-4 mr-2" />
             Atualizar
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => exportTemplateImportPositions()}>
             <Filter className="w-4 h-4 mr-2" />
-            Filtros
+            Importar
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => {
+            const resumo = { 'Veículos Ativos': 18, 'Em Movimento': 14, 'Entregas Hoje': 24, 'KM Hoje': 1245 }
+            exportRastreamentoKPIs(resumo)
+          }}>
             <Download className="w-4 h-4 mr-2" />
             Exportar
           </Button>
@@ -163,11 +169,11 @@ export default function RastreamentoPage() {
                       Rastreamento em Tempo Real
                     </CardTitle>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => toast({ title: 'Ver Tudo', description: 'Centralizando no mapa (simulado)' })}>
                         <Eye className="w-4 h-4 mr-2" />
                         Ver Tudo
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => toast({ title: 'Configurações', description: 'Em breve' })}>
                         <Settings className="w-4 h-4 mr-2" />
                         Config
                       </Button>
@@ -223,7 +229,7 @@ export default function RastreamentoPage() {
                     <Filter className="w-4 h-4 mr-2" />
                     Filtrar Status
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => exportRastreamentoVeiculos([])}>
                     <Download className="w-4 h-4 mr-2" />
                     Exportar Lista
                   </Button>
@@ -249,6 +255,12 @@ export default function RastreamentoPage() {
                   <Route className="w-5 h-5" />
                   Histórico de Rotas
                 </CardTitle>
+                <div className="ml-auto">
+                  <Button variant="outline" size="sm" onClick={() => exportRastreamentoRotas([])}>
+                    <Download className="w-4 h-4 mr-2" />
+                    Exportar Rotas
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <RouteHistory selectedVehicle={selectedVehicle} />

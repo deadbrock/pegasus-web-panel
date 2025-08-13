@@ -13,7 +13,8 @@
     "export": "next export",
     "deploy:vercel": "vercel --prod",
     "deploy:netlify": "npm run build && netlify deploy --prod --dir=out",
-    "postinstall": "next telemetry disable"
+    "postinstall": "next telemetry disable",
+    "apply:supabase": "node ./scripts/apply_supabase_sql.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.2",
@@ -35,6 +36,7 @@
     "leaflet": "^1.9.4",
     "lucide-react": "^0.294.0",
     "next": "^14.0.4",
+    "pg": "^8.16.3",
     "react": "^18.3.1",
     "react-day-picker": "^9.8.1",
     "react-dom": "^18.3.1",

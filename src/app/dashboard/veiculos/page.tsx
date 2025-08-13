@@ -1,6 +1,4 @@
 'use client'
-
-import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -21,13 +19,30 @@ import {
 import { MetricCard } from '@/components/dashboard/metric-card'
 import { VehiclesTable } from '@/components/veiculos/vehicles-table'
 import { VehicleDialog } from '@/components/veiculos/vehicle-dialog'
+import { VehicleDetailsDialog } from '@/components/veiculos/vehicle-details-dialog'
 import { VehicleStatusChart } from '@/components/veiculos/vehicle-status-chart'
 import { VehicleKmChart } from '@/components/veiculos/vehicle-km-chart'
 import { VehicleMaintenanceOverview } from '@/components/veiculos/vehicle-maintenance-overview'
+import { useEffect, useState } from 'react'
+import { fetchVehicles, createVehicle, updateVehicle, VehicleRecord } from '@/services/vehiclesService'
+import { useToast } from '@/hooks/use-toast'
+import { exportRelatorioFrota, exportHistoricoKm, exportCustosManutencaoTemplate, exportEficienciaCombustivelTemplate, exportAgendaManutencoesTemplate } from '@/components/veiculos/reports'
 
 export default function VeiculosPage() {
   const [isVehicleDialogOpen, setIsVehicleDialogOpen] = useState(false)
-  const [selectedVehicle, setSelectedVehicle] = useState(null)
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+  const [selectedVehicle, setSelectedVehicle] = useState<VehicleRecord | null>(null)
+  const [vehicles, setVehicles] = useState<VehicleRecord[]>([])
+  const { toast } = useToast()
+
+  const load = async () => {
+    const rows = await fetchVehicles()
+    setVehicles(rows)
+  }
+
+  useEffect(() => {
+    load()
+  }, [])
 
   const handleNewVehicle = () => {
     setSelectedVehicle(null)
@@ -37,6 +52,30 @@ export default function VeiculosPage() {
   const handleEditVehicle = (vehicle: any) => {
     setSelectedVehicle(vehicle)
     setIsVehicleDialogOpen(true)
+  }
+
+  const handleViewDetails = (vehicle: VehicleRecord) => {
+    setSelectedVehicle(vehicle)
+    setIsDetailsOpen(true)
+  }
+
+  const handleSaveVehicle = async (data: VehicleRecord) => {
+    try {
+      if (selectedVehicle?.id) {
+        const ok = await updateVehicle(selectedVehicle.id, data)
+        if (!ok) throw new Error('Falha ao atualizar veículo')
+        toast({ title: 'Veículo atualizado' })
+      } else {
+        const created = await createVehicle(data)
+        if (!created) throw new Error('Falha ao criar veículo')
+        toast({ title: 'Veículo criado' })
+      }
+      setIsVehicleDialogOpen(false)
+      setSelectedVehicle(null)
+      await load()
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e?.message || 'Erro ao salvar veículo' })
+    }
   }
 
   return (
@@ -50,11 +89,11 @@ export default function VeiculosPage() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => toast({ title: 'Importação', description: 'Em breve' })}>
             <Upload className="w-4 h-4 mr-2" />
             Importar
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => exportRelatorioFrota(vehicles)}>
             <Download className="w-4 h-4 mr-2" />
             Exportar
           </Button>
@@ -190,7 +229,7 @@ export default function VeiculosPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <VehiclesTable onEdit={handleEditVehicle} />
+              <VehiclesTable onEdit={handleEditVehicle} onView={handleViewDetails} data={vehicles} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -299,23 +338,23 @@ export default function VeiculosPage() {
                 <CardTitle>Relatórios Disponíveis</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start" onClick={() => exportRelatorioFrota(vehicles)}>
                   <Download className="w-4 h-4 mr-2" />
                   Relatório da Frota
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start" onClick={() => exportHistoricoKm(vehicles)}>
                   <Download className="w-4 h-4 mr-2" />
                   Histórico de KM
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start" onClick={() => exportCustosManutencaoTemplate()}>
                   <Download className="w-4 h-4 mr-2" />
                   Custos de Manutenção
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start" onClick={() => exportEficienciaCombustivelTemplate()}>
                   <Download className="w-4 h-4 mr-2" />
                   Eficiência de Combustível
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start" onClick={() => exportAgendaManutencoesTemplate()}>
                   <Download className="w-4 h-4 mr-2" />
                   Agenda de Manutenções
                 </Button>
@@ -367,7 +406,10 @@ export default function VeiculosPage() {
         open={isVehicleDialogOpen}
         onClose={() => setIsVehicleDialogOpen(false)}
         vehicle={selectedVehicle}
+        onSave={handleSaveVehicle}
       />
+
+      <VehicleDetailsDialog open={isDetailsOpen} onClose={() => setIsDetailsOpen(false)} vehicle={selectedVehicle as any} />
     </div>
   )
 }

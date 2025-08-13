@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Edit, Eye, Wrench, Truck, Calendar, MapPin } from 'lucide-react'
+import { VehicleRecord } from '@/services/vehiclesService'
 
 // Mock data - substituir por dados do Supabase
 export const vehiclesData = [
@@ -95,9 +96,11 @@ export const vehiclesData = [
 
 interface VehiclesTableProps {
   onEdit: (vehicle: any) => void
+  onView?: (vehicle: VehicleRecord) => void
+  data?: VehicleRecord[]
 }
 
-export function VehiclesTable({ onEdit }: VehiclesTableProps) {
+export function VehiclesTable({ onEdit, onView, data }: VehiclesTableProps) {
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline', color: string }> = {
       'Ativo': { variant: 'default', color: 'bg-green-500' },
@@ -128,6 +131,24 @@ export function VehiclesTable({ onEdit }: VehiclesTableProps) {
     )
   }
 
+  const rows: any[] = (data && data.length ? data.map(v => ({
+    id: v.id,
+    placa: v.placa,
+    marca: v.marca,
+    modelo: v.modelo,
+    tipo: v.tipo || 'Caminhão',
+    ano: v.ano || '',
+    cor: v.cor || '',
+    kmTotal: v.kmTotal || 0,
+    status: v.status || 'Ativo',
+    combustivel: v.combustivel || '',
+    capacidade: v.capacidade || 0,
+    ultimaManutencao: new Date().toISOString(),
+    chassi: v.chassi,
+    renavam: v.renavam,
+    observacoes: v.observacoes,
+  })) : vehiclesData)
+
   return (
     <div className="rounded-md border">
       <Table>
@@ -145,7 +166,7 @@ export function VehiclesTable({ onEdit }: VehiclesTableProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {vehiclesData.map((vehicle) => (
+          {rows.map((vehicle) => (
             <TableRow key={vehicle.id}>
               <TableCell>
                 <div className="flex items-center gap-2">
@@ -180,7 +201,7 @@ export function VehiclesTable({ onEdit }: VehiclesTableProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => {}}
+                    onClick={() => onView && onView(vehicle)}
                   >
                     <Eye className="w-4 h-4" />
                   </Button>
