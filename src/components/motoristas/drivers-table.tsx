@@ -96,10 +96,11 @@ const driversData = [
 
 interface DriversTableProps {
   onEdit: (driver: any) => void
+  onView?: (driver: any) => void
   data?: DriverRecord[]
 }
 
-export function DriversTable({ onEdit, data }: DriversTableProps) {
+export function DriversTable({ onEdit, onView, data }: DriversTableProps) {
   const getStatusBadge = (status: string, validadeCnh: string) => {
     const hoje = new Date()
     const vencimento = new Date(validadeCnh)
@@ -222,7 +223,7 @@ export function DriversTable({ onEdit, data }: DriversTableProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => {}}
+                    onClick={(e) => { e.stopPropagation(); onView && onView(driver) }}
                   >
                     <Eye className="w-4 h-4" />
                   </Button>

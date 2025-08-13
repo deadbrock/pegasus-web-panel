@@ -29,11 +29,13 @@ import { DriverPerformanceOverview } from '@/components/motoristas/driver-perfor
 import { exportListaMotoristas, exportCNHVencendo, exportDocumentosPendentesTemplate } from '@/components/motoristas/drivers-reports'
 import { DriverDocumentsStatus } from '@/components/motoristas/driver-documents-status'
 import { DriversImportExport } from '@/components/motoristas/drivers-import-export'
+import { DriverDetailsDialog } from '@/components/motoristas/driver-details-dialog'
 
 export default function MotoristasPage() {
   const [isDriverDialogOpen, setIsDriverDialogOpen] = useState(false)
   const [selectedDriver, setSelectedDriver] = useState<DriverRecord | null>(null)
   const [drivers, setDrivers] = useState<DriverRecord[]>([])
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const { toast } = useToast()
 
   const load = async () => {
@@ -53,6 +55,11 @@ export default function MotoristasPage() {
   const handleEditDriver = (driver: any) => {
     setSelectedDriver(driver)
     setIsDriverDialogOpen(true)
+  }
+
+  const handleViewDriver = (driver: any) => {
+    setSelectedDriver(driver)
+    setIsDetailsOpen(true)
   }
 
   const handleSave = async (payload: any) => {
@@ -259,7 +266,7 @@ export default function MotoristasPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <DriversTable onEdit={handleEditDriver} data={drivers} />
+              <DriversTable onEdit={handleEditDriver} onView={handleViewDriver} data={drivers} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -375,6 +382,8 @@ export default function MotoristasPage() {
         driver={selectedDriver}
         onSave={handleSave as any}
       />
+
+      <DriverDetailsDialog open={isDetailsOpen} onClose={() => setIsDetailsOpen(false)} driver={selectedDriver} />
     </div>
   )
 }
