@@ -20,6 +20,8 @@ import {
   BarChart3
 } from 'lucide-react'
 import { MetricCard } from '@/components/dashboard/metric-card'
+import * as XLSX from 'xlsx'
+import { runQuickAudit } from '@/services/auditoriaService'
 import { AuditFindingsTable } from '@/components/auditoria/audit-findings-table'
 import { ComplianceScoreCard } from '@/components/auditoria/compliance-score-card'
 import { KPIChartsPanel } from '@/components/auditoria/kpi-charts-panel'
@@ -45,14 +47,23 @@ export default function AuditoriaPage() {
     }, 3000)
   }
 
-  const runQuickAudit = () => {
-    // Implementar auditoria rápida
-    console.log('Executando auditoria rápida...')
+  const runQuickAuditAction = async () => {
+    setIsAuditRunning(true)
+    await runQuickAudit()
+    setIsAuditRunning(false)
+    setLastAuditTime(new Date())
   }
 
   const exportReport = () => {
-    // Implementar exportação de relatório
-    console.log('Exportando relatório de auditoria...')
+    const wb = XLSX.utils.book_new()
+    const overview = [
+      { Metrica: 'Score de Conformidade', Valor: complianceScore },
+      { Metrica: 'Apontamentos Ativos', Valor: 23 },
+      { Metrica: 'Itens Resolvidos', Valor: 156 },
+      { Metrica: 'Taxa de Resolução', Valor: '89.4%' }
+    ]
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(overview), 'Visão Geral')
+    XLSX.writeFile(wb, 'relatorio_auditoria.xlsx')
   }
 
   return (
@@ -69,7 +80,7 @@ export default function AuditoriaPage() {
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={runQuickAudit}
+            onClick={runQuickAuditAction}
             disabled={isAuditRunning}
           >
             <Activity className="w-4 h-4 mr-2" />
@@ -215,11 +226,14 @@ export default function AuditoriaPage() {
               <div className="flex items-center justify-between">
                 <CardTitle>Apontamentos de Auditoria (Não Conformidades)</CardTitle>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => document.querySelector<HTMLInputElement>('input[type=\"file\"][accept]')?.click()}>
                     <Settings className="w-4 h-4 mr-2" />
-                    Filtrar
+                    Importar XLSX
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => {
+                    const evt = new CustomEvent('auditoria:exportar-lista')
+                    window.dispatchEvent(evt)
+                  }}>
                     <Download className="w-4 h-4 mr-2" />
                     Exportar Lista
                   </Button>

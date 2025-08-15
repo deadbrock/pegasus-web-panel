@@ -74,3 +74,4 @@ async function main() {
 main().catch((e) => { console.error('Falha ao aplicar SQL:', e.message); process.exit(1) })
 
 
+

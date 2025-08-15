@@ -1,18 +1,22 @@
 'use client'
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
-
-// Mock data para apontamentos por área
-const areasData = [
-  { name: 'Manutenção', value: 6, color: '#ef4444' },
-  { name: 'Documentos', value: 5, color: '#f59e0b' },
-  { name: 'Entregas', value: 4, color: '#3b82f6' },
-  { name: 'Custos', value: 3, color: '#8b5cf6' },
-  { name: 'Estoque', value: 3, color: '#10b981' },
-  { name: 'Rotas', value: 2, color: '#06b6d4' }
-]
+import { useEffect, useState } from 'react'
+import { fetchFindings, type AuditFindingRecord } from '@/services/auditoriaService'
 
 export function AuditAreasChart() {
+  const [areasData, setAreasData] = useState<{ name: string; value: number; color: string }[]>([])
+  useEffect(() => {
+    (async () => {
+      const rows = await fetchFindings({})
+      const counts: Record<string, number> = {}
+      rows.forEach(r => { counts[r.area] = (counts[r.area] || 0) + 1 })
+      const palette = ['#ef4444','#f59e0b','#3b82f6','#8b5cf6','#10b981','#06b6d4','#16a34a','#f97316']
+      const data = Object.entries(counts).map(([name, value], i) => ({ name, value, color: palette[i % palette.length] }))
+      setAreasData(data)
+    })()
+  }, [])
+
   const total = areasData.reduce((sum, item) => sum + item.value, 0)
 
   const CustomTooltip = ({ active, payload }: any) => {

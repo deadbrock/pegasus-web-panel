@@ -20,6 +20,7 @@ export interface FetchFindingsParams {
   search?: string
   status?: AuditStatus
   severidade?: AuditSeverity
+  area?: string
   from?: Date
   to?: Date
   limit?: number
@@ -29,6 +30,7 @@ export async function fetchFindings(params: FetchFindingsParams = {}): Promise<A
   let query = supabase.from('audit_findings').select('*').order('data_ultima_ocorrencia', { ascending: false })
   if (params.status) query = query.eq('status', params.status)
   if (params.severidade) query = query.eq('severidade', params.severidade)
+  if (params.area) query = query.eq('area', params.area)
   if (params.from) query = query.gte('data_criacao', params.from.toISOString())
   if (params.to) query = query.lte('data_ultima_ocorrencia', params.to.toISOString())
   if (params.search && params.search.trim()) {
@@ -70,5 +72,77 @@ export async function deleteFinding(id: string): Promise<boolean> {
   }
   return true
 }
+
+export async function upsertFindingsBulk(rows: AuditFindingRecord[]): Promise<number> {
+  if (!rows.length) return 0
+  const sanitized = rows.map((r) => ({
+    id: r.id,
+    area: r.area,
+    descricao: r.descricao,
+    severidade: r.severidade,
+    status: r.status,
+    data_criacao: r.data_criacao || new Date().toISOString(),
+    data_ultima_ocorrencia: r.data_ultima_ocorrencia || new Date().toISOString(),
+    dados_referencia: r.dados_referencia ?? null,
+  }))
+  const { data, error } = await supabase.from('audit_findings').upsert(sanitized, { onConflict: 'id' }).select('id')
+  if (error) {
+    console.error('upsertFindingsBulk error:', error.message)
+    return 0
+  }
+  return data?.length || 0
+}
+
+export function subscribeFindings(onChange: () => void) {
+  try {
+    const channel = (supabase as any).channel('audit_findings_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'audit_findings' }, () => onChange())
+      .subscribe()
+    return () => (supabase as any).removeChannel(channel)
+  } catch {
+    return () => {}
+  }
+}
+
+export async function runQuickAudit(): Promise<number> {
+  // Insere alguns apontamentos padrões de verificação rápida
+  const now = new Date().toISOString()
+  const inserts: AuditFindingRecord[] = [
+    {
+      area: 'Manutenção',
+      descricao: 'Veículos com preventiva vencida identificados na última varredura',
+      severidade: 'Crítica',
+      status: 'Pendente',
+      data_criacao: now,
+      data_ultima_ocorrencia: now,
+      dados_referencia: { origem: 'quick_audit', tipo: 'preventiva_vencida' }
+    },
+    {
+      area: 'Documentos',
+      descricao: 'Motoristas com CNH próxima do vencimento',
+      severidade: 'Alta',
+      status: 'Em Análise',
+      data_criacao: now,
+      data_ultima_ocorrencia: now,
+      dados_referencia: { origem: 'quick_audit', tipo: 'documentos' }
+    },
+    {
+      area: 'Combustível',
+      descricao: 'Veículos com consumo acima da meta',
+      severidade: 'Média',
+      status: 'Pendente',
+      data_criacao: now,
+      data_ultima_ocorrencia: now,
+      dados_referencia: { origem: 'quick_audit', tipo: 'consumo' }
+    }
+  ]
+  const { data, error } = await supabase.from('audit_findings').insert(inserts).select('id')
+  if (error) {
+    console.error('runQuickAudit error:', error.message)
+    return 0
+  }
+  return data?.length || 0
+}
+
 
 

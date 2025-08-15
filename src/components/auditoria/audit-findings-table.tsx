@@ -5,7 +5,11 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { AlertTriangle, Clock, CheckCircle, XCircle, Eye, Edit, ArrowUpRight, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { fetchFindings, updateFinding, deleteFinding, type AuditFindingRecord } from '@/services/auditoriaService'
+import { fetchFindings, updateFinding, deleteFinding, upsertFindingsBulk, subscribeFindings, type AuditFindingRecord } from '@/services/auditoriaService'
+import * as XLSX from 'xlsx'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { DateRange } from 'react-day-picker'
 
 // Mock data para apontamentos baseado no audit_engine.py
 const findingsData = [
@@ -93,8 +97,61 @@ const findingsData = [
 
 export function AuditFindingsTable() {
   const [rows, setRows] = useState<AuditFindingRecord[]>([])
-  const load = async () => setRows(await fetchFindings({}))
+  const [search, setSearch] = useState('')
+  const [status, setStatus] = useState<string>('')
+  const [severity, setSeverity] = useState<string>('')
+  const [area, setArea] = useState<string>('')
+  const [dateRange, setDateRange] = useState<DateRange | undefined>()
+  const load = async () => setRows(await fetchFindings({
+    search,
+    status: status as any,
+    severidade: severity as any,
+    area,
+    from: dateRange?.from,
+    to: dateRange?.to
+  }))
   useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [search, status, severity, area, dateRange?.from?.toISOString?.(), dateRange?.to?.toISOString?.()])
+  useEffect(() => subscribeFindings(load), [])
+
+  const exportList = () => {
+    const data = rows.map(r => ({
+      Área: r.area,
+      Descrição: r.descricao,
+      Severidade: r.severidade,
+      Status: r.status,
+      'Primeira Ocorrência': r.data_criacao,
+      'Última Ocorrência': r.data_ultima_ocorrencia
+    }))
+    const wb = XLSX.utils.book_new()
+    const ws = XLSX.utils.json_to_sheet(data)
+    XLSX.utils.book_append_sheet(wb, ws, 'Apontamentos')
+    XLSX.writeFile(wb, 'apontamentos_auditoria.xlsx')
+  }
+  useEffect(() => {
+    const handler = () => exportList()
+    window.addEventListener('auditoria:exportar-lista', handler as any)
+    return () => window.removeEventListener('auditoria:exportar-lista', handler as any)
+  }, [rows])
+
+  const handleFile = async (file: File) => {
+    const buf = await file.arrayBuffer()
+    const wb = XLSX.read(buf, { type: 'array' })
+    const ws = wb.Sheets[wb.SheetNames[0]]
+    const json = XLSX.utils.sheet_to_json<any>(ws)
+    const parsed: AuditFindingRecord[] = json.map((row) => ({
+      id: row.id,
+      area: String(row.area || row.Área || ''),
+      descricao: String(row.descricao || row.Descrição || ''),
+      severidade: (row.severidade || row.Severidade || 'Média') as any,
+      status: (row.status || row.Status || 'Pendente') as any,
+      data_criacao: row.data_criacao || row['Primeira Ocorrência'] || new Date().toISOString(),
+      data_ultima_ocorrencia: row.data_ultima_ocorrencia || row['Última Ocorrência'] || new Date().toISOString(),
+      dados_referencia: row.dados_referencia ? JSON.parse(row.dados_referencia) : null
+    }))
+    await upsertFindingsBulk(parsed)
+    load()
+  }
   const getSeverityBadge = (severidade: string) => {
     switch (severidade) {
       case 'Crítica':
@@ -178,13 +235,75 @@ export function AuditFindingsTable() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Área</TableHead>
-            <TableHead>Descrição do Apontamento</TableHead>
-            <TableHead>Severidade</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead>
+              <div className="flex items-center gap-2">
+                Área
+                <Select value={area} onValueChange={setArea}>
+                  <SelectTrigger className="h-8 w-40">
+                    <SelectValue placeholder="Todas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todas</SelectItem>
+                    <SelectItem value="Manutenção">Manutenção</SelectItem>
+                    <SelectItem value="Entregas">Entregas</SelectItem>
+                    <SelectItem value="Custos">Custos</SelectItem>
+                    <SelectItem value="Estoque">Estoque</SelectItem>
+                    <SelectItem value="Pedidos">Pedidos</SelectItem>
+                    <SelectItem value="Documentos">Documentos</SelectItem>
+                    <SelectItem value="Rotas">Rotas</SelectItem>
+                    <SelectItem value="Combustível">Combustível</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </TableHead>
+            <TableHead>
+              <div className="flex items-center gap-2">
+                Descrição do Apontamento
+                <Input placeholder="Buscar..." className="h-8 w-56" value={search} onChange={(e) => setSearch(e.target.value)} />
+              </div>
+            </TableHead>
+            <TableHead>
+              <div className="flex items-center gap-2">
+                Severidade
+                <Select value={severity} onValueChange={setSeverity}>
+                  <SelectTrigger className="h-8 w-36">
+                    <SelectValue placeholder="Todas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todas</SelectItem>
+                    <SelectItem value="Crítica">Crítica</SelectItem>
+                    <SelectItem value="Alta">Alta</SelectItem>
+                    <SelectItem value="Média">Média</SelectItem>
+                    <SelectItem value="Baixa">Baixa</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </TableHead>
+            <TableHead>
+              <div className="flex items-center gap-2">
+                Status
+                <Select value={status} onValueChange={setStatus}>
+                  <SelectTrigger className="h-8 w-40">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todos</SelectItem>
+                    <SelectItem value="Pendente">Pendente</SelectItem>
+                    <SelectItem value="Em Análise">Em Análise</SelectItem>
+                    <SelectItem value="Resolvido">Resolvido</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </TableHead>
             <TableHead>Primeira Ocorrência</TableHead>
             <TableHead>Última Ocorrência</TableHead>
-            <TableHead className="text-center">Ações</TableHead>
+            <TableHead className="text-center">
+              <div className="flex items-center justify-center gap-2">
+                Ações
+                <input type="file" accept=".xlsx,.xls" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
+                <Button variant="outline" size="sm" onClick={exportList}>Exportar Lista</Button>
+              </div>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

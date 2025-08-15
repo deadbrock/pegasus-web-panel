@@ -2,36 +2,17 @@
 
 import { Button } from '@/components/ui/button'
 import { AlertTriangle, Clock, ExternalLink } from 'lucide-react'
-
-// Mock data para alertas críticos
-const criticalAlerts = [
-  {
-    id: 1,
-    title: 'Veículo ABC-1234 - Manutenção Vencida',
-    description: 'Revisão preventiva vencida há 15 dias. Veículo em operação.',
-    severity: 'critical',
-    time: '2 horas atrás',
-    action: 'Revisar Imediatamente'
-  },
-  {
-    id: 2,
-    title: 'CNH Vencida - João Silva',
-    description: 'Motorista operando com CNH vencida há 5 dias.',
-    severity: 'critical',
-    time: '1 hora atrás',
-    action: 'Suspender Operação'
-  },
-  {
-    id: 3,
-    title: 'Orçamento Combustível Ultrapassado',
-    description: 'Meta mensal excedida em 25% no dia 15.',
-    severity: 'high',
-    time: '30 min atrás',
-    action: 'Analisar Consumo'
-  }
-]
+import { useEffect, useState } from 'react'
+import { fetchFindings, updateFinding, type AuditFindingRecord } from '@/services/auditoriaService'
 
 export function CriticalAlertsPanel() {
+  const [alerts, setAlerts] = useState<AuditFindingRecord[]>([])
+  const load = async () => {
+    const list = await fetchFindings({ severidade: 'Crítica', limit: 5 })
+    setAlerts(list)
+  }
+  useEffect(() => { load() }, [])
+
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'critical':
@@ -49,11 +30,20 @@ export function CriticalAlertsPanel() {
       <AlertTriangle className="w-5 h-5 text-orange-600" />
   }
 
-  const handleAction = (alert: any) => {
-    console.log('Executar ação para alerta:', alert)
+  const handleAction = async (alert: AuditFindingRecord) => {
+    const title = alert.descricao
+    if (title.toLowerCase().includes('manuten')) {
+      await updateFinding(String(alert.id), { status: 'Em Análise' })
+    } else if (title.toLowerCase().includes('cnh') || title.toLowerCase().includes('document')) {
+      await updateFinding(String(alert.id), { status: 'Pendente' })
+      // Aqui poderia disparar integração externa para suspender operação
+    } else if (title.toLowerCase().includes('combust')) {
+      await updateFinding(String(alert.id), { status: 'Em Análise' })
+    }
+    load()
   }
 
-  if (criticalAlerts.length === 0) {
+  if (alerts.length === 0) {
     return (
       <div className="text-center py-8">
         <AlertTriangle className="w-12 h-12 mx-auto text-gray-400 mb-3" />
@@ -65,35 +55,33 @@ export function CriticalAlertsPanel() {
 
   return (
     <div className="space-y-3">
-      {criticalAlerts.map((alert) => (
+      {alerts.map((alert) => (
         <div
-          key={alert.id}
-          className={`border-l-4 p-4 rounded-r-lg ${getSeverityColor(alert.severity)}`}
+          key={String(alert.id)}
+          className={`border-l-4 p-4 rounded-r-lg ${getSeverityColor('critical')}`}
         >
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-3 flex-1">
-              {getSeverityIcon(alert.severity)}
+              {getSeverityIcon('critical')}
               <div className="flex-1">
-                <h4 className="font-medium text-gray-900 mb-1">
-                  {alert.title}
-                </h4>
+                <h4 className="font-medium text-gray-900 mb-1">{alert.area}</h4>
                 <p className="text-sm text-gray-700 mb-2">
-                  {alert.description}
+                  {alert.descricao}
                 </p>
                 <div className="flex items-center gap-2 text-xs text-gray-500">
                   <Clock className="w-3 h-3" />
-                  <span>{alert.time}</span>
+                  <span>{new Date(alert.data_ultima_ocorrencia).toLocaleString('pt-BR')}</span>
                 </div>
               </div>
             </div>
             <Button
               size="sm"
-              variant={alert.severity === 'critical' ? 'destructive' : 'default'}
+              variant={'destructive'}
               onClick={() => handleAction(alert)}
               className="ml-3"
             >
               <ExternalLink className="w-3 h-3 mr-1" />
-              {alert.action}
+              Revisar Imediatamente
             </Button>
           </div>
         </div>
@@ -103,7 +91,7 @@ export function CriticalAlertsPanel() {
       <div className="pt-3 border-t">
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-600">
-            {criticalAlerts.length} alertas críticos ativos
+            {alerts.length} alertas críticos ativos
           </span>
           <Button variant="outline" size="sm">
             Ver Todos os Alertas
