@@ -2,6 +2,9 @@
 
 import { Search, Bell, Settings, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { usePathname } from 'next/navigation'
 
 function getBreadcrumbFromPath(path: string): string {
@@ -27,6 +30,7 @@ function getBreadcrumbFromPath(path: string): string {
 
 export function Header() {
   const pathname = usePathname()
+  const router = useRouter()
   const currentPage = getBreadcrumbFromPath(pathname)
 
   return (
@@ -52,26 +56,62 @@ export function Header() {
             type="text"
             placeholder="Pesquisar..."
             className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
+            onKeyDown={(e) => {
+              const target = e.target as HTMLInputElement
+              if (e.key === 'Enter' && target.value.trim()) {
+                router.push(`/dashboard/relatorios?search=${encodeURIComponent(target.value.trim())}`)
+              }
+            }}
           />
         </div>
 
         {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="w-5 h-5" />
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-            3
-          </span>
-        </Button>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="icon" className="relative">
+              <Bell className="w-5 h-5" />
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                3
+              </span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80">
+            <div className="space-y-2 text-sm">
+              <div className="font-medium">Notificações</div>
+              <div className="space-y-2">
+                <div className="p-2 rounded bg-gray-50">3 alertas críticos na Auditoria</div>
+                <div className="p-2 rounded bg-gray-50">2 notas fiscais pendentes</div>
+                <div className="p-2 rounded bg-gray-50">Pedidos aguardando aprovação</div>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
 
         {/* Settings */}
-        <Button variant="ghost" size="icon">
-          <Settings className="w-5 h-5" />
-        </Button>
+        <Link href="/dashboard/configuracoes">
+          <Button variant="ghost" size="icon">
+            <Settings className="w-5 h-5" />
+          </Button>
+        </Link>
 
         {/* User Menu */}
-        <Button variant="ghost" size="icon">
-          <User className="w-5 h-5" />
-        </Button>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <User className="w-5 h-5" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-56">
+            <div className="text-sm space-y-2">
+              <div className="font-medium">Minha Conta</div>
+              <Link className="block hover:underline" href="/dashboard/configuracoes">Configurações</Link>
+              <button className="text-left w-full hover:underline" onClick={() => {
+                try { localStorage.removeItem('pegasus-web-auth'); } catch {}
+                router.push('/')
+              }}>Sair</button>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
     </header>
   )
