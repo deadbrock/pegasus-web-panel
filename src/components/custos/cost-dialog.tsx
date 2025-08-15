@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -146,12 +146,15 @@ export function CostDialog({ open, onClose, cost, onSaved }: CostDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <DollarSign className="w-5 h-5" />
             {cost ? 'Editar Custo' : 'Novo Custo'}
           </DialogTitle>
+          <DialogDescription>
+            Preencha os campos obrigatórios marcados com * e salve para registrar o custo.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -230,12 +233,12 @@ export function CostDialog({ open, onClose, cost, onSaved }: CostDialogProps) {
 
             <div className="space-y-2">
               <Label htmlFor="veiculo">Veículo</Label>
-              <Select value={formData.veiculo_id} onValueChange={(value) => handleInputChange('veiculo_id', value)}>
+              <Select value={formData.veiculo_id} onValueChange={(value) => handleInputChange('veiculo_id', value === 'none' ? '' : value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o veículo (opcional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhum veículo específico</SelectItem>
+                  <SelectItem value="none">Nenhum veículo específico</SelectItem>
                   {vehicles.map((veiculo) => (
                     <SelectItem key={veiculo.id} value={veiculo.id.toString()}>
                       {veiculo.placa}{veiculo.modelo ? ` - ${veiculo.modelo}` : ''}
