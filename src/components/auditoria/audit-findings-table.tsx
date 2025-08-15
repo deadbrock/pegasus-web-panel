@@ -415,26 +415,26 @@ export function AuditFindingsTable() {
         <div className="flex items-center justify-between text-sm">
           <div className="flex items-center gap-6">
             <span className="text-gray-600">
-              Total: {findingsData.length} apontamentos
+              Total: {rows.length} apontamentos
             </span>
             <span className="text-red-600">
-              Críticos: {findingsData.filter(f => f.severidade === 'Crítica').length}
+              Críticos: {rows.filter(f => f.severidade === 'Crítica').length}
             </span>
             <span className="text-orange-600">
-              Alta: {findingsData.filter(f => f.severidade === 'Alta').length}
+              Alta: {rows.filter(f => f.severidade === 'Alta').length}
             </span>
             <span className="text-yellow-600">
-              Média: {findingsData.filter(f => f.severidade === 'Média').length}
+              Média: {rows.filter(f => f.severidade === 'Média').length}
             </span>
             <span className="text-blue-600">
-              Em Análise: {findingsData.filter(f => f.status === 'Em Análise').length}
+              Em Análise: {rows.filter(f => f.status === 'Em Análise').length}
             </span>
             <span className="text-green-600">
-              Resolvidos: {findingsData.filter(f => f.status === 'Resolvido').length}
+              Resolvidos: {rows.filter(f => f.status === 'Resolvido').length}
             </span>
           </div>
           <div className="text-xs text-gray-500">
-            Última atualização: {new Date().toLocaleString('pt-BR')}
+            {typeof window !== 'undefined' ? `Última atualização: ${new Date().toLocaleString('pt-BR')}` : null}
           </div>
         </div>
       </div>
