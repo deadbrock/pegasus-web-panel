@@ -7,8 +7,8 @@ let cached: SupabaseClient | null = null
 
 export function getSupabaseClient(): SupabaseClient {
   if (cached) return cached
-  const url = supabaseUrl ?? 'https://placeholder.supabase.co'
-  const key = supabaseAnonKey ?? 'anon-placeholder'
+  const url = (supabaseUrl ?? 'https://placeholder.supabase.co').trim()
+  const key = (supabaseAnonKey ?? 'anon-placeholder').trim()
   cached = createClient(url, key, {
     auth: {
       storageKey: 'pegasus-web-auth',

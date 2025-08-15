@@ -16,15 +16,15 @@ import { DateRange } from 'react-day-picker'
 export function AuditFindingsTable() {
   const [rows, setRows] = useState<AuditFindingRecord[]>([])
   const [search, setSearch] = useState('')
-  const [status, setStatus] = useState<string>('')
-  const [severity, setSeverity] = useState<string>('')
-  const [area, setArea] = useState<string>('')
+  const [status, setStatus] = useState<string>('all')
+  const [severity, setSeverity] = useState<string>('all')
+  const [area, setArea] = useState<string>('all')
   const [dateRange, setDateRange] = useState<DateRange | undefined>()
   const load = async () => setRows(await fetchFindings({
     search,
-    status: status as any,
-    severidade: severity as any,
-    area,
+    status: (status === 'all' ? undefined : (status as any)),
+    severidade: (severity === 'all' ? undefined : (severity as any)),
+    area: (area === 'all' ? undefined : area),
     from: dateRange?.from,
     to: dateRange?.to
   }))
@@ -161,7 +161,7 @@ export function AuditFindingsTable() {
                     <SelectValue placeholder="Todas" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas</SelectItem>
+                    <SelectItem value="all">Todas</SelectItem>
                     <SelectItem value="Manutenção">Manutenção</SelectItem>
                     <SelectItem value="Entregas">Entregas</SelectItem>
                     <SelectItem value="Custos">Custos</SelectItem>
@@ -188,7 +188,7 @@ export function AuditFindingsTable() {
                     <SelectValue placeholder="Todas" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas</SelectItem>
+                    <SelectItem value="all">Todas</SelectItem>
                     <SelectItem value="Crítica">Crítica</SelectItem>
                     <SelectItem value="Alta">Alta</SelectItem>
                     <SelectItem value="Média">Média</SelectItem>
@@ -205,7 +205,7 @@ export function AuditFindingsTable() {
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos</SelectItem>
+                    <SelectItem value="all">Todos</SelectItem>
                     <SelectItem value="Pendente">Pendente</SelectItem>
                     <SelectItem value="Em Análise">Em Análise</SelectItem>
                     <SelectItem value="Resolvido">Resolvido</SelectItem>
