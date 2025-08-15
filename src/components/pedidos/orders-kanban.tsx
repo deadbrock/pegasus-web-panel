@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Clock, Truck, CheckCircle, AlertTriangle, Package, User, MapPin, DollarSign, Edit } from 'lucide-react'
+import { updateOrder } from '@/services/ordersService'
+import { useToast } from '@/hooks/use-toast'
 // TODO: integrar com Supabase para ler colunas dinamicamente
 
 interface OrdersKanbanProps {
@@ -91,6 +93,7 @@ const kanbanData = {
 }
 
 export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
+  const { toast } = useToast()
   const grouped = (data || []).reduce((acc: Record<string, any[]>, o) => {
     const key = o.status || 'Pendente'
     acc[key] = acc[key] || []
@@ -158,9 +161,18 @@ export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
     }).format(value)
   }
 
+  const statuses = ['Pendente','Em Separação','Em Rota','Atrasado','Entregue']
+
+  const handleMove = async (orderId: any, newStatus: string) => {
+    const ok = await updateOrder(String(orderId), { status: newStatus as any })
+    toast({ title: ok ? 'Status atualizado' : 'Falha ao atualizar', description: `${orderId} → ${newStatus}` })
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 min-h-[600px]">
-      {Object.entries(kanbanData).map(([status, orders]) => (
+      {statuses.map((status) => {
+        const orders = grouped[status] || []
+        return (
         <div key={status} className="space-y-4">
           {/* Column Header */}
           <Card className={`border-t-4 ${getColumnColor(status)}`}>
@@ -237,6 +249,11 @@ export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
                         <Edit className="w-3 h-3 mr-1" />
                         Editar
                       </Button>
+                      <div className="flex gap-2">
+                        {statuses.filter(s => s !== status).map(s => (
+                          <Button key={s} variant="ghost" size="sm" onClick={() => handleMove(order.id, s)}>{s}</Button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -252,7 +269,7 @@ export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
             )}
           </div>
         </div>
-      ))}
+      )})}
     </div>
   )
 }

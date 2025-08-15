@@ -23,7 +23,9 @@ import { MetricCard } from '@/components/dashboard/metric-card'
 import { OrdersTable } from '@/components/pedidos/orders-table'
 import { OrdersImportExport } from '@/components/pedidos/orders-import-export'
 import { exportRelatorioPedidos, exportProdutosMaisPedidos } from '@/components/pedidos/orders-reports'
-import { fetchOrders, subscribeOrders } from '@/services/ordersService'
+import { fetchOrders, subscribeOrders, fetchOrdersQuery, type OrderStatus } from '@/services/ordersService'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar as CalendarComp } from '@/components/ui/calendar'
 import { OrderDialog } from '@/components/pedidos/order-dialog'
 import { OrderStatusChart } from '@/components/pedidos/order-status-chart'
 import { OrderTimelineChart } from '@/components/pedidos/order-timeline-chart'
@@ -34,6 +36,9 @@ export default function PedidosPage() {
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [orders, setOrders] = useState<any[]>([])
+  const [search, setSearch] = useState('')
+  const [status, setStatus] = useState<OrderStatus | undefined>(undefined)
+  const [range, setRange] = useState<{ from?: Date; to?: Date }>({ from: new Date(new Date().getFullYear(), new Date().getMonth(), 1), to: new Date() })
   useEffect(() => {
     const load = async () => setOrders(await fetchOrders())
     load()
@@ -54,6 +59,11 @@ export default function PedidosPage() {
   const handleExportRelatorio = async () => {
     const data = orders.length ? orders : await fetchOrders()
     exportRelatorioPedidos(data as any)
+  }
+
+  const handleBuscar = async () => {
+    const rows = await fetchOrdersQuery({ search, status, from: range.from, to: range.to })
+    setOrders(rows as any)
   }
 
   return (
@@ -197,14 +207,22 @@ export default function PedidosPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Lista de Pedidos</CardTitle>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
+                <div className="flex gap-2 items-center">
+                  <input className="border rounded px-3 py-1 text-sm" placeholder="Buscar número, cliente, endereço" value={search} onChange={(e) => setSearch(e.target.value)} />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Calendar className="w-4 h-4 mr-2" /> Período
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <CalendarComp mode="range" selected={range as any} onSelect={(r: any) => setRange(r)} />
+                      <div className="p-2 flex justify-end"><Button size="sm" onClick={handleBuscar}>Aplicar</Button></div>
+                    </PopoverContent>
+                  </Popover>
+                  <Button variant="outline" size="sm" onClick={handleBuscar}>
                     <Search className="w-4 h-4 mr-2" />
                     Buscar
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <Filter className="w-4 h-4 mr-2" />
-                    Filtrar
                   </Button>
                 </div>
               </div>

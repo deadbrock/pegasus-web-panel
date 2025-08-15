@@ -64,6 +64,45 @@ export async function fetchOrders(): Promise<OrderRecord[]> {
   return rows
 }
 
+export interface FetchOrdersParams {
+  search?: string
+  status?: OrderStatus
+  from?: Date
+  to?: Date
+}
+
+export async function fetchOrdersQuery(params: FetchOrdersParams = {}): Promise<OrderRecord[]> {
+  let query = supabase.from('orders').select('*').order('created_at', { ascending: false })
+  if (params.status) {
+    query = query.eq('status', params.status)
+  }
+  if (params.from) {
+    query = query.gte('data_pedido', params.from.toISOString())
+  }
+  if (params.to) {
+    query = query.lte('data_pedido', params.to.toISOString())
+  }
+  if (params.search && params.search.trim()) {
+    const s = `%${params.search.trim()}%`
+    query = query.or(
+      `numero.ilike.${s},cliente.ilike.${s},telefone.ilike.${s},endereco.ilike.${s},cidade.ilike.${s},estado.ilike.${s}`
+    )
+  }
+  const { data, error } = await query
+  if (error) {
+    console.warn('fetchOrdersQuery error:', error.message)
+    return []
+  }
+  const rows = (data as OrderRecord[]) || []
+  for (const r of rows) {
+    const anyR: any = r as any
+    if (!Array.isArray(anyR.itens)) {
+      try { anyR.itens = anyR.itens ? JSON.parse(anyR.itens as unknown as string) : [] } catch { anyR.itens = [] }
+    }
+  }
+  return rows
+}
+
 export async function fetchOrdersByStatus(): Promise<Record<string, OrderRecord[]>> {
   const all = await fetchOrders()
   return all.reduce((acc, o) => {

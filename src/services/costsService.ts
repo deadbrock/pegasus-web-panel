@@ -61,9 +61,10 @@ export async function fetchCosts(params: FetchCostsParams = {}): Promise<CostRec
 }
 
 export async function createCost(cost: CostRecord): Promise<CostRecord | null> {
-  const payload = {
+  const payload: any = {
     ...cost,
     data: (cost.data instanceof Date ? cost.data : new Date(cost.data)).toISOString().slice(0, 10),
+    veiculo_id: cost.veiculo_id && String(cost.veiculo_id).trim() !== '' ? String(cost.veiculo_id) : null,
   }
   const { data, error } = await supabase.from('custos').insert(payload).select('*').single()
   if (error) {
@@ -77,6 +78,9 @@ export async function updateCost(id: string, updates: Partial<CostRecord>): Prom
   const payload: any = { ...updates }
   if (payload.data) {
     payload.data = (payload.data instanceof Date ? payload.data : new Date(payload.data)).toISOString().slice(0, 10)
+  }
+  if (payload.veiculo_id !== undefined) {
+    payload.veiculo_id = payload.veiculo_id && String(payload.veiculo_id).trim() !== '' ? String(payload.veiculo_id) : null
   }
   const { data, error } = await supabase.from('custos').update(payload).eq('id', id).select('*').single()
   if (error) {
@@ -100,6 +104,7 @@ export async function upsertCostsBulk(rows: CostRecord[]): Promise<number> {
   const payload = rows.map(r => ({
     ...r,
     data: (r.data instanceof Date ? r.data : new Date(r.data)).toISOString().slice(0, 10),
+    veiculo_id: r.veiculo_id && String(r.veiculo_id).trim() !== '' ? String(r.veiculo_id) : null,
   }))
   const { data, error } = await supabase.from('custos').upsert(payload, { onConflict: 'id' }).select('id')
   if (error) {
