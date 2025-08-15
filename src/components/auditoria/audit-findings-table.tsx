@@ -3,7 +3,9 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { AlertTriangle, Clock, CheckCircle, XCircle, Eye, Edit, ArrowUpRight } from 'lucide-react'
+import { AlertTriangle, Clock, CheckCircle, XCircle, Eye, Edit, ArrowUpRight, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { fetchFindings, updateFinding, deleteFinding, type AuditFindingRecord } from '@/services/auditoriaService'
 
 // Mock data para apontamentos baseado no audit_engine.py
 const findingsData = [
@@ -90,6 +92,9 @@ const findingsData = [
 ]
 
 export function AuditFindingsTable() {
+  const [rows, setRows] = useState<AuditFindingRecord[]>([])
+  const load = async () => setRows(await fetchFindings({}))
+  useEffect(() => { load() }, [])
   const getSeverityBadge = (severidade: string) => {
     switch (severidade) {
       case 'Crítica':
@@ -183,7 +188,7 @@ export function AuditFindingsTable() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {findingsData.map((finding) => (
+          {rows.map((finding) => (
             <TableRow key={finding.id} className="hover:bg-gray-50">
               <TableCell>
                 <div className="flex items-center gap-2">
@@ -196,7 +201,7 @@ export function AuditFindingsTable() {
                 <p className="text-sm">{finding.descricao}</p>
                 {finding.dados_referencia && (
                   <div className="flex gap-2 mt-1">
-                    {Object.entries(finding.dados_referencia).slice(0, 2).map(([key, value]) => (
+                    {Object.entries((finding as any).dados_referencia || {}).slice(0, 2).map(([key, value]) => (
                       <span key={key} className="text-xs bg-gray-100 px-2 py-1 rounded">
                         {String(value)}
                       </span>
@@ -206,24 +211,24 @@ export function AuditFindingsTable() {
               </TableCell>
               
               <TableCell>
-                {getSeverityBadge(finding.severidade)}
+                {getSeverityBadge(String(finding.severidade))}
               </TableCell>
               
               <TableCell>
-                {getStatusBadge(finding.status)}
+                {getStatusBadge(String(finding.status))}
               </TableCell>
               
               <TableCell>
                 <div className="text-sm">
-                  <p>{formatDate(finding.data_criacao)}</p>
-                  <p className="text-xs text-gray-500">{getDaysAgo(finding.data_criacao)}</p>
+                  <p>{formatDate(String(finding.data_criacao))}</p>
+                  <p className="text-xs text-gray-500">{getDaysAgo(String(finding.data_criacao))}</p>
                 </div>
               </TableCell>
               
               <TableCell>
                 <div className="text-sm">
-                  <p>{formatDate(finding.data_ultima_ocorrencia)}</p>
-                  <p className="text-xs text-gray-500">{getDaysAgo(finding.data_ultima_ocorrencia)}</p>
+                  <p>{formatDate(String(finding.data_ultima_ocorrencia))}</p>
+                  <p className="text-xs text-gray-500">{getDaysAgo(String(finding.data_ultima_ocorrencia))}</p>
                 </div>
               </TableCell>
               
@@ -238,17 +243,37 @@ export function AuditFindingsTable() {
                     <Eye className="w-4 h-4" />
                   </Button>
                   
-                  {finding.status === 'Pendente' && (
+                  {String(finding.status) === 'Pendente' && (
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleAnalyze(finding)}
+                      onClick={async () => { await updateFinding(String(finding.id), { status: 'Em Análise' }); load() }}
                       title="Analisar"
                       className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
                   )}
+                  {String(finding.status) !== 'Resolvido' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={async () => { await updateFinding(String(finding.id), { status: 'Resolvido' }); load() }}
+                      title="Marcar como Resolvido"
+                      className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={async () => { if (confirm('Excluir apontamento?')) { await deleteFinding(String(finding.id)); load() } }}
+                    title="Excluir"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                   
                   <Button
                     variant="ghost"
