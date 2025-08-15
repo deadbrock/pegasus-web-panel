@@ -10,6 +10,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { CalendarIcon, DollarSign } from 'lucide-react'
+import { createCost, updateCost, type CostRecord } from '@/services/costsService'
+import { fetchVehicles } from '@/services/vehiclesService'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -17,16 +19,10 @@ interface CostDialogProps {
   open: boolean
   onClose: () => void
   cost?: any
+  onSaved?: () => void
 }
 
-// Mock data para veículos
-const vehiclesData = [
-  { id: 1, placa: 'BRA-2023', modelo: 'Volkswagen Delivery' },
-  { id: 2, placa: 'BRA-2024', modelo: 'Ford Cargo' },
-  { id: 3, placa: 'BRA-2025', modelo: 'Mercedes Sprinter' },
-  { id: 4, placa: 'BRA-2026', modelo: 'Iveco Daily' },
-  { id: 5, placa: 'BRA-2027', modelo: 'Fiat Ducato' }
-]
+const vehiclesDataMock: Array<{ id: string | number; placa: string; modelo?: string }> = []
 
 const categorias = [
   'Combustível',
@@ -39,7 +35,7 @@ const categorias = [
   'Outros'
 ]
 
-export function CostDialog({ open, onClose, cost }: CostDialogProps) {
+export function CostDialog({ open, onClose, cost, onSaved }: CostDialogProps) {
   const [formData, setFormData] = useState({
     data: new Date(),
     categoria: '',
@@ -50,8 +46,15 @@ export function CostDialog({ open, onClose, cost }: CostDialogProps) {
     observacoes: ''
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [vehicles, setVehicles] = useState<Array<{ id: string; placa: string; modelo?: string }>>(vehiclesDataMock as any)
 
   useEffect(() => {
+    // carregar veículos para select
+    fetchVehicles().then((v: any[]) => {
+      const mapped = (v || []).map((x: any) => ({ id: String(x.id), placa: x.placa || x.nome || String(x.id), modelo: x.modelo || '' }))
+      setVehicles(mapped)
+    }).catch(() => setVehicles([]))
+
     if (cost) {
       setFormData({
         data: new Date(cost.data),
@@ -120,17 +123,25 @@ export function CostDialog({ open, onClose, cost }: CostDialogProps) {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validateForm()) return
 
-    // Aqui seria feita a integração com a API
-    const costData = {
+    const costData: CostRecord = {
       ...formData,
       valor: parseFloat(formData.valor.replace(/\./g, '').replace(',', '.'))
     }
 
-    console.log('Salvando custo:', costData)
-    onClose()
+    try {
+      if (cost?.id) {
+        await updateCost(String(cost.id), costData)
+      } else {
+        await createCost(costData)
+      }
+      onSaved?.()
+      onClose()
+    } catch (e) {
+      // já logado no service
+    }
   }
 
   return (
@@ -225,9 +236,9 @@ export function CostDialog({ open, onClose, cost }: CostDialogProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">Nenhum veículo específico</SelectItem>
-                  {vehiclesData.map((veiculo) => (
+                  {vehicles.map((veiculo) => (
                     <SelectItem key={veiculo.id} value={veiculo.id.toString()}>
-                      {veiculo.placa} - {veiculo.modelo}
+                      {veiculo.placa}{veiculo.modelo ? ` - ${veiculo.modelo}` : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>

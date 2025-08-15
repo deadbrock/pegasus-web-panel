@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -25,10 +25,30 @@ import { CostEvolutionChart } from '@/components/custos/cost-evolution-chart'
 import { CostPerKmChart } from '@/components/custos/cost-per-km-chart'
 import { VehicleCostsChart } from '@/components/custos/vehicle-costs-chart'
 import { CostAnalytics } from '@/components/custos/cost-analytics'
+import { CostsImportExport, requestOpenImportCostsDialog } from '@/components/custos/import-export'
+import { exportRelatorioMensalCustos, exportCustosPorCategoria } from '@/components/custos/reports'
+import { fetchCosts, deleteCost, type CostRecord } from '@/services/costsService'
+import { useToast } from '@/hooks/use-toast'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar as CalendarComp } from '@/components/ui/calendar'
 
 export default function CustosPage() {
   const [isCostDialogOpen, setIsCostDialogOpen] = useState(false)
   const [selectedCost, setSelectedCost] = useState(null)
+  const [rows, setRows] = useState<CostRecord[]>([])
+  const [search, setSearch] = useState('')
+  const [range, setRange] = useState<{ from: Date | undefined; to: Date | undefined }>({ from: new Date(new Date().getFullYear(), new Date().getMonth(), 1), to: new Date() })
+  const { toast } = useToast()
+
+  const load = async () => {
+    const data = await fetchCosts({ from: range.from, to: range.to, search })
+    setRows(data)
+  }
+
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleNewCost = () => {
     setSelectedCost(null)
@@ -39,6 +59,20 @@ export default function CustosPage() {
     setSelectedCost(cost)
     setIsCostDialogOpen(true)
   }
+
+  const handleDeleteCost = async (id: any) => {
+    const ok = await deleteCost(String(id))
+    if (ok) {
+      toast({ title: 'Custo removido' })
+      load()
+    } else {
+      toast({ title: 'Erro ao remover', variant: 'destructive' })
+    }
+  }
+
+  const handleImport = () => requestOpenImportCostsDialog()
+  const handleExport = () => exportRelatorioMensalCustos(rows)
+  const handleExportCategorias = () => exportCustosPorCategoria(rows)
 
   return (
     <div className="space-y-6">
@@ -51,11 +85,11 @@ export default function CustosPage() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleImport}>
             <Upload className="w-4 h-4 mr-2" />
             Importar
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="w-4 h-4 mr-2" />
             Relatório
           </Button>
@@ -200,23 +234,42 @@ export default function CustosPage() {
               <div className="flex items-center justify-between">
                 <CardTitle>Lista de Custos</CardTitle>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
-                    <Search className="w-4 h-4 mr-2" />
-                    Buscar
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <Filter className="w-4 h-4 mr-2" />
-                    Filtrar
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Período
-                  </Button>
+                  <div className="flex items-center">
+                    <input
+                      className="border rounded px-3 py-1 text-sm"
+                      placeholder="Buscar descrição, responsável..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                    />
+                    <Button variant="outline" size="sm" className="ml-2" onClick={load}>
+                      <Search className="w-4 h-4 mr-2" />
+                      Buscar
+                    </Button>
+                  </div>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Calendar className="w-4 h-4 mr-2" />
+                        Período
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <CalendarComp
+                        mode="range"
+                        selected={range as any}
+                        onSelect={(r: any) => setRange(r)}
+                        initialFocus
+                      />
+                      <div className="p-2 flex justify-end">
+                        <Button size="sm" onClick={load}>Aplicar</Button>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <CostsTable onEdit={handleEditCost} />
+              <CostsTable rows={rows} onEdit={handleEditCost} onDelete={handleDeleteCost} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -327,11 +380,11 @@ export default function CustosPage() {
                 <CardTitle>Relatórios Disponíveis</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start" onClick={handleExport}>
                   <Download className="w-4 h-4 mr-2" />
                   Relatório Mensal de Custos
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start" onClick={handleExportCategorias}>
                   <Download className="w-4 h-4 mr-2" />
                   Custos por Categoria
                 </Button>
@@ -400,7 +453,9 @@ export default function CustosPage() {
         open={isCostDialogOpen}
         onClose={() => setIsCostDialogOpen(false)}
         cost={selectedCost}
+        onSaved={load}
       />
+      <CostsImportExport onImported={load} />
     </div>
   )
 } 
