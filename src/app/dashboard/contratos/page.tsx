@@ -3,12 +3,18 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Building2, MapPin, FileSpreadsheet, Download, Filter, Search } from 'lucide-react'
-import { fetchContracts } from '@/services/contractsService'
+import { Plus, Building2, MapPin, FileSpreadsheet, Download, Filter, Search, Edit, Trash2 } from 'lucide-react'
+import { fetchContracts, fetchContractsQuery, deleteContract, type ContractRecord } from '@/services/contractsService'
+import { ContractsImportExport } from '@/components/contratos/contracts-import-export'
+import { ContractDialog } from '@/components/contratos/contract-dialog'
 
 export default function ContratosPage() {
-  const [contracts, setContracts] = useState<any[]>([])
+  const [contracts, setContracts] = useState<ContractRecord[]>([])
+  const [open, setOpen] = useState(false)
+  const [selected, setSelected] = useState<ContractRecord | null>(null)
+  const [search, setSearch] = useState('')
   useEffect(() => { fetchContracts().then(setContracts) }, [])
+  const load = async () => setContracts(await fetchContractsQuery({ search }))
 
   return (
     <div className="space-y-6">
@@ -18,9 +24,8 @@ export default function ContratosPage() {
           <p className="text-gray-600 mt-1">Relação e análise de contratos ativos</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline"><FileSpreadsheet className="w-4 h-4 mr-2" />Importar</Button>
-          <Button variant="outline"><Download className="w-4 h-4 mr-2" />Exportar</Button>
-          <Button><Plus className="w-4 h-4 mr-2" />Novo Contrato</Button>
+          <ContractsImportExport onImported={load} rowsForExport={contracts} />
+          <Button onClick={() => { setSelected(null); setOpen(true) }}><Plus className="w-4 h-4 mr-2" />Novo Contrato</Button>
         </div>
       </div>
 
@@ -28,8 +33,9 @@ export default function ContratosPage() {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>Contratos</span>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm"><Search className="w-4 h-4 mr-2" />Buscar</Button>
+            <div className="flex gap-2 items-center">
+              <input className="border rounded px-3 py-1 text-sm" placeholder="Buscar nome, cidade, CNPJ" value={search} onChange={(e) => setSearch(e.target.value)} />
+              <Button variant="outline" size="sm" onClick={load}><Search className="w-4 h-4 mr-2" />Buscar</Button>
               <Button variant="outline" size="sm"><Filter className="w-4 h-4 mr-2" />Filtrar</Button>
             </div>
           </CardTitle>
@@ -46,11 +52,16 @@ export default function ContratosPage() {
                   <MapPin className="w-3 h-3" />
                   <span>{c.cidade}/{c.estado}</span>
                 </div>
+                <div className="flex gap-2 mt-3">
+                  <Button variant="outline" size="sm" onClick={() => { setSelected(c); setOpen(true) }}><Edit className="w-3 h-3 mr-1" />Editar</Button>
+                  <Button variant="ghost" size="sm" className="text-red-600" onClick={async () => { if (confirm('Excluir contrato?')) { await deleteContract(String(c.id)); load() } }}><Trash2 className="w-3 h-3 mr-1" />Excluir</Button>
+                </div>
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
+      <ContractDialog open={open} onClose={() => setOpen(false)} contract={selected} onSaved={load} />
     </div>
   )
 }
