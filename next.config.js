@@ -30,4 +30,15 @@ const nextConfig = {
   },
 }
 
+/**** Next.js config para rewrites do PegAI ****/
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+	async rewrites() {
+		return [
+			{ source: '/api/chat/:path*', destination: '/api/pegai/:path*' },
+		]
+	},
+}
+
 module.exports = nextConfig 
