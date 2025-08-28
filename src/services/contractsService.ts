@@ -11,6 +11,7 @@ export interface ContractRecord {
   fim_vigencia?: string | null
   status?: 'Ativo' | 'Suspenso' | 'Encerrado'
   responsavel?: string | null
+  custo_material?: number | null
   created_at?: string
   updated_at?: string
 }

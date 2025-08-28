@@ -9,9 +9,10 @@ import { Truck, MapPin, Navigation, AlertTriangle, Play, ZoomIn, ZoomOut, Rotate
 interface TrackingMapProps {
   selectedVehicle?: any
   isRealTime: boolean
+  data?: Array<{ id: string | number; placa?: string; motorista?: string; status?: string; latitude?: number; longitude?: number }>
 }
 
-// Mock data para veículos no mapa
+// Mock data para veículos no mapa (fallback)
 const vehiclesOnMap = [
   {
     id: 1,
@@ -63,7 +64,7 @@ const vehiclesOnMap = [
   }
 ]
 
-export function TrackingMap({ selectedVehicle, isRealTime }: TrackingMapProps) {
+export function TrackingMap({ selectedVehicle, isRealTime, data }: TrackingMapProps) {
   const [hoveredVehicle, setHoveredVehicle] = useState<any>(null)
   const [mapCenter, setMapCenter] = useState({ x: 50, y: 50 })
   const [zoomLevel, setZoomLevel] = useState(1)
@@ -185,7 +186,7 @@ export function TrackingMap({ selectedVehicle, isRealTime }: TrackingMapProps) {
         </div>
 
         {/* Marcadores dos veículos */}
-        {vehiclesOnMap.map((vehicle) => {
+        {(data && data.length ? data : vehiclesOnMap).map((vehicle: any) => {
           const isSelected = selectedVehicle?.id === vehicle.id
           const isHovered = hoveredVehicle?.id === vehicle.id
           
@@ -194,8 +195,8 @@ export function TrackingMap({ selectedVehicle, isRealTime }: TrackingMapProps) {
               key={vehicle.id}
               className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
               style={{
-                left: `${vehicle.posicao.x}%`,
-                top: `${vehicle.posicao.y}%`,
+                left: vehicle.posicao?.x ? `${vehicle.posicao.x}%` : `${50 + Math.random() * 40 - 20}%`,
+                top: vehicle.posicao?.y ? `${vehicle.posicao.y}%` : `${50 + Math.random() * 40 - 20}%`,
                 zIndex: isSelected ? 20 : 10
               }}
               onMouseEnter={() => setHoveredVehicle(vehicle)}

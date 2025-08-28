@@ -7,8 +7,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { usePathname } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
-import { fetchMyNotifications, subscribeMyNotifications, UserNotification } from '@/services/notificationsService'
-import { supabase } from '@/lib/supabaseClient'
+import { fetchMyNotifications, subscribeMyNotifications, UserNotification } from '../../services/notificationsService'
+import { supabase } from '../../lib/supabaseClient'
 import { HeaderAuth } from '@/components/layout/header-auth'
 
 function getBreadcrumbFromPath(path: string): string {

@@ -9,10 +9,11 @@ interface VehiclesTableProps {
   compact?: boolean
   onVehicleSelect: (vehicle: any) => void
   selectedVehicle?: any
+  data?: any[]
 }
 
-// Mock data para veículos ativos
-const vehiclesData = [
+// Mock data (fallback)
+const vehiclesMock = [
   {
     id: 1,
     placa: 'BRA-2023',
@@ -90,7 +91,8 @@ const vehiclesData = [
   }
 ]
 
-export function VehiclesTable({ compact = false, onVehicleSelect, selectedVehicle }: VehiclesTableProps) {
+export function VehiclesTable({ compact = false, onVehicleSelect, selectedVehicle, data }: VehiclesTableProps) {
+  const vehiclesData = (data && data.length ? data : vehiclesMock)
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline', color: string }> = {
       'Em Movimento': { variant: 'default', color: 'bg-green-500' },

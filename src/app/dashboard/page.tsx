@@ -27,9 +27,11 @@ import {
 } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, LineChart, Line } from 'recharts'
 import { MetricCard } from '@/components/dashboard/metric-card'
+import { useEffect, useState } from 'react'
+import { fetchDashboardKPIs, type DashboardKPIs } from '@/lib/services/dashboard-service'
 
-// Mock data consolidado de todos os módulos
-const dashboardData = {
+// Estado com fallback; será preenchido por dados reais
+const dashboardDataDefault = {
   kpis_principais: {
     receita_total: 1247350,
     variacao_receita: 15.8,
@@ -91,6 +93,8 @@ const dashboardData = {
     variacao_engajamento: 12.3
   }
 }
+// Alias para manter compatibilidade com referências existentes
+const dashboardData = dashboardDataDefault
 
 // Dados para gráficos
 const revenueEvolution = [
@@ -118,6 +122,8 @@ const moduleStatus = [
 ]
 
 export default function DashboardPage() {
+  const [kpis, setKpis] = useState<DashboardKPIs | null>(null)
+  useEffect(() => { fetchDashboardKPIs().then(setKpis) }, [])
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { 
       style: 'currency', 
@@ -194,7 +200,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
           title="Receita Total"
-          value={formatCurrency(dashboardData.kpis_principais.receita_total)}
+          value={formatCurrency(kpis?.receita_total ?? dashboardDataDefault.kpis_principais.receita_total)}
           change={`+${dashboardData.kpis_principais.variacao_receita}%`}
           changeType="positive"
           icon={DollarSign}
@@ -202,7 +208,7 @@ export default function DashboardPage() {
         />
         <MetricCard
           title="Custo Total"
-          value={formatCurrency(dashboardData.kpis_principais.custo_total)}
+          value={formatCurrency(kpis?.custo_total ?? dashboardDataDefault.kpis_principais.custo_total)}
           change={`${dashboardData.kpis_principais.variacao_custo}%`}
           changeType="positive"
           icon={TrendingDown}
@@ -210,7 +216,7 @@ export default function DashboardPage() {
         />
         <MetricCard
           title="Lucro Líquido"
-          value={formatCurrency(dashboardData.kpis_principais.lucro_liquido)}
+          value={formatCurrency(kpis?.lucro_liquido ?? dashboardDataDefault.kpis_principais.lucro_liquido)}
           change={`${dashboardData.kpis_principais.margem_lucro}%`}
           changeType="positive"
           icon={Target}
@@ -218,7 +224,7 @@ export default function DashboardPage() {
         />
         <MetricCard
           title="ROI"
-          value={`${dashboardData.kpis_principais.roi}%`}
+          value={`${dashboardDataDefault.kpis_principais.roi}%`}
           change={`+${dashboardData.kpis_principais.variacao_roi}%`}
           changeType="positive"
           icon={TrendingUp}
@@ -309,7 +315,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
           title="Pedidos Ativos"
-          value={dashboardData.operacional.pedidos_ativos.toString()}
+          value={(kpis?.pedidos_ativos ?? dashboardDataDefault.operacional.pedidos_ativos).toString()}
           change={`+${dashboardData.operacional.variacao_pedidos}%`}
           changeType="positive"
           icon={Package}
@@ -317,7 +323,7 @@ export default function DashboardPage() {
         />
         <MetricCard
           title="Taxa de Sucesso"
-          value={`${dashboardData.operacional.taxa_sucesso}%`}
+          value={`${dashboardDataDefault.operacional.taxa_sucesso}%`}
           change={`+${dashboardData.operacional.variacao_sucesso}%`}
           changeType="positive"
           icon={CheckCircle}
@@ -325,7 +331,7 @@ export default function DashboardPage() {
         />
         <MetricCard
           title="Motoristas Ativos"
-          value={`${dashboardData.recursos.motoristas_ativos}/${dashboardData.recursos.total_motoristas}`}
+          value={`${dashboardDataDefault.recursos.motoristas_ativos}/${dashboardDataDefault.recursos.total_motoristas}`}
           change={`${dashboardData.recursos.performance_media}%`}
           changeType="positive"
           icon={Users}
@@ -333,7 +339,7 @@ export default function DashboardPage() {
         />
         <MetricCard
           title="Ocupação Frota"
-          value={`${dashboardData.recursos.ocupacao_frota}%`}
+          value={`${dashboardDataDefault.recursos.ocupacao_frota}%`}
           change={`+${dashboardData.recursos.variacao_ocupacao}%`}
           changeType="positive"
           icon={Truck}

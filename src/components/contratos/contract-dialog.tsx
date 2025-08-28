@@ -9,10 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { createContract, updateContract, type ContractRecord } from '@/services/contractsService'
 
 export function ContractDialog({ open, onClose, contract, onSaved }: { open: boolean; onClose: () => void; contract?: ContractRecord | null; onSaved?: () => void }) {
-  const [form, setForm] = useState<ContractRecord>({ nome: '', status: 'Ativo' })
+  const [form, setForm] = useState<ContractRecord>({ nome: '', status: 'Ativo', custo_material: null })
   useEffect(() => {
     if (contract) setForm(contract)
-    else setForm({ nome: '', status: 'Ativo' })
+    else setForm({ nome: '', status: 'Ativo', custo_material: null })
   }, [contract, open])
 
   const set = (k: keyof ContractRecord, v: any) => setForm((p) => ({ ...p, [k]: v }))
@@ -75,6 +75,10 @@ export function ContractDialog({ open, onClose, contract, onSaved }: { open: boo
           <div className="space-y-2">
             <Label>Responsável</Label>
             <Input value={form.responsavel || ''} onChange={(e) => set('responsavel', e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Custo de Material</Label>
+            <Input type="number" inputMode="decimal" value={form.custo_material ?? ''} onChange={(e) => set('custo_material', e.target.value === '' ? null : Number(e.target.value))} />
           </div>
         </div>
         <DialogFooter>

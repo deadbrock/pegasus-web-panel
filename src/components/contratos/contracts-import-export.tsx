@@ -16,10 +16,11 @@ export function ContractsImportExport({ onImported, rowsForExport }: { onImporte
       ['Instruções:'],
       ['- Não altere os nomes das colunas.'],
       ['- Colunas com * são obrigatórias.'],
+      ['- custo_material é numérico (use ponto como separador decimal).'],
     ])
     const wsData = XLSX.utils.aoa_to_sheet([
-      ['nome*','cnpj','cidade','estado','endereco','inicio_vigencia','fim_vigencia','status','responsavel'],
-      ['Assaí Paulista','00.000.000/0000-00','São Paulo','SP','Rua A, 123','2025-01-01','2025-12-31','Ativo','Fulano'],
+      ['nome*','cnpj','cidade','estado','endereco','inicio_vigencia','fim_vigencia','status','responsavel','custo_material'],
+      ['Assaí Paulista','00.000.000/0000-00','São Paulo','SP','Rua A, 123','2025-01-01','2025-12-31','Ativo','Fulano', 0],
     ])
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, wsData, 'Contratos')
@@ -50,6 +51,7 @@ export function ContractsImportExport({ onImported, rowsForExport }: { onImporte
       fim_vigencia: r.fim_vigencia ? new Date(r.fim_vigencia).toISOString() : null,
       status: (r.status || 'Ativo') as any,
       responsavel: r.responsavel || null,
+      custo_material: (r.custo_material === '' || r.custo_material === undefined || r.custo_material === null) ? null : Number(r.custo_material),
     }))
     const count = await upsertContractsBulk(rows)
     setOpen(false)
@@ -67,6 +69,7 @@ export function ContractsImportExport({ onImported, rowsForExport }: { onImporte
       fim_vigencia: r.fim_vigencia || '',
       status: r.status || '',
       responsavel: r.responsavel || '',
+      custo_material: r.custo_material ?? '',
     })))
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Contratos')

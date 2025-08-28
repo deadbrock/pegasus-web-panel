@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 export default function ConfiguracoesPage() {
   const [emailAlertsEnabled, setEmailAlertsEnabled] = useState<boolean>(true)
@@ -77,6 +78,15 @@ export default function ConfiguracoesPage() {
               </div>
               <div className="flex justify-end">
                 <Button type="button" onClick={() => console.log("Salvar notificações")}>Salvar</Button>
+              </div>
+              <div className="pt-4 border-t">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-medium">Workflows Automatizados</div>
+                    <p className="text-sm text-gray-500">Crie regras personalizadas e receba alertas direcionados.</p>
+                  </div>
+                  <Link href="/dashboard/configuracoes/workflows" className="text-blue-600 hover:underline">Abrir criador</Link>
+                </div>
               </div>
             </CardContent>
           </Card>

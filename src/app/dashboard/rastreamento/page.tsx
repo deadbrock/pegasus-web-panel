@@ -27,24 +27,28 @@ import { VehiclesTable } from '@/components/rastreamento/vehicles-table'
 import { RouteHistory } from '@/components/rastreamento/route-history'
 import { TrackingMetrics } from '@/components/rastreamento/tracking-metrics'
 import { AlertsPanel } from '@/components/rastreamento/alerts-panel'
+import { fetchVeiculos, subscribePosicoes, subscribeVeiculos } from '@/lib/services/rastreamento-realtime'
 
 export default function RastreamentoPage() {
   const [isRealTimeActive, setIsRealTimeActive] = useState(true)
   const [selectedVehicle, setSelectedVehicle] = useState(null)
   const [lastUpdate, setLastUpdate] = useState(new Date())
+  const [rows, setRows] = useState<any[]>([])
   const { toast } = useToast()
 
-  // Atualização automática a cada 5 segundos
+  // Carrega dados e assina Realtime para posições
   useEffect(() => {
-    if (!isRealTimeActive) return
-
-    const interval = setInterval(() => {
+    let unsub: any
+    const load = async () => {
+      const v = await fetchVeiculos()
+      setRows(v)
       setLastUpdate(new Date())
-      // Aqui seria feita a atualização real dos dados via API
-    }, 5000)
-
-    return () => clearInterval(interval)
-  }, [isRealTimeActive])
+    }
+    load()
+    const unsubPos = subscribePosicoes(() => load())
+    const unsubVeh = subscribeVeiculos(() => load())
+    return () => { unsubPos && unsubPos(); unsubVeh && unsubVeh() }
+  }, [])
 
   const handleVehicleSelect = (vehicle: any) => {
     setSelectedVehicle(vehicle)
@@ -184,6 +188,7 @@ export default function RastreamentoPage() {
                   <TrackingMap 
                     selectedVehicle={selectedVehicle}
                     isRealTime={isRealTimeActive}
+                    data={rows}
                   />
                 </CardContent>
               </Card>
@@ -201,6 +206,7 @@ export default function RastreamentoPage() {
                     compact={true}
                     onVehicleSelect={handleVehicleSelect}
                     selectedVehicle={selectedVehicle}
+                    data={rows}
                   />
                 </CardContent>
               </Card>
@@ -240,6 +246,7 @@ export default function RastreamentoPage() {
               <VehiclesTable 
                 onVehicleSelect={handleVehicleSelect}
                 selectedVehicle={selectedVehicle}
+                data={rows}
               />
             </CardContent>
           </Card>

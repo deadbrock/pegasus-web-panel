@@ -16,7 +16,9 @@
     "postinstall": "next telemetry disable",
     "apply:supabase": "node ./scripts/apply_supabase_sql.js",
     "apply:custos": "node ./scripts/apply_costs_sql.js",
-    "apply:auditoria": "node ./scripts/apply_auditoria_sql.js"
+    "apply:auditoria": "node ./scripts/apply_auditoria_sql.js",
+    "apply:workflows": "node ./scripts/apply_workflows_sql.js",
+    "apply:ai": "node ./scripts/apply_ai_modules_sql.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.2",
