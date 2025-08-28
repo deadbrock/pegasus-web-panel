@@ -65,9 +65,10 @@ export async function POST(req: NextRequest) {
       
       usersToCreate.push({
         email: user.email,
-        hashed_password: hashedPassword,
+        encrypted_password: hashedPassword,
+        nome: user.name,
         role: user.role,
-        name: user.name,
+        ativo: true,
         created_at: new Date().toISOString()
       })
     }
