@@ -64,7 +64,6 @@ export async function POST(req: NextRequest) {
       const hashedPassword = await bcrypt.hash(user.password, 12)
       
       usersToCreate.push({
-        username: user.username,
         email: user.email,
         hashed_password: hashedPassword,
         role: user.role,

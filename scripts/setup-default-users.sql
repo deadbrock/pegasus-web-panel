@@ -1,10 +1,10 @@
 -- Script para criar usuários padrão do Sistema Pegasus
 -- Execute este script no seu Supabase para criar os usuários iniciais
 
--- Primeiro, vamos criar a tabela users se não existir
+-- Verificar se a tabela users existe, se não, criá-la
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
-    username VARCHAR(255) UNIQUE NOT NULL,
+    username VARCHAR(255) UNIQUE,
     email VARCHAR(255) UNIQUE NOT NULL,
     hashed_password VARCHAR(255) NOT NULL,
     role VARCHAR(50) NOT NULL,
@@ -12,6 +12,33 @@ CREATE TABLE IF NOT EXISTS users (
     fcm_token VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Adicionar coluna username se não existir (para compatibilidade)
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'users' AND column_name = 'username') THEN
+        ALTER TABLE users ADD COLUMN username VARCHAR(255) UNIQUE;
+    END IF;
+END $$;
+
+-- Adicionar coluna name se não existir
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'users' AND column_name = 'name') THEN
+        ALTER TABLE users ADD COLUMN name VARCHAR(255);
+    END IF;
+END $$;
+
+-- Adicionar coluna fcm_token se não existir
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'users' AND column_name = 'fcm_token') THEN
+        ALTER TABLE users ADD COLUMN fcm_token VARCHAR(255);
+    END IF;
+END $$;
 
 -- Inserir usuários padrão (senhas já hasheadas com bcrypt)
 INSERT INTO users (username, email, hashed_password, role, name, created_at) VALUES
