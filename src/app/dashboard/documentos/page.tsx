@@ -1,3 +1,62 @@
+"use client"
+import React, { useEffect, useState } from 'react'
+import { apiFetch } from '@/lib/api'
+
+type Documento = { id: number; titulo: string; tipo: string; arquivo_url: string; usuario_id: number }
+
+export default function DocumentosPage() {
+	const [docs, setDocs] = useState<Documento[]>([])
+	const [loading, setLoading] = useState(true)
+	const [error, setError] = useState<string | null>(null)
+
+	useEffect(() => {
+		const run = async () => {
+			setLoading(true)
+			setError(null)
+			try {
+				const res = await apiFetch('documentos')
+				const data = await res.json()
+				setDocs(data)
+			} catch (e: any) {
+				setError(e?.message || 'Erro ao carregar documentos')
+			} finally {
+				setLoading(false)
+			}
+		}
+		run()
+	}, [])
+
+	return (
+		<div className="space-y-6">
+			<h1 className="text-xl font-semibold">Documentos</h1>
+			{loading && <div>Carregando...</div>}
+			{error && <div className="text-red-500">{error}</div>}
+			<div className="bg-white p-4 rounded border">
+				<table className="w-full text-sm">
+					<thead>
+						<tr className="text-left">
+							<th>Título</th>
+							<th>Tipo</th>
+							<th>Arquivo</th>
+						</tr>
+					</thead>
+					<tbody>
+						{docs.map(d => (
+							<tr key={d.id} className="border-t">
+								<td className="py-2">{d.titulo}</td>
+								<td>{d.tipo}</td>
+								<td>
+									<a className="text-blue-600 hover:underline" href={d.arquivo_url} target="_blank">Abrir</a>
+								</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	)
+}
+
 'use client'
 
 import { useState } from 'react'

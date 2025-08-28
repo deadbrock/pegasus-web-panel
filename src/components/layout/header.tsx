@@ -6,6 +6,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { usePathname } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
+import { fetchMyNotifications, subscribeMyNotifications, UserNotification } from '@/services/notificationsService'
+import { supabase } from '@/lib/supabaseClient'
+import { HeaderAuth } from '@/components/layout/header-auth'
 
 function getBreadcrumbFromPath(path: string): string {
   const pathMap: Record<string, string> = {
@@ -32,6 +36,27 @@ export function Header() {
   const pathname = usePathname()
   const router = useRouter()
   const currentPage = getBreadcrumbFromPath(pathname)
+  const [notifications, setNotifications] = useState<UserNotification[]>([])
+  const [unread, setUnread] = useState<number>(0)
+
+  useEffect(() => {
+    let unsub: (() => void) | null = null
+    const run = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      const uid = user?.id
+      if (!uid) return
+      const list = await fetchMyNotifications(uid)
+      setNotifications(list)
+      setUnread(list.length)
+      unsub = subscribeMyNotifications(uid, async () => {
+        const latest = await fetchMyNotifications(uid)
+        setNotifications(latest)
+        setUnread(latest.length)
+      })
+    }
+    run()
+    return () => { if (unsub) unsub() }
+  }, [])
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
@@ -70,48 +95,36 @@ export function Header() {
           <PopoverTrigger asChild>
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                3
-              </span>
+              {unread > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-5 h-5 px-1 flex items-center justify-center">
+                  {unread}
+                </span>
+              )}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-80">
             <div className="space-y-2 text-sm">
               <div className="font-medium">Notificações</div>
-              <div className="space-y-2">
-                <div className="p-2 rounded bg-gray-50">3 alertas críticos na Auditoria</div>
-                <div className="p-2 rounded bg-gray-50">2 notas fiscais pendentes</div>
-                <div className="p-2 rounded bg-gray-50">Pedidos aguardando aprovação</div>
+              <div className="space-y-2 max-h-80 overflow-auto">
+                {notifications.length === 0 && (
+                  <div className="p-2 text-gray-500">Sem notificações</div>
+                )}
+                {notifications.map((n) => (
+                  <div key={n.id} className="p-2 rounded bg-gray-50">
+                    <div className="font-medium">{n.title}</div>
+                    <div className="text-gray-700">{n.message}</div>
+                    {n.payload?.matches?.length ? (
+                      <div className="mt-1 text-xs text-gray-500">{n.payload.matches.length} ocorrência(s)</div>
+                    ) : null}
+                  </div>
+                ))}
               </div>
             </div>
           </PopoverContent>
         </Popover>
 
-        {/* Settings */}
-        <Link href="/dashboard/configuracoes">
-          <Button variant="ghost" size="icon">
-            <Settings className="w-5 h-5" />
-          </Button>
-        </Link>
-
-        {/* User Menu */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <User className="w-5 h-5" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-56">
-            <div className="text-sm space-y-2">
-              <div className="font-medium">Minha Conta</div>
-              <Link className="block hover:underline" href="/dashboard/configuracoes">Configurações</Link>
-              <button className="text-left w-full hover:underline" onClick={() => {
-                try { localStorage.removeItem('pegasus-web-auth'); } catch {}
-                router.push('/')
-              }}>Sair</button>
-            </div>
-          </PopoverContent>
-        </Popover>
+        {/* Auth */}
+        <HeaderAuth />
       </div>
     </header>
   )

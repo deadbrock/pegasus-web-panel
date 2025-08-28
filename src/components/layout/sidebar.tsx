@@ -20,8 +20,34 @@ import {
   Gamepad2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/lib/auth/auth-context'
 
-const menuItems = [
+const baseMenuItems = [
+  {
+    title: 'Data Hub',
+    icon: TrendingUp,
+    href: '/dashboard/data-hub',
+  },
+  {
+    title: 'Forecast',
+    icon: BarChart3,
+    href: '/dashboard/forecast',
+  },
+  {
+    title: 'Radar Logístico',
+    icon: Shield,
+    href: '/dashboard/radar',
+  },
+  {
+    title: 'Insights',
+    icon: TrendingUp,
+    href: '/dashboard/insights',
+  },
+  {
+    title: 'PegAI',
+    icon: Calculator,
+    href: '/dashboard/pegai',
+  },
   {
     title: 'Contratos',
     icon: FileText,
@@ -82,11 +108,7 @@ const menuItems = [
     icon: Shield,
     href: '/dashboard/auditoria',
   },
-  {
-    title: 'Documentos',
-    icon: FileCheck,
-    href: '/dashboard/documentos',
-  },
+  // Documentos será condicionado por perfil
   {
     title: 'Gamificação',
     icon: Gamepad2,
@@ -102,15 +124,27 @@ const menuItems = [
     icon: BarChart3,
     href: '/dashboard/relatorios',
   },
-  {
-    title: 'Configurações',
-    icon: Settings,
-    href: '/dashboard/configuracoes',
-  },
+  // Configurações/Usuários será condicionado por perfil
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
+  const { user } = useAuth()
+  const role = user?.role
+  const canFinanceiro = role === 'diretor' || role === 'financeiro' || role === 'admin'
+  const canUsuarios = role === 'diretor' || role === 'admin' || role === 'manager'
+  const canDocumentos = role === 'diretor' || role === 'financeiro' || role === 'manager' || role === 'admin'
+
+  const menuItems = [...baseMenuItems]
+  if (canFinanceiro) {
+    menuItems.splice(5, 0, { title: 'Financeiro', icon: Calculator, href: '/dashboard/financeiro' })
+  }
+  if (canDocumentos) {
+    menuItems.splice(11, 0, { title: 'Documentos', icon: FileCheck, href: '/dashboard/documentos' })
+  }
+  if (canUsuarios) {
+    menuItems.push({ title: 'Usuários', icon: Users, href: '/dashboard/configuracoes/usuarios' })
+  }
 
   return (
     <div className="w-64 bg-white shadow-lg flex flex-col">
