@@ -1,6 +1,6 @@
 import { Sidebar } from '@/components/layout/sidebar'
 import { Header } from '@/components/layout/header'
-import { AuthProvider } from '@/lib/auth/auth-context'
+import { DashboardGuard } from '../../components/auth/dashboard-guard'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -8,7 +8,7 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
-    <AuthProvider>
+    <DashboardGuard>
       <div className="flex h-screen bg-gray-100">
         {/* Sidebar */}
         <Sidebar />
@@ -24,6 +24,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </main>
         </div>
       </div>
-    </AuthProvider>
+    </DashboardGuard>
   )
 }
