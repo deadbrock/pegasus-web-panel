@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
       
       usersToCreate.push({
         email: user.email,
-        encrypted_password: hashedPassword,
+        senha: hashedPassword,
         nome: user.name,
         role: user.role,
         ativo: true,
