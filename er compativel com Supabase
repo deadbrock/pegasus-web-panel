@@ -1,0 +1,204 @@
+[1mdiff --git a/scripts/debug-users-table.sql b/scripts/debug-users-table.sql[m
+[1mnew file mode 100644[m
+[1mindex 00000000..bf1159dc[m
+[1m--- /dev/null[m
+[1m+++ b/scripts/debug-users-table.sql[m
+[36m@@ -0,0 +1,55 @@[m
+[32m+[m[32m-- Script para debugar e identificar a tabela correta[m
+[32m+[m[32m-- Execute cada seção individualmente para identificar a estrutura[m
+[32m+[m
+[32m+[m[32m-- 1. Verificar se existe uma tabela auth.users (padrão Supabase)[m
+[32m+[m[32mSELECT table_name, table_schema[m[41m [m
+[32m+[m[32mFROM information_schema.tables[m[41m [m
+[32m+[m[32mWHERE table_name = 'users';[m
+[32m+[m
+[32m+[m[32m-- 2. Verificar estrutura da tabela users no schema public[m
+[32m+[m[32mSELECT[m[41m [m
+[32m+[m[32m    column_name,[m
+[32m+[m[32m    data_type,[m
+[32m+[m[32m    is_nullable,[m
+[32m+[m[32m    column_default[m
+[32m+[m[32mFROM information_schema.columns[m[41m [m
+[32m+[m[32mWHERE table_name = 'users'[m[41m [m
+[32m+[m[32m  AND table_schema = 'public'[m
+[32m+[m[32mORDER BY ordinal_position;[m
+[32m+[m
+[32m+[m[32m-- 3. Verificar estrutura da tabela users no schema auth (se existir)[m
+[32m+[m[32mSELECT[m[41m [m
+[32m+[m[32m    column_name,[m
+[32m+[m[32m    data_type,[m
+[32m+[m[32m    is_nullable,[m
+[32m+[m[32m    column_default[m
+[32m+[m[32mFROM information_schema.columns[m[41m [m
+[32m+[m[32mWHERE table_name = 'users'[m[41m [m
+[32m+[m[32m  AND table_schema = 'auth'[m
+[32m+[m[32mORDER BY ordinal_position;[m
+[32m+[m
+[32m+[m[32m-- 4. Tentar inserir apenas com campos básicos para testar[m
+[32m+[m[32m-- TESTE 1: Tabela simples[m
+[32m+[m[32m/*[m
+[32m+[m[32mINSERT INTO public.users (email, role) VALUES[m[41m [m
+[32m+[m[32m('teste@pegasus.com', 'admin')[m
+[32m+[m[32mON CONFLICT (email) DO NOTHING;[m
+[32m+[m[32m*/[m
+[32m+[m
+[32m+[m[32m-- TESTE 2: Com nome como 'nome'[m
+[32m+[m[32m/*[m
+[32m+[m[32mINSERT INTO public.users (email, nome, role) VALUES[m[41m [m
+[32m+[m[32m('teste@pegasus.com', 'Teste', 'admin')[m
+[32m+[m[32mON CONFLICT (email) DO NOTHING;[m
+[32m+[m[32m*/[m
+[32m+[m
+[32m+[m[32m-- TESTE 3: Usar auth.users do Supabase[m
+[32m+[m[32m/*[m
+[32m+[m[32mINSERT INTO auth.users (email, role) VALUES[m[41m [m
+[32m+[m[32m('teste@pegasus.com', 'admin')[m
+[32m+[m[32mON CONFLICT (email) DO NOTHING;[m
+[32m+[m[32m*/[m
+[32m+[m
+[32m+[m[32m-- Verificar dados existentes[m
+[32m+[m[32mSELECT COUNT(*) as total_users FROM public.users;[m
+[32m+[m[32mSELECT * FROM public.users LIMIT 3;[m
+[1mdiff --git a/scripts/setup-users-final.sql b/scripts/setup-users-final.sql[m
+[1mnew file mode 100644[m
+[1mindex 00000000..56630b16[m
+[1m--- /dev/null[m
+[1m+++ b/scripts/setup-users-final.sql[m
+[36m@@ -0,0 +1,46 @@[m
+[32m+[m[32m-- SCRIPT FINAL CORRETO para public.users[m
+[32m+[m[32m-- Sua tabela não tem coluna de senha, vamos adicionar e depois inserir usuários[m
+[32m+[m
+[32m+[m[32m-- 1. Primeiro, adicionar coluna de senha na tabela public.users[m
+[32m+[m[32mALTER TABLE public.users ADD COLUMN IF NOT EXISTS senha TEXT;[m
+[32m+[m
+[32m+[m[32m-- 2. Agora inserir os usuários com senhas[m
+[32m+[m[32mINSERT INTO public.users (email, nome, role, ativo, senha, created_at) VALUES[m
+[32m+[m[32m([m
+[32m+[m[32m    'admin@pegasus.com',[m[41m [m
+[32m+[m[32m    'Administrador',[m
+[32m+[m[32m    'admin',[m
+[32m+[m[32m    true,[m
+[32m+[m[32m    '$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', -- senha: admin123[m
+[32m+[m[32m    NOW()[m
+[32m+[m[32m),[m
+[32m+[m[32m([m
+[32m+[m[32m    'gestor@pegasus.com',[m
+[32m+[m[32m    'Gestor Logístico',[m
+[32m+[m[32m    'gestor',[m
+[32m+[m[32m    true,[m
+[32m+[m[32m    '$2b$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', -- senha: gestor123[m
+[32m+[m[32m    NOW()[m
+[32m+[m[32m),[m
+[32m+[m[32m([m
+[32m+[m[32m    'financeiro@pegasus.com',[m
+[32m+[m[32m    'Analista Financeiro',[m
+[32m+[m[32m    'financeiro',[m
+[32m+[m[32m    true,[m
+[32m+[m[32m    '$2b$12$gSvs2UDtT5JeuLPiiRr3dO.VQv/4mh8Gc.YNhEQHwVZH.gXlLGUi6', -- senha: financeiro123[m
+[32m+[m[32m    NOW()[m
+[32m+[m[32m)[m
+[32m+[m[32mON CONFLICT (email) DO NOTHING;[m
+[32m+[m
+[32m+[m[32m-- 3. Atualizar o usuário diretor que já existe[m
+[32m+[m[32mUPDATE public.users[m[41m [m
+[32m+[m[32mSET senha = '$2b$12$LQv3c1yqBwEHdukIAOYeMub/SNddHNaJF.gTK8xRlmeYJkd5rlWvG' -- senha: diretor123[m
+[32m+[m[32mWHERE email = 'diretor@pegasus.com';[m
+[32m+[m
+[32m+[m[32m-- 4. Verificar resultado final[m
+[32m+[m[32mSELECT id, email, nome, role, ativo,[m[41m [m
+[32m+[m[32m       CASE WHEN senha IS NOT NULL THEN 'Configurada' ELSE 'Sem senha' END as senha_status,[m
+[32m+[m[32m       created_at[m[41m [m
+[32m+[m[32mFROM public.users[m[41m [m
+[32m+[m[32mWHERE email LIKE '%@pegasus.com'[m[41m [m
+[32m+[m[32mORDER BY created_at;[m
+[1mdiff --git a/scripts/setup-users-minimal.sql b/scripts/setup-users-minimal.sql[m
+[1mnew file mode 100644[m
+[1mindex 00000000..f0f47d95[m
+[1m--- /dev/null[m
+[1m+++ b/scripts/setup-users-minimal.sql[m
+[36m@@ -0,0 +1,72 @@[m
+[32m+[m[32m-- Script minimalista - apenas campos que certamente existem[m
+[32m+[m[32m-- Baseado no JSON: email, nome, role, ativo, created_at[m
+[32m+[m
+[32m+[m[32m-- VERSÃO 1: Campos mínimos sem senha (para testar estrutura)[m
+[32m+[m[32mINSERT INTO users (email, nome, role, ativo, created_at) VALUES[m
+[32m+[m[32m([m
+[32m+[m[32m    'diretor@pegasus.com',[m
+[32m+[m[32m    'Diretor Geral',[m
+[32m+[m[32m    'diretor',[m
+[32m+[m[32m    true,[m
+[32m+[m[32m    NOW()[m
+[32m+[m[32m),[m
+[32m+[m[32m([m
+[32m+[m[32m    'admin@pegasus.com',[m[41m [m
+[32m+[m[32m    'Administrador',[m
+[32m+[m[32m    'admin',[m
+[32m+[m[32m    true,[m
+[32m+[m[32m    NOW()[m
+[32m+[m[32m),[m
+[32m+[m[32m([m
+[32m+[m[32m    'gestor@pegasus.com',[m
+[32m+[m[32m    'Gestor Logístico',[m
+[32m+[m[32m    'gestor',[m
+[32m+[m[32m    true,[m
+[32m+[m[32m    NOW()[m
+[32m+[m[32m),[m
+[32m+[m[32m([m
+[32m+[m[32m    'financeiro@pegasus.com',[m
+[32m+[m[32m    'Analista Financeiro',[m
+[32m+[m[32m    'financeiro',[m
+[32m+[m[32m    true,[m
+[32m+[m[32m    NOW()[m
+[32m+[m[32m)[m
+[32m+[m[32mON CONFLICT (email) DO NOTHING;[m
+[32m+[m
+[32m+[m[32m-- Verificar resultado[m
+[32m+[m[32mSELECT id, email, nome, role, ativo, created_at FROM users[m[41m [m
+[32m+[m[32mWHERE email LIKE '%@pegasus.com'[m[41m [m
+[32m+[m[32mORDER BY created_at;[m
+[32m+[m
+[32m+[m[32m-- Se funcionou até aqui, agora vamos tentar adicionar senha[m
+[32m+[m[32m-- Execute uma dessas opções de UPDATE depois:[m
+[32m+[m
+[32m+[m[32m-- OPÇÃO A: Se tiver coluna 'password'[m
+[32m+[m[32m/*[m
+[32m+[m[32mUPDATE users SET password = '$2b$12$LQv3c1yqBwEHdukIAOYeMub/SNddHNaJF.gTK8xRlmeYJkd5rlWvG'[m[41m [m
+[32m+[m[32mWHERE email = 'diretor@pegasus.com';[m
+[32m+[m
+[32m+[m[32mUPDATE users SET password = '$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW'[m[41m [m
+[32m+[m[32mWHERE email = 'admin@pegasus.com';[m
+[32m+[m
+[32m+[m[32mUPDATE users SET password = '$2b$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'[m[41m [m
+[32m+[m[32mWHERE email = 'gestor@pegasus.com';[m
+[32m+[m
+[32m+[m[32mUPDATE users SET password = '$2b$12$gSvs2UDtT5JeuLPiiRr3dO.VQv/4mh8Gc.YNhEQHwVZH.gXlLGUi6'[m[41m [m
+[32m+[m[32mWHERE email = 'financeiro@pegasus.com';[m
+[32m+[m[32m*/[m
+[32m+[m
+[32m+[m[32m-- OPÇÃO B: Se tiver coluna 'senha'[m
+[32m+[m[32m/*[m
+[32m+[m[32mUPDATE users SET senha = '$2b$12$LQv3c1yqBwEHdukIAOYeMub/SNddHNaJF.gTK8xRlmeYJkd5rlWvG'[m[41m [m
+[32m+[m[32mWHERE email = 'diretor@pegasus.com';[m
+[32m+[m
+[32m+[m[32mUPDATE users SET senha = '$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW'[m[41m [m
+[32m+[m[32mWHERE email = 'admin@pegasus.com';[m
+[32m+[m
+[32m+[m[32mUPDATE users SET senha = '$2b$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'[m[41m [m
+[32m+[m[32mWHERE email = 'gestor@pegasus.com';[m
+[32m+[m
+[32m+[m[32mUPDATE users SET senha = '$2b$12$gSvs2UDtT5JeuLPiiRr3dO.VQv/4mh8Gc.YNhEQHwVZH.gXlLGUi6'[m[41m [m
+[32m+[m[32mWHERE email = 'financeiro@pegasus.com';[m
+[32m+[m[32m*/[m
+[1mdiff --git a/src/app/api/setup/users/route.ts b/src/app/api/setup/users/route.ts[m
+[1mindex b02b1446..5e6f9f22 100644[m
+[1m--- a/src/app/api/setup/users/route.ts[m
+[1m+++ b/src/app/api/setup/users/route.ts[m
+[36m@@ -65,7 +65,7 @@[m [mexport async function POST(req: NextRequest) {[m
+       [m
+       usersToCreate.push({[m
+         email: user.email,[m
+[31m-        encrypted_password: hashedPassword,[m
+[32m+[m[32m        senha: hashedPassword,[m
+         nome: user.name,[m
+         role: user.role,[m
+         ativo: true,[m
