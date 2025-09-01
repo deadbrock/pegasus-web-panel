@@ -13,7 +13,8 @@ import {
   Package,
   Warehouse,
   Users,
-  Settings
+  Settings,
+  Target
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth/auth-context'
@@ -31,7 +32,8 @@ const iconMap = {
   Package,
   Warehouse,
   Users,
-  Settings
+  Settings,
+  Target
 }
 
 export function Sidebar() {

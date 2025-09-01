@@ -81,6 +81,13 @@ export const ALL_MODULES: ModulePermission[] = [
     allowedRoles: ['admin', 'diretor']
   },
   {
+    id: 'centro-custos',
+    name: 'Centro de Custos',
+    icon: 'Target',
+    path: '/dashboard/centro-custos',
+    allowedRoles: ['admin', 'diretor', 'financeiro']
+  },
+  {
     id: 'configuracoes',
     name: 'Configurações',
     icon: 'Settings',
