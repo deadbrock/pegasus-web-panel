@@ -18,57 +18,117 @@ import {
 export default function AuditoriaPage() {
   const [searchTerm, setSearchTerm] = useState('')
 
-  // Dados simulados de auditoria
+  // Dados simulados de auditoria com foco financeiro
   const auditoriaLogs = [
     {
       id: 1,
       timestamp: '2024-01-15 14:30:25',
-      usuario: 'admin@pegasus.com',
-      acao: 'CREATE',
+      usuario: 'financeiro@pegasus.com',
+      acao: 'IMPORT_OFX',
       modulo: 'Financeiro',
-      descricao: 'Criou nova despesa: Combustível - R$ 250,00',
-      ip: '192.168.1.100',
-      status: 'sucesso'
+      descricao: 'Importou extrato OFX - Caixa Econômica (47 transações)',
+      ip: '192.168.1.105',
+      status: 'sucesso',
+      detalhes: { arquivo: 'extrato_janeiro_2024.ofx', transacoes: 47 }
     },
     {
       id: 2,
       timestamp: '2024-01-15 14:25:10',
       usuario: 'financeiro@pegasus.com',
-      acao: 'UPDATE',
-      modulo: 'Documentos',
-      descricao: 'Atualizou documento: NF-001234',
+      acao: 'ALLOCATE_COST',
+      modulo: 'Centro de Custos',
+      descricao: 'Alocou despesa R$ 2.500,00 para centro "Veículos"',
       ip: '192.168.1.105',
-      status: 'sucesso'
+      status: 'sucesso',
+      detalhes: { valor: 2500, centro: 'Veículos', transacao_id: 'TXN-001234' }
     },
     {
       id: 3,
       timestamp: '2024-01-15 14:20:45',
-      usuario: 'gestor@pegasus.com',
-      acao: 'DELETE',
-      modulo: 'Pedidos',
-      descricao: 'Tentativa de exclusão de pedido #PED-2024-001',
-      ip: '192.168.1.110',
-      status: 'falha'
+      usuario: 'financeiro@pegasus.com',
+      acao: 'CREATE_COST_CENTER',
+      modulo: 'Centro de Custos',
+      descricao: 'Criou novo centro de custo personalizado: "Projeto Alpha"',
+      ip: '192.168.1.105',
+      status: 'sucesso',
+      detalhes: { centro: 'Projeto Alpha', tipo: 'personalizado' }
     },
     {
       id: 4,
       timestamp: '2024-01-15 14:15:30',
-      usuario: 'financeiro@pegasus.com',
-      acao: 'READ',
-      modulo: 'Relatórios',
-      descricao: 'Gerou relatório financeiro mensal',
-      ip: '192.168.1.105',
-      status: 'sucesso'
+      usuario: 'admin@pegasus.com',
+      acao: 'EXPORT_ACCOUNTING',
+      modulo: 'Financeiro',
+      descricao: 'Exportou dados contábeis para sistema externo (formato XML)',
+      ip: '192.168.1.100',
+      status: 'sucesso',
+      detalhes: { formato: 'XML', registros: 156, periodo: 'Janeiro 2024' }
     },
     {
       id: 5,
       timestamp: '2024-01-15 14:10:15',
-      usuario: 'admin@pegasus.com',
-      acao: 'LOGIN',
-      modulo: 'Autenticação',
-      descricao: 'Login realizado com sucesso',
-      ip: '192.168.1.100',
-      status: 'sucesso'
+      usuario: 'financeiro@pegasus.com',
+      acao: 'RECONCILE_BANK',
+      modulo: 'Conciliação',
+      descricao: 'Executou conciliação bancária - Caixa Econômica',
+      ip: '192.168.1.105',
+      status: 'sucesso',
+      detalhes: { conta: 'Caixa Principal', divergencias: 2, conciliados: 45 }
+    },
+    {
+      id: 6,
+      timestamp: '2024-01-15 14:05:22',
+      usuario: 'diretor@pegasus.com',
+      acao: 'APPROVE_EXPENSE',
+      modulo: 'Aprovação',
+      descricao: 'Aprovou despesa de R$ 15.000,00 - Contrato de Manutenção',
+      ip: '192.168.1.120',
+      status: 'sucesso',
+      detalhes: { valor: 15000, categoria: 'Contratos', aprovador: 'diretor' }
+    },
+    {
+      id: 7,
+      timestamp: '2024-01-15 13:58:17',
+      usuario: 'financeiro@pegasus.com',
+      acao: 'BULK_ALLOCATE',
+      modulo: 'Centro de Custos',
+      descricao: 'Alocação em lote: 12 transações para diversos centros',
+      ip: '192.168.1.105',
+      status: 'sucesso',
+      detalhes: { transacoes: 12, centros: ['Sede', 'Veículos', 'Filiais'] }
+    },
+    {
+      id: 8,
+      timestamp: '2024-01-15 13:45:33',
+      usuario: 'financeiro@pegasus.com',
+      acao: 'UPDATE_CATEGORY',
+      modulo: 'Categorização',
+      descricao: 'Alterou categoria de "Combustível" para "Manutenção Veículos"',
+      ip: '192.168.1.105',
+      status: 'sucesso',
+      detalhes: { transacao_id: 'TXN-001235', categoria_anterior: 'Combustível', categoria_nova: 'Manutenção Veículos' }
+    },
+    {
+      id: 9,
+      timestamp: '2024-01-15 13:30:44',
+      usuario: 'gestor@pegasus.com',
+      acao: 'ACCESS_DENIED',
+      modulo: 'Segurança',
+      descricao: 'Tentativa de acesso negada ao módulo Financeiro',
+      ip: '192.168.1.110',
+      status: 'falha',
+      detalhes: { modulo_tentativa: 'Financeiro', perfil: 'gestor' }
+    },
+    {
+      id: 10,
+      timestamp: '2024-01-15 13:25:12',
+      usuario: 'financeiro@pegasus.com',
+      acao: 'GENERATE_REPORT',
+      modulo: 'Relatórios',
+      descricao: 'Gerou relatório de despesas por centro de custo (Janeiro)',
+      ip: '192.168.1.105',
+      status: 'sucesso',
+      detalhes: { tipo: 'centro_custos', periodo: 'Janeiro 2024', formato: 'PDF' }
     }
   ]
 
@@ -84,7 +144,17 @@ export default function AuditoriaPage() {
       UPDATE: 'bg-yellow-100 text-yellow-800',
       DELETE: 'bg-red-100 text-red-800',
       READ: 'bg-green-100 text-green-800',
-      LOGIN: 'bg-purple-100 text-purple-800'
+      LOGIN: 'bg-purple-100 text-purple-800',
+      IMPORT_OFX: 'bg-indigo-100 text-indigo-800',
+      ALLOCATE_COST: 'bg-orange-100 text-orange-800',
+      CREATE_COST_CENTER: 'bg-cyan-100 text-cyan-800',
+      EXPORT_ACCOUNTING: 'bg-emerald-100 text-emerald-800',
+      RECONCILE_BANK: 'bg-teal-100 text-teal-800',
+      APPROVE_EXPENSE: 'bg-green-100 text-green-800',
+      BULK_ALLOCATE: 'bg-amber-100 text-amber-800',
+      UPDATE_CATEGORY: 'bg-lime-100 text-lime-800',
+      ACCESS_DENIED: 'bg-red-100 text-red-800',
+      GENERATE_REPORT: 'bg-slate-100 text-slate-800'
     }
     return <Badge className={colors[acao as keyof typeof colors] || 'bg-gray-100 text-gray-800'}>{acao}</Badge>
   }
@@ -119,45 +189,45 @@ export default function AuditoriaPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Ações</CardTitle>
+            <CardTitle className="text-sm font-medium">Ações Financeiras</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,234</div>
-            <p className="text-xs text-muted-foreground">+20.1% desde ontem</p>
+            <div className="text-2xl font-bold">347</div>
+            <p className="text-xs text-muted-foreground">+15.2% desde ontem</p>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Usuários Ativos</CardTitle>
-            <User className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Importações OFX</CardTitle>
+            <Download className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">23</div>
-            <p className="text-xs text-muted-foreground">+3 novos hoje</p>
+            <div className="text-2xl font-bold">12</div>
+            <p className="text-xs text-muted-foreground">3 hoje</p>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tentativas de Acesso</CardTitle>
+            <CardTitle className="text-sm font-medium">Alocações Centro</CardTitle>
             <Eye className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">892</div>
-            <p className="text-xs text-muted-foreground">+12% desde ontem</p>
+            <div className="text-2xl font-bold">89</div>
+            <p className="text-xs text-muted-foreground">47 automáticas</p>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Falhas de Segurança</CardTitle>
+            <CardTitle className="text-sm font-medium">Tentativas Negadas</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">3</div>
-            <p className="text-xs text-red-600">2 nas últimas 24h</p>
+            <p className="text-xs text-red-600">1 nas últimas 24h</p>
           </CardContent>
         </Card>
       </div>

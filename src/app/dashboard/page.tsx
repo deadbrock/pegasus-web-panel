@@ -105,6 +105,52 @@ const revenueEvolution = [
   { mes: 'Mai', receita: 1247350, custos: 943125, lucro: 304225 }
 ]
 
+// Dados de centro de custos
+const costCenterData = [
+  { centro: 'Sede', valor: 125000, percentual: 28.5, variacao: -5.2 },
+  { centro: 'Veículos', valor: 98000, percentual: 22.3, variacao: 8.1 },
+  { centro: 'Filiais', valor: 85000, percentual: 19.4, variacao: 3.7 },
+  { centro: 'Contratos', valor: 67000, percentual: 15.3, variacao: -2.1 },
+  { centro: 'Diárias', valor: 35000, percentual: 8.0, variacao: 12.4 },
+  { centro: 'Seguros', valor: 28000, percentual: 6.4, variacao: 0.8 }
+]
+
+// Dados de transações recentes (simulado para OFX)
+const recentTransactions = [
+  { 
+    data: '2024-01-15', 
+    descricao: 'COMBUSTÍVEL POSTO IPIRANGA', 
+    valor: -2500.00, 
+    centro: 'Veículos',
+    status: 'alocado',
+    banco: 'Caixa'
+  },
+  { 
+    data: '2024-01-15', 
+    descricao: 'PAGTO FORNECEDOR ABC LTDA', 
+    valor: -15000.00, 
+    centro: 'Contratos',
+    status: 'alocado',
+    banco: 'Caixa'
+  },
+  { 
+    data: '2024-01-14', 
+    descricao: 'RECEBIMENTO CLIENTE XYZ', 
+    valor: 45000.00, 
+    centro: '',
+    status: 'pendente',
+    banco: 'Caixa'
+  },
+  { 
+    data: '2024-01-14', 
+    descricao: 'ALUGUEL SEDE JANEIRO', 
+    valor: -12000.00, 
+    centro: 'Sede',
+    status: 'alocado',
+    banco: 'Caixa'
+  }
+]
+
 const operationalMetrics = [
   { categoria: 'Entregas', valor: 96.8, meta: 95, cor: '#10b981' },
   { categoria: 'Qualidade', valor: 94.2, meta: 90, cor: '#3b82f6' },
@@ -306,6 +352,143 @@ export default function DashboardPage() {
                   <Bar dataKey="meta" fill="#94a3b8" name="Meta" />
                 </BarChart>
               </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Widgets Financeiros Específicos */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Centro de Custos */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5" />
+              Despesas por Centro de Custo
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {costCenterData.map((centro, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="font-medium">{centro.centro}</span>
+                      <span className="text-gray-600">{centro.percentual}%</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500 mb-2">
+                      <span>{formatCurrency(centro.valor)}</span>
+                      <span className={`flex items-center gap-1 ${getVariationColor(centro.variacao)}`}>
+                        {getVariationIcon(centro.variacao)}
+                        {Math.abs(centro.variacao)}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full" 
+                        style={{ width: `${centro.percentual}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Transações Recentes */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="w-5 h-5" />
+              Transações Recentes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {recentTransactions.map((transacao, index) => (
+                <div key={index} className="flex items-center justify-between p-2 border rounded-lg">
+                  <div className="flex-1">
+                    <p className="font-medium text-sm truncate">{transacao.descricao}</p>
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <span>{transacao.data}</span>
+                      <span>•</span>
+                      <span>{transacao.banco}</span>
+                      {transacao.centro && (
+                        <>
+                          <span>•</span>
+                          <Badge variant="outline" className="text-xs px-1">{transacao.centro}</Badge>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className={`font-semibold text-sm ${
+                      transacao.valor > 0 ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {formatCurrency(transacao.valor)}
+                    </p>
+                    <Badge 
+                      variant={transacao.status === 'alocado' ? 'default' : 'outline'}
+                      className="text-xs"
+                    >
+                      {transacao.status === 'alocado' ? 'Alocado' : 'Pendente'}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 pt-3 border-t">
+              <Button variant="outline" size="sm" className="w-full">
+                <Eye className="w-4 h-4 mr-2" />
+                Ver Todas as Transações
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Resumo Financeiro Rápido */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="w-5 h-5" />
+              Resumo Financeiro
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center p-3 bg-green-50 rounded-lg">
+                <p className="text-xs text-green-600 font-medium">Entradas</p>
+                <p className="text-lg font-bold text-green-700">R$ 245K</p>
+                <p className="text-xs text-green-600">+12.5%</p>
+              </div>
+              <div className="text-center p-3 bg-red-50 rounded-lg">
+                <p className="text-xs text-red-600 font-medium">Saídas</p>
+                <p className="text-lg font-bold text-red-700">R$ 189K</p>
+                <p className="text-xs text-red-600">-8.2%</p>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Saldo Atual</span>
+                <span className="font-bold text-blue-600">R$ 156.780</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Pendente Alocação</span>
+                <span className="font-medium text-orange-600">3 transações</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Próx. Vencimento</span>
+                <span className="font-medium text-gray-600">5 dias</span>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t">
+              <Button size="sm" className="w-full">
+                <FileText className="w-4 h-4 mr-2" />
+                Importar OFX
+              </Button>
             </div>
           </CardContent>
         </Card>
