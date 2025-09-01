@@ -1,230 +1,224 @@
-'use client'
+"use client"
 
-import React, { useState } from 'react'
-import * as XLSX from 'xlsx'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Filter, FileText, Upload, Download, Eye, Edit, Trash2 } from 'lucide-react'
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { useToast } from '@/hooks/use-toast'
-import { FiscalStats } from '@/components/fiscal/fiscal-stats'
-import { NotasFiscaisTable } from '@/components/fiscal/notas-fiscais-table'
-import { NotaFiscalDialog } from '@/components/fiscal/nota-fiscal-dialog'
-import { FiscalFilters } from '@/components/fiscal/fiscal-filters'
-import { XMLUploadDialog } from '@/components/fiscal/xml-upload-dialog'
-import { ProcessamentoDialog } from '@/components/fiscal/processamento-dialog'
-import { fiscalService } from '@/lib/services/fiscal-service'
-import { NotaFiscal, FiltroNotaFiscal } from '@/types/fiscal'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { 
+  FileText, 
+  Plus, 
+  Search, 
+  Download, 
+  Upload,
+  Calendar,
+  DollarSign,
+  TrendingUp,
+  AlertTriangle
+} from 'lucide-react'
 
 export default function FiscalPage() {
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [isXMLUploadOpen, setIsXMLUploadOpen] = useState(false)
-  const [isProcessamentoOpen, setIsProcessamentoOpen] = useState(false)
-  const [selectedNota, setSelectedNota] = useState<NotaFiscal | null>(null)
-  const [showFilters, setShowFilters] = useState(false)
-  const [filters, setFilters] = useState<FiltroNotaFiscal>({})
+  const [searchTerm, setSearchTerm] = useState('')
 
-  const { toast } = useToast()
-  const queryClient = useQueryClient()
-
-  // Query para buscar notas fiscais
-  const { data: notasFiscais = [], isLoading } = useQuery({
-    queryKey: ['notas-fiscais', filters],
-    queryFn: () => fiscalService.getNotasFiscais(filters),
-  })
-
-  // Query para estatísticas
-  const { data: stats } = useQuery({
-    queryKey: ['fiscal-stats'],
-    queryFn: () => fiscalService.getStats(),
-  })
-
-  // Mutation para deletar nota fiscal
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => fiscalService.deleteNotaFiscal(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notas-fiscais'] })
-      queryClient.invalidateQueries({ queryKey: ['fiscal-stats'] })
-      toast({
-        title: 'Sucesso',
-        description: 'Nota fiscal excluída com sucesso',
-      })
+  // Dados simulados de documentos fiscais
+  const documentosFiscais = [
+    {
+      id: 1,
+      numero: 'NF-001234',
+      tipo: 'Nota Fiscal de Entrada',
+      fornecedor: 'Transportadora ABC Ltda',
+      valor: 1250.00,
+      data: '2024-01-15',
+      status: 'processada',
+      vencimento: '2024-02-15'
     },
-    onError: () => {
-      toast({
-        title: 'Erro',
-        description: 'Erro ao excluir nota fiscal',
-        variant: 'destructive',
-      })
+    {
+      id: 2,
+      numero: 'NF-001235',
+      tipo: 'Nota Fiscal de Saída',
+      cliente: 'Empresa XYZ S.A.',
+      valor: 3450.00,
+      data: '2024-01-14',
+      status: 'emitida',
+      vencimento: '2024-02-14'
     },
-  })
-
-  const handleEdit = (nota: NotaFiscal) => {
-    setSelectedNota(nota)
-    setIsDialogOpen(true)
-  }
-
-  const handleDelete = async (id: string) => {
-    if (confirm('Tem certeza que deseja excluir esta nota fiscal?')) {
-      deleteMutation.mutate(id)
+    {
+      id: 3,
+      numero: 'NF-001236',
+      tipo: 'Nota Fiscal de Serviço',
+      prestador: 'Oficina Mecânica Silva',
+      valor: 850.00,
+      data: '2024-01-13',
+      status: 'pendente',
+      vencimento: '2024-02-13'
+    },
+    {
+      id: 4,
+      numero: 'NF-001237',
+      tipo: 'Nota Fiscal de Entrada',
+      fornecedor: 'Posto de Combustível Norte',
+      valor: 2100.00,
+      data: '2024-01-12',
+      status: 'processada',
+      vencimento: '2024-02-12'
     }
+  ]
+
+  const getStatusBadge = (status: string) => {
+    const colors = {
+      processada: 'bg-green-100 text-green-800',
+      emitida: 'bg-blue-100 text-blue-800',
+      pendente: 'bg-yellow-100 text-yellow-800',
+      cancelada: 'bg-red-100 text-red-800'
+    }
+    return <Badge className={colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800'}>
+      {status.charAt(0).toUpperCase() + status.slice(1)}
+    </Badge>
   }
 
-  const handleProcessar = (nota: NotaFiscal) => {
-    setSelectedNota(nota)
-    setIsProcessamentoOpen(true)
-  }
-
-  const handleNovaNotaFiscal = () => {
-    setSelectedNota(null)
-    setIsDialogOpen(true)
-  }
-
-  const handleDialogClose = () => {
-    setIsDialogOpen(false)
-    setSelectedNota(null)
-    queryClient.invalidateQueries({ queryKey: ['notas-fiscais'] })
-    queryClient.invalidateQueries({ queryKey: ['fiscal-stats'] })
-  }
-
-  const handleXMLUploadClose = () => {
-    setIsXMLUploadOpen(false)
-    queryClient.invalidateQueries({ queryKey: ['notas-fiscais'] })
-    queryClient.invalidateQueries({ queryKey: ['fiscal-stats'] })
-  }
-
-  const handleProcessamentoClose = () => {
-    setIsProcessamentoOpen(false)
-    setSelectedNota(null)
-    queryClient.invalidateQueries({ queryKey: ['notas-fiscais'] })
-    queryClient.invalidateQueries({ queryKey: ['fiscal-stats'] })
-  }
-
-  const handleExportarRelatorio = () => {
-    const rows = (notasFiscais || []).map(nota => ({
-      Numero: nota.numero,
-      Serie: nota.serie,
-      ChaveAcesso: nota.chave_acesso,
-      CNPJ: nota.cnpj,
-      RazaoSocial: nota.razao_social || nota.fornecedor?.razao_social || '',
-      DataEmissao: nota.data_emissao,
-      ValorTotal: nota.valor_total,
-      ValorICMS: nota.valor_icms ?? '',
-      Status: nota.status,
-      TipoOperacao: nota.tipo_operacao,
-    }))
-    const ws = XLSX.utils.json_to_sheet(rows)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Notas')
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
-    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `relatorio_fiscal_${new Date().toISOString().split('T')[0]}.xlsx`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
+  const filteredDocumentos = documentosFiscais.filter(doc =>
+    doc.numero.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    doc.tipo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (doc.fornecedor && doc.fornecedor.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (doc.cliente && doc.cliente.toLowerCase().includes(searchTerm.toLowerCase()))
+  )
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="space-y-6">
+      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Gestão Fiscal</h1>
-          <p className="text-gray-600">Gerencie notas fiscais e documentos tributários</p>
+          <p className="text-gray-600">Controle de documentos fiscais e tributários</p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2"
-          >
-            <Filter className="h-4 w-4" />
-            Filtros
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setIsXMLUploadOpen(true)}
-            className="flex items-center gap-2"
-          >
-            <Upload className="h-4 w-4" />
+        <div className="flex space-x-2">
+          <Button variant="outline" size="sm">
+            <Upload className="w-4 h-4 mr-2" />
             Importar XML
           </Button>
-          <Button
-            variant="outline"
-            onClick={handleExportarRelatorio}
-            className="flex items-center gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Exportar
-          </Button>
-          <Button
-            onClick={handleNovaNotaFiscal}
-            className="flex items-center gap-2 bg-pegasus-blue hover:bg-pegasus-blue/90"
-          >
-            <Plus className="h-4 w-4" />
-            Nova Nota Fiscal
+          <Button size="sm">
+            <Plus className="w-4 h-4 mr-2" />
+            Nova NF
           </Button>
         </div>
       </div>
 
       {/* Estatísticas */}
-      {stats ? <FiscalStats stats={stats} /> : null}
-
-      {/* Filtros */}
-      {showFilters && (
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Filter className="h-5 w-5" />
-              Filtros
-            </CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Faturado</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <FiscalFilters
-              filters={filters}
-              onFiltersChange={setFilters}
-            />
+            <div className="text-2xl font-bold">R$ 45.231,00</div>
+            <p className="text-xs text-muted-foreground">+20.1% desde o mês passado</p>
           </CardContent>
         </Card>
-      )}
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Impostos a Pagar</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">R$ 8.456,00</div>
+            <p className="text-xs text-muted-foreground">Vencimento em 15 dias</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">NFs Processadas</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">127</div>
+            <p className="text-xs text-muted-foreground">+12 desde ontem</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pendências</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">3</div>
+            <p className="text-xs text-red-600">Requer atenção</p>
+          </CardContent>
+        </Card>
+      </div>
 
-      {/* Tabela de Notas Fiscais */}
+      {/* Busca e Filtros */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Notas Fiscais ({notasFiscais.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <NotasFiscaisTable
-            notasFiscais={notasFiscais}
-            isLoading={isLoading}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onProcessar={handleProcessar}
-          />
+        <CardContent className="pt-6">
+          <div className="flex space-x-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="Buscar por número, tipo ou empresa..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Button variant="outline">
+              <Calendar className="w-4 h-4 mr-2" />
+              Período
+            </Button>
+            <Button variant="outline">
+              <Download className="w-4 h-4 mr-2" />
+              Relatório
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Dialogs */}
-      <NotaFiscalDialog
-        open={isDialogOpen}
-        onClose={handleDialogClose}
-        notaFiscal={selectedNota}
-      />
-
-      <XMLUploadDialog
-        open={isXMLUploadOpen}
-        onClose={handleXMLUploadClose}
-      />
-
-      <ProcessamentoDialog
-        open={isProcessamentoOpen}
-        onClose={handleProcessamentoClose}
-        notaFiscal={selectedNota}
-      />
+      {/* Lista de Documentos Fiscais */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Documentos Fiscais</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {filteredDocumentos.map((doc) => (
+              <div key={doc.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <span className="font-semibold text-gray-900">{doc.numero}</span>
+                      {getStatusBadge(doc.status)}
+                    </div>
+                    <p className="text-gray-700 mb-2">{doc.tipo}</p>
+                    <div className="flex items-center space-x-4 text-sm text-gray-500">
+                      <span>
+                        {doc.fornecedor || doc.cliente || doc.prestador}
+                      </span>
+                      <span className="flex items-center">
+                        <Calendar className="w-3 h-3 mr-1" />
+                        {doc.data}
+                      </span>
+                      <span className="flex items-center">
+                        <DollarSign className="w-3 h-3 mr-1" />
+                        {doc.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button variant="ghost" size="sm">
+                      <Download className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm">
+                      <FileText className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
-} 
+}

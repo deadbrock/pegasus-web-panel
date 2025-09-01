@@ -1,317 +1,285 @@
-'use client'
+"use client"
 
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
 import { 
   FileText, 
-  Download,
-  Calendar,
+  Download, 
+  Calendar, 
   Filter,
   BarChart3,
   PieChart,
   TrendingUp,
-  DollarSign,
-  Users,
-  Truck,
-  Package,
-  Shield,
-  Settings,
-  Send,
-  Clock,
   Eye,
-  Share2
+  Share2,
+  Clock
 } from 'lucide-react'
-import { MetricCard } from '@/components/dashboard/metric-card'
-import { ReportsLibrary } from '@/components/relatorios/reports-library'
-import { ReportBuilder } from '@/components/relatorios/report-builder'
-import { ScheduledReports } from '@/components/relatorios/scheduled-reports'
-import { ReportTemplates } from '@/components/relatorios/report-templates'
-import { ReportsHistory } from '@/components/relatorios/reports-history'
-import { ExecutiveDashboard } from '@/components/relatorios/executive-dashboard'
 
 export default function RelatoriosPage() {
   const [selectedCategory, setSelectedCategory] = useState('todos')
-  const [isGenerating, setIsGenerating] = useState(false)
 
-  const generateQuickReport = async (type: string) => {
-    setIsGenerating(true)
-    // Simular geração de relatório
-    setTimeout(() => {
-      setIsGenerating(false)
-      console.log(`Gerando relatório: ${type}`)
-    }, 2000)
+  // Dados simulados de relatórios
+  const relatorios = [
+    {
+      id: 1,
+      nome: 'Relatório Financeiro Mensal',
+      categoria: 'Financeiro',
+      tipo: 'PDF',
+      dataGeracao: '2024-01-15',
+      status: 'concluido',
+      tamanho: '2.3 MB',
+      downloads: 12,
+      descricao: 'Análise completa das receitas e despesas do mês'
+    },
+    {
+      id: 2,
+      nome: 'Análise de Custos Operacionais',
+      categoria: 'Custos',
+      tipo: 'Excel',
+      dataGeracao: '2024-01-14',
+      status: 'concluido',
+      tamanho: '1.8 MB',
+      downloads: 8,
+      descricao: 'Detalhamento dos custos por centro de custo'
+    },
+    {
+      id: 3,
+      nome: 'Auditoria de Acessos',
+      categoria: 'Auditoria',
+      tipo: 'PDF',
+      dataGeracao: '2024-01-13',
+      status: 'processando',
+      tamanho: '-',
+      downloads: 0,
+      descricao: 'Log de acessos e atividades do sistema'
+    },
+    {
+      id: 4,
+      nome: 'Documentos Fiscais - Janeiro',
+      categoria: 'Fiscal',
+      tipo: 'PDF',
+      dataGeracao: '2024-01-12',
+      status: 'concluido',
+      tamanho: '5.1 MB',
+      downloads: 15,
+      descricao: 'Compilação de todas as notas fiscais do período'
+    },
+    {
+      id: 5,
+      nome: 'Dashboard Executivo',
+      categoria: 'Executivo',
+      tipo: 'PDF',
+      dataGeracao: '2024-01-11',
+      status: 'concluido',
+      tamanho: '3.2 MB',
+      downloads: 25,
+      descricao: 'Indicadores e métricas principais para diretoria'
+    },
+    {
+      id: 6,
+      nome: 'Planejamento vs Realizado',
+      categoria: 'Planejamento',
+      tipo: 'Excel',
+      dataGeracao: '2024-01-10',
+      status: 'erro',
+      tamanho: '-',
+      downloads: 0,
+      descricao: 'Comparativo entre metas e resultados obtidos'
+    }
+  ]
+
+  const categorias = [
+    { id: 'todos', nome: 'Todos', count: relatorios.length },
+    { id: 'Financeiro', nome: 'Financeiro', count: relatorios.filter(r => r.categoria === 'Financeiro').length },
+    { id: 'Fiscal', nome: 'Fiscal', count: relatorios.filter(r => r.categoria === 'Fiscal').length },
+    { id: 'Auditoria', nome: 'Auditoria', count: relatorios.filter(r => r.categoria === 'Auditoria').length },
+    { id: 'Planejamento', nome: 'Planejamento', count: relatorios.filter(r => r.categoria === 'Planejamento').length },
+    { id: 'Executivo', nome: 'Executivo', count: relatorios.filter(r => r.categoria === 'Executivo').length }
+  ]
+
+  const getStatusBadge = (status: string) => {
+    const colors = {
+      concluido: 'bg-green-100 text-green-800',
+      processando: 'bg-blue-100 text-blue-800',
+      erro: 'bg-red-100 text-red-800',
+      agendado: 'bg-yellow-100 text-yellow-800'
+    }
+    const labels = {
+      concluido: 'Concluído',
+      processando: 'Processando',
+      erro: 'Erro',
+      agendado: 'Agendado'
+    }
+    return <Badge className={colors[status as keyof typeof colors]}>
+      {labels[status as keyof typeof labels]}
+    </Badge>
   }
+
+  const getTipoIcon = (tipo: string) => {
+    return tipo === 'PDF' ? <FileText className="w-4 h-4 text-red-500" /> : <BarChart3 className="w-4 h-4 text-green-500" />
+  }
+
+  const filteredRelatorios = selectedCategory === 'todos' 
+    ? relatorios 
+    : relatorios.filter(r => r.categoria === selectedCategory)
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
-      <div className="flex items-center justify-between bg-white p-6 rounded-lg shadow-sm border">
+      {/* Header */}
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Central de Relatórios</h1>
-          <p className="text-gray-600 mt-1">
-            Geração automática de relatórios executivos e operacionais
-          </p>
+          <h1 className="text-3xl font-bold text-gray-900">Relatórios</h1>
+          <p className="text-gray-600">Geração e gerenciamento de relatórios do sistema</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex space-x-2">
           <Button variant="outline" size="sm">
             <Calendar className="w-4 h-4 mr-2" />
-            Agendar Relatório
+            Agendar
           </Button>
-          <Button variant="outline" size="sm">
-            <Settings className="w-4 h-4 mr-2" />
-            Configurações
-          </Button>
-          <Button 
-            onClick={() => generateQuickReport('executivo')}
-            disabled={isGenerating}
-          >
-            {isGenerating ? (
-              <>
-                <Clock className="w-4 h-4 mr-2 animate-spin" />
-                Gerando...
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4 mr-2" />
-                Relatório Executivo
-              </>
-            )}
+          <Button size="sm">
+            <FileText className="w-4 h-4 mr-2" />
+            Novo Relatório
           </Button>
         </div>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard
-          title="Relatórios Gerados"
-          value="156"
-          change="+12"
-          changeType="positive"
-          icon={FileText}
-          description="Este mês"
-        />
-        <MetricCard
-          title="Downloads"
-          value="1.2k"
-          change="+18%"
-          changeType="positive"
-          icon={Download}
-          description="Total"
-        />
-        <MetricCard
-          title="Agendamentos Ativos"
-          value="23"
-          change="+3"
-          changeType="positive"
-          icon={Calendar}
-          description="Automáticos"
-        />
-        <MetricCard
-          title="Tempo Médio"
-          value="2.3s"
-          change="-0.8s"
-          changeType="positive"
-          icon={Clock}
-          description="De geração"
-        />
+      {/* Estatísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Relatórios</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{relatorios.length}</div>
+            <p className="text-xs text-muted-foreground">+3 esta semana</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Downloads</CardTitle>
+            <Download className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{relatorios.reduce((acc, r) => acc + r.downloads, 0)}</div>
+            <p className="text-xs text-muted-foreground">+15% este mês</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Em Processamento</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{relatorios.filter(r => r.status === 'processando').length}</div>
+            <p className="text-xs text-muted-foreground">Aguardando conclusão</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Tamanho Total</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">12.4 MB</div>
+            <p className="text-xs text-muted-foreground">Armazenamento usado</p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Reports Dashboard Tabs */}
-      <Tabs defaultValue="biblioteca" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="biblioteca">Biblioteca</TabsTrigger>
-          <TabsTrigger value="construtor">Construtor</TabsTrigger>
-          <TabsTrigger value="agendados">Agendados</TabsTrigger>
-          <TabsTrigger value="templates">Templates</TabsTrigger>
-          <TabsTrigger value="historico">Histórico</TabsTrigger>
-          <TabsTrigger value="executivo">Executivo</TabsTrigger>
-        </TabsList>
-
-        {/* Biblioteca Tab - Catálogo completo de relatórios */}
-        <TabsContent value="biblioteca" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Filtros por Categoria */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Categorias</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {[
-                  { id: 'todos', nome: 'Todos', icon: FileText, count: 47 },
-                  { id: 'operacional', nome: 'Operacional', icon: Truck, count: 12 },
-                  { id: 'financeiro', nome: 'Financeiro', icon: DollarSign, count: 8 },
-                  { id: 'rh', nome: 'Recursos Humanos', icon: Users, count: 7 },
-                  { id: 'frota', nome: 'Frota', icon: Truck, count: 9 },
-                  { id: 'estoque', nome: 'Estoque', icon: Package, count: 6 },
-                  { id: 'compliance', nome: 'Compliance', icon: Shield, count: 5 }
-                ].map((categoria) => (
-                  <Button
-                    key={categoria.id}
-                    variant={selectedCategory === categoria.id ? 'default' : 'ghost'}
-                    className="w-full justify-start"
-                    size="sm"
-                    onClick={() => setSelectedCategory(categoria.id)}
-                  >
-                    <categoria.icon className="w-4 h-4 mr-2" />
-                    <span className="flex-1 text-left">{categoria.nome}</span>
-                    <span className="text-xs text-gray-500">{categoria.count}</span>
-                  </Button>
-                ))}
-              </CardContent>
-            </Card>
-
-            {/* Lista de Relatórios */}
-            <div className="lg:col-span-3">
-              <ReportsLibrary category={selectedCategory} />
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* Construtor Tab - Criação personalizada */}
-        <TabsContent value="construtor" className="space-y-6">
-          <ReportBuilder />
-        </TabsContent>
-
-        {/* Agendados Tab - Relatórios automáticos */}
-        <TabsContent value="agendados" className="space-y-6">
-          <ScheduledReports />
-        </TabsContent>
-
-        {/* Templates Tab - Modelos pré-definidos */}
-        <TabsContent value="templates" className="space-y-6">
-          <ReportTemplates />
-        </TabsContent>
-
-        {/* Histórico Tab - Relatórios gerados */}
-        <TabsContent value="historico" className="space-y-6">
-          <ReportsHistory />
-        </TabsContent>
-
-        {/* Executivo Tab - Dashboard executivo */}
-        <TabsContent value="executivo" className="space-y-6">
-          <ExecutiveDashboard />
-        </TabsContent>
-      </Tabs>
-
-      {/* Quick Actions */}
+      {/* Filtros por Categoria */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5" />
-            Ações Rápidas
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {[
-              { nome: 'Performance Diária', icon: BarChart3, categoria: 'operacional' },
-              { nome: 'Custos Mensais', icon: DollarSign, categoria: 'financeiro' },
-              { nome: 'Ranking Motoristas', icon: Users, categoria: 'rh' },
-              { nome: 'Status da Frota', icon: Truck, categoria: 'frota' },
-              { nome: 'Alertas de Estoque', icon: Package, categoria: 'estoque' },
-              { nome: 'Compliance Score', icon: Shield, categoria: 'compliance' }
-            ].map((relatorio, index) => (
+        <CardContent className="pt-6">
+          <div className="flex flex-wrap gap-2">
+            {categorias.map((categoria) => (
               <Button
-                key={index}
-                variant="outline"
-                className="h-20 flex flex-col items-center justify-center text-center"
-                onClick={() => generateQuickReport(relatorio.categoria)}
-                disabled={isGenerating}
+                key={categoria.id}
+                variant={selectedCategory === categoria.id ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedCategory(categoria.id)}
+                className="flex items-center space-x-1"
               >
-                <relatorio.icon className="w-6 h-6 mb-2" />
-                <span className="text-xs">{relatorio.nome}</span>
+                <span>{categoria.nome}</span>
+                <Badge variant="secondary" className="ml-1 text-xs">
+                  {categoria.count}
+                </Badge>
               </Button>
             ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Relatórios Mais Populares */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5" />
-              Mais Populares
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {[
-                { nome: 'Relatório de Performance Mensal', downloads: 89, categoria: 'Operacional' },
-                { nome: 'Análise de Custos por Rota', downloads: 76, categoria: 'Financeiro' },
-                { nome: 'Dashboard Executivo Semanal', downloads: 65, categoria: 'Executivo' },
-                { nome: 'Ranking de Motoristas', downloads: 54, categoria: 'RH' },
-                { nome: 'Status de Manutenções', downloads: 43, categoria: 'Frota' }
-              ].map((relatorio, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <FileText className="w-5 h-5 text-blue-600" />
-                    <div>
-                      <p className="font-medium text-sm">{relatorio.nome}</p>
-                      <p className="text-xs text-gray-600">{relatorio.categoria}</p>
+      {/* Lista de Relatórios */}
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            {selectedCategory === 'todos' ? 'Todos os Relatórios' : `Relatórios - ${selectedCategory}`}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {filteredRelatorios.map((relatorio) => (
+              <div key={relatorio.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-2">
+                      {getTipoIcon(relatorio.tipo)}
+                      <span className="font-semibold text-gray-900">{relatorio.nome}</span>
+                      {getStatusBadge(relatorio.status)}
+                    </div>
+                    <p className="text-gray-600 mb-2">{relatorio.descricao}</p>
+                    <div className="flex items-center space-x-4 text-sm text-gray-500">
+                      <span className="flex items-center">
+                        <Calendar className="w-3 h-3 mr-1" />
+                        {relatorio.dataGeracao}
+                      </span>
+                      <span>Tipo: {relatorio.tipo}</span>
+                      {relatorio.tamanho !== '-' && (
+                        <span>Tamanho: {relatorio.tamanho}</span>
+                      )}
+                      <span className="flex items-center">
+                        <Download className="w-3 h-3 mr-1" />
+                        {relatorio.downloads} downloads
+                      </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">{relatorio.downloads} downloads</span>
-                    <Button variant="ghost" size="sm">
-                      <Download className="w-4 h-4" />
-                    </Button>
+                  <div className="flex space-x-2">
+                    {relatorio.status === 'concluido' && (
+                      <>
+                        <Button variant="ghost" size="sm" title="Visualizar">
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" title="Compartilhar">
+                          <Share2 className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" title="Download">
+                          <Download className="w-4 h-4" />
+                        </Button>
+                      </>
+                    )}
+                    {relatorio.status === 'processando' && (
+                      <div className="flex items-center text-blue-600">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                      </div>
+                    )}
+                    {relatorio.status === 'erro' && (
+                      <Button variant="ghost" size="sm" title="Tentar novamente" className="text-red-600">
+                        <TrendingUp className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Relatórios Recentes */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              Gerados Recentemente
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {[
-                { nome: 'Dashboard Executivo - Janeiro 2024', tempo: '2 min atrás', usuario: 'Admin', tamanho: '2.3 MB' },
-                { nome: 'Análise de Combustível - Semana 3', tempo: '1 hora atrás', usuario: 'Gestor', tamanho: '1.8 MB' },
-                { nome: 'Compliance Documental', tempo: '3 horas atrás', usuario: 'Auditoria', tamanho: '4.1 MB' },
-                { nome: 'Performance por Motorista', tempo: '1 dia atrás', usuario: 'RH', tamanho: '1.2 MB' },
-                { nome: 'Movimentação de Estoque', tempo: '2 dias atrás', usuario: 'Estoque', tamanho: '3.7 MB' }
-              ].map((relatorio, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <FileText className="w-5 h-5 text-green-600" />
-                    <div>
-                      <p className="font-medium text-sm">{relatorio.nome}</p>
-                      <p className="text-xs text-gray-600">{relatorio.usuario} • {relatorio.tamanho}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500">{relatorio.tempo}</span>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="sm">
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Download className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Share2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
-} 
+}

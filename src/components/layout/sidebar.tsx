@@ -4,147 +4,47 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { 
   LayoutDashboard, 
-  Wrench, 
-  MapPin, 
+  DollarSign,
   FileText, 
-  TrendingUp,
-  Users,
-  Truck,
-  Package,
   Search,
-  Settings,
+  Calendar,
   BarChart3,
-  Calculator,
-  FileCheck,
-  Shield,
-  Gamepad2
+  FolderOpen,
+  Package,
+  Warehouse,
+  Users,
+  Settings
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth/auth-context'
+import { getModulesForRole } from '@/lib/permissions'
 
-const baseMenuItems = [
-  {
-    title: 'Data Hub',
-    icon: TrendingUp,
-    href: '/dashboard/data-hub',
-  },
-  {
-    title: 'Forecast',
-    icon: BarChart3,
-    href: '/dashboard/forecast',
-  },
-  {
-    title: 'Radar Logístico',
-    icon: Shield,
-    href: '/dashboard/radar',
-  },
-  {
-    title: 'Insights',
-    icon: TrendingUp,
-    href: '/dashboard/insights',
-  },
-  {
-    title: 'PegAI',
-    icon: Calculator,
-    href: '/dashboard/pegai',
-  },
-  {
-    title: 'Contratos',
-    icon: FileText,
-    href: '/dashboard/contratos',
-  },
-  {
-    title: 'Dashboard',
-    icon: LayoutDashboard,
-    href: '/dashboard',
-  },
-  {
-    title: 'Estoque',
-    icon: Package,
-    href: '/dashboard/estoque',
-  },
-  {
-    title: 'Manutenção',
-    icon: Wrench,
-    href: '/dashboard/manutencao',
-  },
-  {
-    title: 'Rastreamento',
-    icon: MapPin,
-    href: '/dashboard/rastreamento',
-  },
-  {
-    title: 'Veículos',
-    icon: Truck,
-    href: '/dashboard/veiculos',
-  },
-  {
-    title: 'Motoristas',
-    icon: Users,
-    href: '/dashboard/motoristas',
-  },
-  {
-    title: 'Pedidos',
-    icon: Package,
-    href: '/dashboard/pedidos',
-  },
-  {
-    title: 'Fiscal',
-    icon: FileText,
-    href: '/dashboard/fiscal',
-  },
-  {
-    title: 'Analytics',
-    icon: TrendingUp,
-    href: '/dashboard/analytics',
-  },
-  {
-    title: 'Custos',
-    icon: Calculator,
-    href: '/dashboard/custos',
-  },
-  {
-    title: 'Auditoria',
-    icon: Shield,
-    href: '/dashboard/auditoria',
-  },
-  // Documentos será condicionado por perfil
-  {
-    title: 'Gamificação',
-    icon: Gamepad2,
-    href: '/dashboard/gamificacao',
-  },
-  {
-    title: 'Planejamento',
-    icon: TrendingUp,
-    href: '/dashboard/planejamento-financeiro',
-  },
-  {
-    title: 'Relatórios',
-    icon: BarChart3,
-    href: '/dashboard/relatorios',
-  },
-  // Configurações/Usuários será condicionado por perfil
-]
+// Mapeamento de ícones para os módulos
+const iconMap = {
+  LayoutDashboard,
+  DollarSign,
+  FileText,
+  Search,
+  Calendar,
+  BarChart3,
+  FolderOpen,
+  Package,
+  Warehouse,
+  Users,
+  Settings
+}
 
 export function Sidebar() {
   const pathname = usePathname()
   const { user } = useAuth()
-  const role = user?.role
-  const canFinanceiro = role === 'diretor' || role === 'financeiro' || role === 'admin'
-  const canUsuarios = role === 'diretor' || role === 'admin' || role === 'manager'
-  const canDocumentos = role === 'diretor' || role === 'financeiro' || role === 'manager' || role === 'admin'
+  
+  // Se não há usuário logado, não mostra nada
+  if (!user?.role) {
+    return null
+  }
 
-  const menuItems = [...baseMenuItems]
-  if (canFinanceiro) {
-    menuItems.splice(5, 0, { title: 'Financeiro', icon: Calculator, href: '/dashboard/financeiro' })
-  }
-  if (canDocumentos) {
-    menuItems.splice(11, 0, { title: 'Documentos', icon: FileCheck, href: '/dashboard/documentos' })
-  }
-  if (canUsuarios) {
-    menuItems.push({ title: 'Usuários', icon: Users, href: '/dashboard/configuracoes/usuarios' })
-  }
+  // Obtém os módulos permitidos para o perfil do usuário
+  const allowedModules = getModulesForRole(user.role)
 
   return (
     <div className="w-64 bg-white shadow-lg flex flex-col">
@@ -152,7 +52,7 @@ export function Sidebar() {
       <div className="h-16 flex items-center px-6 border-b border-gray-200">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 pegasus-gradient rounded-lg flex items-center justify-center">
-            <Truck className="w-5 h-5 text-white" />
+            <Package className="w-5 h-5 text-white" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-900">Pegasus</h1>
@@ -164,14 +64,14 @@ export function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-6">
         <div className="px-3 space-y-1">
-          {menuItems.map((item) => {
-            const Icon = item.icon
-            const isActive = pathname === item.href
+          {allowedModules.map((module) => {
+            const IconComponent = iconMap[module.icon as keyof typeof iconMap] || LayoutDashboard
+            const isActive = pathname === module.path
             
             return (
               <Link
-                key={item.href}
-                href={item.href}
+                key={module.path}
+                href={module.path}
                 className={cn(
                   'flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors group',
                   isActive
@@ -179,13 +79,13 @@ export function Sidebar() {
                     : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                 )}
               >
-                <Icon 
+                <IconComponent 
                   className={cn(
                     'w-5 h-5 mr-3 transition-colors',
                     isActive ? 'text-blue-700' : 'text-gray-400 group-hover:text-gray-500'
                   )}
                 />
-                {item.title}
+                {module.name}
               </Link>
             )
           })}
@@ -200,10 +100,10 @@ export function Sidebar() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">
-              Admin
+              {user.name || user.email}
             </p>
-            <p className="text-xs text-gray-500 truncate">
-              Sistema Pegasus
+            <p className="text-xs text-gray-500 truncate capitalize">
+              {user.role}
             </p>
           </div>
         </div>
