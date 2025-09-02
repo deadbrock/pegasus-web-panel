@@ -109,7 +109,7 @@ export function FiscalFilters({ filters, onFiltersChange, fornecedores }: Fiscal
               <SelectValue placeholder="Selecione um fornecedor" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos os fornecedores</SelectItem>
+              <SelectItem value="todos">Todos os fornecedores</SelectItem>
               {fornecedores.map((fornecedor) => (
                 <SelectItem key={fornecedor.id} value={fornecedor.id}>
                   {fornecedor.nome}
@@ -131,7 +131,7 @@ export function FiscalFilters({ filters, onFiltersChange, fornecedores }: Fiscal
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="todos">Todos</SelectItem>
                 <SelectItem value="pendente">Pendente</SelectItem>
                 <SelectItem value="processada">Processada</SelectItem>
                 <SelectItem value="cancelada">Cancelada</SelectItem>
@@ -149,7 +149,7 @@ export function FiscalFilters({ filters, onFiltersChange, fornecedores }: Fiscal
                 <SelectValue placeholder="Tipo" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="todos">Todos</SelectItem>
                 <SelectItem value="entrada">Entrada</SelectItem>
                 <SelectItem value="saida">Saída</SelectItem>
                 <SelectItem value="devolucao">Devolução</SelectItem>

@@ -177,7 +177,7 @@ export function RouteHistory({ selectedVehicle }: RouteHistoryProps) {
                   <SelectValue placeholder="Todos os veículos" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos os veículos</SelectItem>
+                  <SelectItem value="todos">Todos os veículos</SelectItem>
                   <SelectItem value="BRA-2023">BRA-2023</SelectItem>
                   <SelectItem value="BRA-2024">BRA-2024</SelectItem>
                   <SelectItem value="BRA-2025">BRA-2025</SelectItem>
@@ -194,7 +194,7 @@ export function RouteHistory({ selectedVehicle }: RouteHistoryProps) {
                   <SelectValue placeholder="Todos os status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos os status</SelectItem>
+                  <SelectItem value="todos">Todos os status</SelectItem>
                   <SelectItem value="Concluída">Concluída</SelectItem>
                   <SelectItem value="Em Andamento">Em Andamento</SelectItem>
                   <SelectItem value="Cancelada">Cancelada</SelectItem>

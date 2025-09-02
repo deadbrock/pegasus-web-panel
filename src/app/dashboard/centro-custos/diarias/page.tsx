@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
@@ -526,6 +526,12 @@ export default function DiariasPage() {
               <Plane className="w-5 h-5" />
               <span>{editingDiaria ? 'Editar Diária' : 'Nova Diária'}</span>
             </DialogTitle>
+            <DialogDescription>
+              {editingDiaria 
+                ? 'Modifique os dados da solicitação de diária.' 
+                : 'Preencha os dados para registrar uma nova solicitação de diária.'
+              }
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-6 py-4">

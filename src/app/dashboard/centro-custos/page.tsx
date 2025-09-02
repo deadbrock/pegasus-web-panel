@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -555,6 +555,12 @@ export default function CentroCustosPage() {
               {editingCentro ? <Edit className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
               <span>{editingCentro ? 'Editar Centro de Custo' : 'Novo Centro de Custo'}</span>
             </DialogTitle>
+            <DialogDescription>
+              {editingCentro 
+                ? 'Modifique as informações do centro de custo.' 
+                : 'Configure um novo centro de custo para organização financeira.'
+              }
+            </DialogDescription>
           </DialogHeader>
           
           <div className="grid gap-6 py-4">

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog'
 import { Progress } from '@/components/ui/progress'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -853,6 +853,12 @@ export default function FinanceiroPage() {
             <DialogTitle>
               {isEditMode ? 'Editar Transação' : 'Nova Transação'}
             </DialogTitle>
+            <DialogDescription>
+              {isEditMode 
+                ? 'Modifique os dados da transação financeira.' 
+                : 'Preencha os dados para registrar uma nova transação financeira.'
+              }
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -914,7 +920,7 @@ export default function FinanceiroPage() {
                     <SelectValue placeholder="Selecione uma categoria" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Sem categoria</SelectItem>
+                    <SelectItem value="sem_categoria">Sem categoria</SelectItem>
                     <SelectItem value="Combustível">Combustível</SelectItem>
                     <SelectItem value="Aluguel">Aluguel</SelectItem>
                     <SelectItem value="Receita Operacional">Receita Operacional</SelectItem>

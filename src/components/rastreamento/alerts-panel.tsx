@@ -269,7 +269,7 @@ export function AlertsPanel() {
                   <SelectValue placeholder="Categoria" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas</SelectItem>
+                  <SelectItem value="todas">Todas</SelectItem>
                   <SelectItem value="Operacional">Operacional</SelectItem>
                   <SelectItem value="Manutenção">Manutenção</SelectItem>
                   <SelectItem value="Segurança">Segurança</SelectItem>
@@ -283,7 +283,7 @@ export function AlertsPanel() {
                   <SelectValue placeholder="Prioridade" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas</SelectItem>
+                  <SelectItem value="todas">Todas</SelectItem>
                   <SelectItem value="Alta">Alta</SelectItem>
                   <SelectItem value="Média">Média</SelectItem>
                   <SelectItem value="Baixa">Baixa</SelectItem>
@@ -296,7 +296,7 @@ export function AlertsPanel() {
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="todos">Todos</SelectItem>
                   <SelectItem value="Ativo">Ativo</SelectItem>
                   <SelectItem value="Resolvido">Resolvido</SelectItem>
                   <SelectItem value="Pendente">Pendente</SelectItem>
