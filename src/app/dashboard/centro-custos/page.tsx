@@ -31,7 +31,8 @@ import {
   Save,
   Loader2,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  User
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -106,7 +107,7 @@ export default function CentroCustosPage() {
   const fetchCentrosCusto = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/backend/centro-custo/')
+      const response = await fetch('/api/backend/centro-custo/centros-custo')
       if (!response.ok) throw new Error('Erro ao carregar centros de custo')
       
       const data = await response.json()
@@ -192,8 +193,8 @@ export default function CentroCustosPage() {
       setSaving(true)
       
       const url = editingCentro 
-        ? `/api/backend/centro-custo/${editingCentro.id}` 
-        : '/api/backend/centro-custo/'
+        ? `/api/backend/centro-custo/centros-custo/${editingCentro.id}` 
+        : '/api/backend/centro-custo/centros-custo'
       
       const method = editingCentro ? 'PUT' : 'POST'
       
@@ -242,7 +243,7 @@ export default function CentroCustosPage() {
 
   const deleteCentroCusto = async (id: number) => {
     try {
-      const response = await fetch(`/api/backend/centro-custo/${id}`, {
+      const response = await fetch(`/api/backend/centro-custo/centros-custo/${id}`, {
         method: 'DELETE',
       })
 
