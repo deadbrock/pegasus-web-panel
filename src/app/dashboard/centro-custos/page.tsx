@@ -8,6 +8,9 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { toast } from '@/components/ui/use-toast'
 import { 
   Plus, 
   Search, 
@@ -24,20 +27,35 @@ import {
   Shield,
   Phone,
   Wifi,
-  Target
+  Target,
+  Save,
+  Loader2,
+  AlertCircle,
+  CheckCircle2
 } from 'lucide-react'
+import Link from 'next/link'
 
 interface CentroCusto {
-  id: number
+  id?: number
   nome: string
   tipo: 'predefinido' | 'personalizado'
   codigo: string
   descricao?: string
   ativo: boolean
   cor_hex: string
-  created_at: string
+  created_at?: string
+  updated_at?: string
   total_gastos?: number
   transacoes_mes?: number
+}
+
+interface FormData {
+  nome: string
+  codigo: string
+  descricao: string
+  cor_hex: string
+  ativo: boolean
+  tipo: 'predefinido' | 'personalizado'
 }
 
 const iconMap = {
@@ -59,65 +77,192 @@ export default function CentroCustosPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingCentro, setEditingCentro] = useState<CentroCusto | null>(null)
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [formData, setFormData] = useState<FormData>({
+    nome: '',
+    codigo: '',
+    descricao: '',
+    cor_hex: '#3B82F6',
+    ativo: true,
+    tipo: 'personalizado'
+  })
 
-  // Dados simulados - substituir por chamadas à API
-  const centrosCustoSimulados: CentroCusto[] = [
-    {
-      id: 1,
-      nome: 'Sede',
-      tipo: 'predefinido',
-      codigo: 'SEDE',
-      descricao: 'Custos administrativos da sede',
-      ativo: true,
-      cor_hex: '#3B82F6',
-      created_at: '2024-01-01',
-      total_gastos: 125000,
-      transacoes_mes: 45
-    },
-    {
-      id: 2,
-      nome: 'Veículos',
-      tipo: 'predefinido',
-      codigo: 'VEICULOS',
-      descricao: 'Combustível, manutenção e seguro veicular',
-      ativo: true,
-      cor_hex: '#EF4444',
-      created_at: '2024-01-01',
-      total_gastos: 98000,
-      transacoes_mes: 67
-    },
-    {
-      id: 3,
-      nome: 'Filiais',
-      tipo: 'predefinido',
-      codigo: 'FILIAL',
-      descricao: 'Custos das filiais',
-      ativo: true,
-      cor_hex: '#10B981',
-      created_at: '2024-01-01',
-      total_gastos: 85000,
-      transacoes_mes: 32
-    },
-    {
-      id: 4,
-      nome: 'Projeto Alpha',
-      tipo: 'personalizado',
-      codigo: 'PROJ_ALPHA',
-      descricao: 'Projeto especial de expansão',
-      ativo: true,
-      cor_hex: '#8B5CF6',
-      created_at: '2024-01-15',
-      total_gastos: 45000,
-      transacoes_mes: 12
+  // API Functions
+  const fetchCentrosCusto = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/backend/centro-custo/')
+      if (!response.ok) throw new Error('Erro ao carregar centros de custo')
+      
+      const data = await response.json()
+      setCentrosCusto(data)
+    } catch (error) {
+      console.error('Erro:', error)
+      // Fallback para dados simulados
+      const centrosCustoSimulados: CentroCusto[] = [
+        {
+          id: 1,
+          nome: 'Sede',
+          tipo: 'predefinido',
+          codigo: 'SEDE',
+          descricao: 'Custos administrativos da sede',
+          ativo: true,
+          cor_hex: '#3B82F6',
+          created_at: '2024-01-01',
+          total_gastos: 125000,
+          transacoes_mes: 45
+        },
+        {
+          id: 2,
+          nome: 'Veículos',
+          tipo: 'predefinido',
+          codigo: 'VEICULOS',
+          descricao: 'Combustível, manutenção e seguro veicular',
+          ativo: true,
+          cor_hex: '#EF4444',
+          created_at: '2024-01-01',
+          total_gastos: 98000,
+          transacoes_mes: 67
+        },
+        {
+          id: 3,
+          nome: 'Filiais',
+          tipo: 'predefinido',
+          codigo: 'FILIAL',
+          descricao: 'Custos das filiais',
+          ativo: true,
+          cor_hex: '#10B981',
+          created_at: '2024-01-01',
+          total_gastos: 85000,
+          transacoes_mes: 32
+        },
+        {
+          id: 4,
+          nome: 'Diárias',
+          tipo: 'predefinido',
+          codigo: 'DIARIAS',
+          descricao: 'Pagamento de diárias para funcionários',
+          ativo: true,
+          cor_hex: '#F59E0B',
+          created_at: '2024-01-01',
+          total_gastos: 35000,
+          transacoes_mes: 28
+        },
+        {
+          id: 5,
+          nome: 'Projeto Alpha',
+          tipo: 'personalizado',
+          codigo: 'PROJ_ALPHA',
+          descricao: 'Projeto especial de expansão',
+          ativo: true,
+          cor_hex: '#8B5CF6',
+          created_at: '2024-01-15',
+          total_gastos: 45000,
+          transacoes_mes: 12
+        }
+      ]
+      setCentrosCusto(centrosCustoSimulados)
+      toast({
+        title: "Aviso",
+        description: "Usando dados simulados. Verifique a conexão com o backend.",
+        variant: "default"
+      })
+    } finally {
+      setLoading(false)
     }
-  ]
+  }
+
+  const saveCentroCusto = async () => {
+    try {
+      setSaving(true)
+      
+      const url = editingCentro 
+        ? `/api/backend/centro-custo/${editingCentro.id}` 
+        : '/api/backend/centro-custo/'
+      
+      const method = editingCentro ? 'PUT' : 'POST'
+      
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      if (!response.ok) throw new Error('Erro ao salvar centro de custo')
+
+      const savedCentro = await response.json()
+      
+      if (editingCentro) {
+        setCentrosCusto(prev => prev.map(c => 
+          c.id === editingCentro.id ? savedCentro : c
+        ))
+        toast({
+          title: "Sucesso!",
+          description: "Centro de custo atualizado com sucesso.",
+        })
+      } else {
+        setCentrosCusto(prev => [...prev, savedCentro])
+        toast({
+          title: "Sucesso!",
+          description: "Centro de custo criado com sucesso.",
+        })
+      }
+      
+      setIsDialogOpen(false)
+      resetForm()
+      
+    } catch (error) {
+      console.error('Erro:', error)
+      toast({
+        title: "Erro",
+        description: "Não foi possível salvar o centro de custo. Tente novamente.",
+        variant: "destructive"
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const deleteCentroCusto = async (id: number) => {
+    try {
+      const response = await fetch(`/api/backend/centro-custo/${id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) throw new Error('Erro ao excluir centro de custo')
+
+      setCentrosCusto(prev => prev.filter(c => c.id !== id))
+      toast({
+        title: "Sucesso!",
+        description: "Centro de custo excluído com sucesso.",
+      })
+      
+    } catch (error) {
+      console.error('Erro:', error)
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir o centro de custo. Tente novamente.",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      nome: '',
+      codigo: '',
+      descricao: '',
+      cor_hex: '#3B82F6',
+      ativo: true,
+      tipo: 'personalizado'
+    })
+    setEditingCentro(null)
+  }
 
   useEffect(() => {
-    // Simula carregamento
-    setTimeout(() => {
-      setCentrosCusto(centrosCustoSimulados)
-      setLoading(false)
-    }, 1000)
+    fetchCentrosCusto()
   }, [])
 
   const filteredCentros = centrosCusto.filter(centro =>
@@ -127,13 +272,79 @@ export default function CentroCustosPage() {
   )
 
   const handleCreateCentro = () => {
-    setEditingCentro(null)
+    resetForm()
     setIsDialogOpen(true)
   }
 
   const handleEditCentro = (centro: CentroCusto) => {
     setEditingCentro(centro)
+    setFormData({
+      nome: centro.nome,
+      codigo: centro.codigo,
+      descricao: centro.descricao || '',
+      cor_hex: centro.cor_hex,
+      ativo: centro.ativo,
+      tipo: centro.tipo
+    })
     setIsDialogOpen(true)
+  }
+
+  const handleDeleteCentro = async (centro: CentroCusto) => {
+    if (centro.tipo === 'predefinido') {
+      toast({
+        title: "Ação não permitida",
+        description: "Centros de custo predefinidos não podem ser excluídos.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (confirm(`Tem certeza que deseja excluir o centro "${centro.nome}"?`)) {
+      await deleteCentroCusto(centro.id!)
+    }
+  }
+
+  const handleDiariasClick = (centro: CentroCusto) => {
+    if (centro.codigo === 'DIARIAS') {
+      setIsDiariasDialogOpen(true)
+    } else {
+      handleEditCentro(centro)
+    }
+  }
+
+  const handleSaveDiarias = () => {
+    if (!diariasFormData.funcionario || !diariasFormData.valor_diaria) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha os campos obrigatórios.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    // Simular salvamento da diária
+    const valorTotal = parseFloat(diariasFormData.valor_diaria) * parseInt(diariasFormData.quantidade_dias || '1')
+    
+    toast({
+      title: "Diária registrada!",
+      description: `Diária de ${diariasFormData.funcionario} no valor de ${formatCurrency(valorTotal)} foi registrada.`,
+    })
+
+    // Reset form
+    setDiariasFormData({
+      funcionario: '',
+      cpf: '',
+      cargo: '',
+      periodo_inicio: new Date().toISOString().split('T')[0],
+      periodo_fim: new Date().toISOString().split('T')[0],
+      destino: '',
+      proposito: '',
+      valor_diaria: '',
+      quantidade_dias: '',
+      observacoes: ''
+    })
+
+    setIsDiariasDialogOpen(false)
   }
 
   const getIcon = (codigo: string) => {
@@ -177,6 +388,12 @@ export default function CentroCustosPage() {
             <BarChart3 className="w-4 h-4 mr-2" />
             Relatórios
           </Button>
+          <Link href="/dashboard/centro-custos/diarias">
+            <Button variant="outline" size="sm">
+              <Plane className="w-4 h-4 mr-2" />
+              Gerenciar Diárias
+            </Button>
+          </Link>
           <Button size="sm" onClick={handleCreateCentro}>
             <Plus className="w-4 h-4 mr-2" />
             Novo Centro
@@ -298,18 +515,24 @@ export default function CentroCustosPage() {
                 
                 <div className="flex justify-between items-center pt-2 border-t">
                   <span className="text-xs text-gray-500">
-                    Criado em {new Date(centro.created_at).toLocaleDateString('pt-BR')}
+                    Criado em {centro.created_at ? new Date(centro.created_at).toLocaleDateString('pt-BR') : 'N/A'}
                   </span>
                   <div className="flex space-x-1">
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      onClick={() => handleEditCentro(centro)}
+                      onClick={() => handleDiariasClick(centro)}
+                      title={centro.codigo === 'DIARIAS' ? 'Registrar Nova Diária' : 'Editar Centro'}
                     >
-                      <Edit className="w-4 h-4" />
+                      {centro.codigo === 'DIARIAS' ? <Plus className="w-4 h-4" /> : <Edit className="w-4 h-4" />}
                     </Button>
                     {centro.tipo === 'personalizado' && (
-                      <Button variant="ghost" size="sm" className="text-red-600">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-red-600"
+                        onClick={() => handleDeleteCentro(centro)}
+                      >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     )}
@@ -322,59 +545,342 @@ export default function CentroCustosPage() {
       </div>
 
       {/* Dialog para Criar/Editar Centro */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+      <Dialog open={isDialogOpen} onOpenChange={(open) => {
+        setIsDialogOpen(open)
+        if (!open) resetForm()
+      }}>
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>
-              {editingCentro ? 'Editar Centro de Custo' : 'Novo Centro de Custo'}
+            <DialogTitle className="flex items-center space-x-2">
+              {editingCentro ? <Edit className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+              <span>{editingCentro ? 'Editar Centro de Custo' : 'Novo Centro de Custo'}</span>
             </DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          
+          <div className="grid gap-6 py-4">
+            {/* Nome */}
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="nome" className="text-right">Nome</Label>
+              <Label htmlFor="nome" className="text-right font-medium">Nome *</Label>
               <Input
                 id="nome"
-                defaultValue={editingCentro?.nome || ''}
+                value={formData.nome}
+                onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value }))}
                 className="col-span-3"
                 placeholder="Ex: Projeto Especial"
+                required
               />
             </div>
+
+            {/* Código */}
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="codigo" className="text-right">Código</Label>
+              <Label htmlFor="codigo" className="text-right font-medium">Código *</Label>
               <Input
                 id="codigo"
-                defaultValue={editingCentro?.codigo || ''}
+                value={formData.codigo}
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  codigo: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, '') 
+                }))}
                 className="col-span-3"
                 placeholder="Ex: PROJ_ESP"
+                required
               />
             </div>
+
+            {/* Tipo */}
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="cor" className="text-right">Cor</Label>
-              <Input
-                id="cor"
-                type="color"
-                defaultValue={editingCentro?.cor_hex || '#3B82F6'}
-                className="col-span-3 h-10"
-              />
+              <Label htmlFor="tipo" className="text-right font-medium">Tipo</Label>
+              <Select
+                value={formData.tipo}
+                onValueChange={(value: 'predefinido' | 'personalizado') => 
+                  setFormData(prev => ({ ...prev, tipo: value }))
+                }
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="personalizado">Personalizado</SelectItem>
+                  <SelectItem value="predefinido">Predefinido</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+
+            {/* Cor */}
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="descricao" className="text-right">Descrição</Label>
+              <Label htmlFor="cor" className="text-right font-medium">Cor</Label>
+              <div className="col-span-3 flex items-center space-x-2">
+                <Input
+                  id="cor"
+                  type="color"
+                  value={formData.cor_hex}
+                  onChange={(e) => setFormData(prev => ({ ...prev, cor_hex: e.target.value }))}
+                  className="w-16 h-10 p-1 rounded"
+                />
+                <Input
+                  value={formData.cor_hex}
+                  onChange={(e) => setFormData(prev => ({ ...prev, cor_hex: e.target.value }))}
+                  className="flex-1"
+                  placeholder="#3B82F6"
+                />
+              </div>
+            </div>
+
+            {/* Ativo */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="ativo" className="text-right font-medium">Ativo</Label>
+              <div className="col-span-3 flex items-center space-x-2">
+                <Switch
+                  id="ativo"
+                  checked={formData.ativo}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, ativo: checked }))}
+                />
+                <span className="text-sm text-gray-600">
+                  {formData.ativo ? 'Centro ativo' : 'Centro inativo'}
+                </span>
+              </div>
+            </div>
+
+            {/* Descrição */}
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label htmlFor="descricao" className="text-right font-medium pt-2">Descrição</Label>
               <Textarea
                 id="descricao"
-                defaultValue={editingCentro?.descricao || ''}
+                value={formData.descricao}
+                onChange={(e) => setFormData(prev => ({ ...prev, descricao: e.target.value }))}
                 className="col-span-3"
-                placeholder="Descrição do centro de custo..."
+                placeholder="Descrição detalhada do centro de custo..."
                 rows={3}
               />
             </div>
+
+            {/* Preview */}
+            {(formData.nome || formData.codigo) && (
+              <div className="grid grid-cols-4 items-start gap-4">
+                <Label className="text-right font-medium pt-2">Preview</Label>
+                <div className="col-span-3">
+                  <div className="flex items-center space-x-3 p-3 border rounded-lg bg-gray-50">
+                    <div 
+                      className="w-10 h-10 rounded-lg flex items-center justify-center"
+                      style={{ backgroundColor: `${formData.cor_hex}20`, color: formData.cor_hex }}
+                    >
+                      <Target className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{formData.nome || 'Nome do Centro'}</p>
+                      <p className="text-sm text-gray-500">{formData.codigo || 'CODIGO'}</p>
+                    </div>
+                    <Badge variant={formData.tipo === 'predefinido' ? 'default' : 'secondary'}>
+                      {formData.tipo === 'predefinido' ? 'Padrão' : 'Personalizado'}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-          <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+
+          <div className="flex justify-end space-x-2 pt-4 border-t">
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={saving}>
               Cancelar
             </Button>
-            <Button onClick={() => setIsDialogOpen(false)}>
-              {editingCentro ? 'Salvar' : 'Criar'}
+            <Button 
+              onClick={saveCentroCusto} 
+              disabled={saving || !formData.nome || !formData.codigo}
+              className="min-w-[100px]"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  {editingCentro ? 'Salvar' : 'Criar'}
+                </>
+              )}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog específico para Diárias */}
+      <Dialog open={isDiariasDialogOpen} onOpenChange={setIsDiariasDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Plane className="w-5 h-5 text-amber-600" />
+              <span>Registrar Nova Diária</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Dados do Funcionário */}
+            <div className="border rounded-lg p-4 space-y-4">
+              <h4 className="font-medium text-sm text-gray-700 flex items-center">
+                <User className="w-4 h-4 mr-2" />
+                Dados do Funcionário
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="funcionario">Nome Completo *</Label>
+                  <Input
+                    id="funcionario"
+                    value={diariasFormData.funcionario}
+                    onChange={(e) => setDiariasFormData({...diariasFormData, funcionario: e.target.value})}
+                    placeholder="Digite o nome do funcionário"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="cpf">CPF</Label>
+                  <Input
+                    id="cpf"
+                    value={diariasFormData.cpf}
+                    onChange={(e) => setDiariasFormData({...diariasFormData, cpf: e.target.value})}
+                    placeholder="000.000.000-00"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="cargo">Cargo/Função</Label>
+                <Select 
+                  value={diariasFormData.cargo} 
+                  onValueChange={(value) => setDiariasFormData({...diariasFormData, cargo: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o cargo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="motorista">Motorista</SelectItem>
+                    <SelectItem value="supervisor">Supervisor</SelectItem>
+                    <SelectItem value="gerente">Gerente</SelectItem>
+                    <SelectItem value="diretor">Diretor</SelectItem>
+                    <SelectItem value="consultor">Consultor</SelectItem>
+                    <SelectItem value="outros">Outros</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Período e Destino */}
+            <div className="border rounded-lg p-4 space-y-4">
+              <h4 className="font-medium text-sm text-gray-700 flex items-center">
+                <Calendar className="w-4 h-4 mr-2" />
+                Período da Viagem
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="periodo_inicio">Data Início</Label>
+                  <Input
+                    id="periodo_inicio"
+                    type="date"
+                    value={diariasFormData.periodo_inicio}
+                    onChange={(e) => setDiariasFormData({...diariasFormData, periodo_inicio: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="periodo_fim">Data Fim</Label>
+                  <Input
+                    id="periodo_fim"
+                    type="date"
+                    value={diariasFormData.periodo_fim}
+                    onChange={(e) => setDiariasFormData({...diariasFormData, periodo_fim: e.target.value})}
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="destino">Destino</Label>
+                <Input
+                  id="destino"
+                  value={diariasFormData.destino}
+                  onChange={(e) => setDiariasFormData({...diariasFormData, destino: e.target.value})}
+                  placeholder="Cidade/Estado de destino"
+                />
+              </div>
+              <div>
+                <Label htmlFor="proposito">Propósito da Viagem</Label>
+                <Select 
+                  value={diariasFormData.proposito} 
+                  onValueChange={(value) => setDiariasFormData({...diariasFormData, proposito: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o propósito" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="entrega">Entrega</SelectItem>
+                    <SelectItem value="coleta">Coleta</SelectItem>
+                    <SelectItem value="visita_cliente">Visita a Cliente</SelectItem>
+                    <SelectItem value="treinamento">Treinamento</SelectItem>
+                    <SelectItem value="manutencao">Manutenção</SelectItem>
+                    <SelectItem value="reuniao">Reunião</SelectItem>
+                    <SelectItem value="outros">Outros</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Valores */}
+            <div className="border rounded-lg p-4 space-y-4">
+              <h4 className="font-medium text-sm text-gray-700 flex items-center">
+                <DollarSign className="w-4 h-4 mr-2" />
+                Valores da Diária
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="valor_diaria">Valor por Dia *</Label>
+                  <Input
+                    id="valor_diaria"
+                    type="number"
+                    step="0.01"
+                    value={diariasFormData.valor_diaria}
+                    onChange={(e) => setDiariasFormData({...diariasFormData, valor_diaria: e.target.value})}
+                    placeholder="0,00"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="quantidade_dias">Quantidade de Dias</Label>
+                  <Input
+                    id="quantidade_dias"
+                    type="number"
+                    value={diariasFormData.quantidade_dias}
+                    onChange={(e) => setDiariasFormData({...diariasFormData, quantidade_dias: e.target.value})}
+                    placeholder="1"
+                  />
+                </div>
+              </div>
+              {diariasFormData.valor_diaria && diariasFormData.quantidade_dias && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  <p className="text-sm text-amber-800">
+                    <strong>Valor Total: </strong>
+                    {formatCurrency(parseFloat(diariasFormData.valor_diaria) * parseInt(diariasFormData.quantidade_dias))}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Observações */}
+            <div>
+              <Label htmlFor="observacoes">Observações</Label>
+              <Textarea
+                id="observacoes"
+                value={diariasFormData.observacoes}
+                onChange={(e) => setDiariasFormData({...diariasFormData, observacoes: e.target.value})}
+                placeholder="Observações adicionais sobre a diária..."
+                rows={3}
+              />
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsDiariasDialogOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveDiarias}>
+                <Save className="w-4 h-4 mr-2" />
+                Registrar Diária
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

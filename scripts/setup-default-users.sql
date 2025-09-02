@@ -58,6 +58,7 @@ INSERT INTO users (username, email, hashed_password, role, name, created_at) VAL
     'Administrador',
     NOW()
 ),
+
 (
     'gestor@pegasus.com',
     'gestor@pegasus.com',
@@ -78,3 +79,4 @@ ON CONFLICT (email) DO NOTHING;
 
 -- Verificar se os usuários foram criados
 SELECT id, email, role, name, created_at FROM users ORDER BY created_at;
+ 
