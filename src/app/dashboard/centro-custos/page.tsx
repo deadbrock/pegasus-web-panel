@@ -87,6 +87,21 @@ export default function CentroCustosPage() {
     tipo: 'personalizado'
   })
 
+  // Estados para o diálogo de diárias
+  const [isDiariasDialogOpen, setIsDiariasDialogOpen] = useState(false)
+  const [diariasFormData, setDiariasFormData] = useState({
+    funcionario: '',
+    cpf: '',
+    cargo: '',
+    periodo_inicio: new Date().toISOString().split('T')[0],
+    periodo_fim: new Date().toISOString().split('T')[0],
+    destino: '',
+    proposito: '',
+    valor_diaria: '',
+    quantidade_dias: '',
+    observacoes: ''
+  })
+
   // API Functions
   const fetchCentrosCusto = async () => {
     try {
@@ -718,6 +733,9 @@ export default function CentroCustosPage() {
               <Plane className="w-5 h-5 text-amber-600" />
               <span>Registrar Nova Diária</span>
             </DialogTitle>
+            <DialogDescription>
+              Preencha os dados para registrar uma nova diária para funcionário.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {/* Dados do Funcionário */}

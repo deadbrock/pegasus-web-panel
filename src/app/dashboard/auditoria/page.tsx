@@ -319,6 +319,9 @@ export default function AuditoriaPage() {
                   <FileSearch className="w-5 h-5" />
                   <span>Nova Auditoria</span>
                 </DialogTitle>
+                <DialogDescription>
+                  Configure uma nova tarefa de auditoria com parâmetros específicos.
+                </DialogDescription>
               </DialogHeader>
               
               <div className="space-y-6 py-4">
