@@ -46,6 +46,13 @@ export const ALL_MODULES: ModulePermission[] = [
     allowedRoles: ['admin', 'diretor', 'financeiro']
   },
   {
+    id: 'planejamento-financeiro',
+    name: 'Planejamento Financeiro',
+    icon: 'TrendingUp',
+    path: '/dashboard/planejamento-financeiro',
+    allowedRoles: ['admin', 'diretor', 'financeiro']
+  },
+  {
     id: 'relatorios',
     name: 'Relatórios',
     icon: 'BarChart3',
@@ -74,11 +81,46 @@ export const ALL_MODULES: ModulePermission[] = [
     allowedRoles: ['admin', 'diretor', 'gestor']
   },
   {
-    id: 'usuarios',
-    name: 'Usuários',
-    icon: 'Users',
-    path: '/dashboard/configuracoes/usuarios',
-    allowedRoles: ['admin', 'diretor']
+    id: 'veiculos',
+    name: 'Veículos',
+    icon: 'Truck',
+    path: '/dashboard/veiculos',
+    allowedRoles: ['admin', 'diretor', 'gestor']
+  },
+  {
+    id: 'motoristas',
+    name: 'Motoristas',
+    icon: 'User',
+    path: '/dashboard/motoristas',
+    allowedRoles: ['admin', 'diretor', 'gestor']
+  },
+  {
+    id: 'manutencao',
+    name: 'Manutenção',
+    icon: 'Wrench',
+    path: '/dashboard/manutencao',
+    allowedRoles: ['admin', 'diretor', 'gestor']
+  },
+  {
+    id: 'rastreamento',
+    name: 'Rastreamento',
+    icon: 'MapPin',
+    path: '/dashboard/rastreamento',
+    allowedRoles: ['admin', 'diretor', 'gestor']
+  },
+  {
+    id: 'contratos',
+    name: 'Contratos',
+    icon: 'FileCheck',
+    path: '/dashboard/contratos',
+    allowedRoles: ['admin', 'diretor', 'financeiro']
+  },
+  {
+    id: 'custos',
+    name: 'Custos',
+    icon: 'Calculator',
+    path: '/dashboard/custos',
+    allowedRoles: ['admin', 'diretor', 'financeiro']
   },
   {
     id: 'centro-custos',
@@ -86,6 +128,69 @@ export const ALL_MODULES: ModulePermission[] = [
     icon: 'Target',
     path: '/dashboard/centro-custos',
     allowedRoles: ['admin', 'diretor', 'financeiro']
+  },
+  {
+    id: 'analytics',
+    name: 'Analytics',
+    icon: 'BarChart2',
+    path: '/dashboard/analytics',
+    allowedRoles: ['admin', 'diretor']
+  },
+  {
+    id: 'data-hub',
+    name: 'Data Hub',
+    icon: 'Database',
+    path: '/dashboard/data-hub',
+    allowedRoles: ['admin', 'diretor']
+  },
+  {
+    id: 'forecast',
+    name: 'Forecast',
+    icon: 'TrendingUp',
+    path: '/dashboard/forecast',
+    allowedRoles: ['admin', 'diretor', 'financeiro']
+  },
+  {
+    id: 'insights',
+    name: 'Insights',
+    icon: 'Lightbulb',
+    path: '/dashboard/insights',
+    allowedRoles: ['admin', 'diretor']
+  },
+  {
+    id: 'radar',
+    name: 'Radar Logístico',
+    icon: 'Radar',
+    path: '/dashboard/radar',
+    allowedRoles: ['admin', 'diretor', 'gestor']
+  },
+  {
+    id: 'pegai',
+    name: 'PegAI',
+    icon: 'Bot',
+    path: '/dashboard/pegai',
+    allowedRoles: ['admin', 'diretor', 'gestor']
+  },
+  {
+    id: 'gamificacao',
+    name: 'Gamificação',
+    icon: 'Trophy',
+    path: '/dashboard/gamificacao',
+    allowedRoles: ['admin', 'diretor', 'gestor']
+  },
+  {
+    id: 'usuarios',
+    name: 'Usuários',
+    icon: 'Users',
+    path: '/dashboard/configuracoes/usuarios',
+    allowedRoles: ['admin', 'diretor']
+  },
+  {
+    id: 'workflows',
+    name: 'Workflows',
+    icon: 'GitBranch',
+    path: '/dashboard/configuracoes/workflows',
+    allowedRoles: ['admin', 'diretor']
   },
   {
     id: 'configuracoes',
