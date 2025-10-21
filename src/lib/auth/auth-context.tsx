@@ -1,7 +1,8 @@
 "use client"
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { supabase } from '../supabase'
 
-type User = { id: number; email: string; name?: string; role: string } | null
+type User = { id: string; email: string; name?: string; role: string } | null
 
 type AuthState = {
 	user: User
@@ -15,56 +16,103 @@ const AuthContext = createContext<AuthState | undefined>(undefined)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
 	const [user, setUser] = useState<User>(null)
 	const [token, setToken] = useState<string | null>(null)
+	const [loading, setLoading] = useState(true)
 
+	// Verificar sessão existente ao carregar
 	useEffect(() => {
-		const t = typeof window !== 'undefined' ? localStorage.getItem('pegasus_token') : null
-		if (t) {
-			setToken(t)
+		const checkSession = async () => {
 			try {
-				const payload = JSON.parse(atob(t.split('.')[1]))
-				setUser({ id: 0, email: payload.sub, name: payload.name, role: payload.role })
-			} catch {}
+				const { data: { session } } = await supabase.auth.getSession()
+				
+				if (session?.user) {
+					console.log('[Auth] Sessão encontrada:', session.user.email)
+					setToken(session.access_token)
+					setUser({
+						id: session.user.id,
+						email: session.user.email || '',
+						name: session.user.user_metadata?.name || session.user.email?.split('@')[0],
+						role: session.user.user_metadata?.role || 'user'
+					})
+				}
+			} catch (error) {
+				console.error('[Auth] Erro ao verificar sessão:', error)
+			} finally {
+				setLoading(false)
+			}
+		}
+
+		checkSession()
+
+		// Escutar mudanças de autenticação
+		const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+			if (session?.user) {
+				setToken(session.access_token)
+				setUser({
+					id: session.user.id,
+					email: session.user.email || '',
+					name: session.user.user_metadata?.name || session.user.email?.split('@')[0],
+					role: session.user.user_metadata?.role || 'user'
+				})
+			} else {
+				setToken(null)
+				setUser(null)
+			}
+		})
+
+		return () => {
+			subscription.unsubscribe()
 		}
 	}, [])
 
 	const login = async (email: string, password: string) => {
-		const form = new URLSearchParams()
-		form.append('username', email)
-		form.append('password', password)
+		console.log('[Auth] Fazendo login via Supabase:', email)
 		
-		const endpoint = '/api/backend/auth/token'
-		console.log('[Auth] Fazendo login em:', endpoint)
-		
-		const res = await fetch(endpoint, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-			body: form.toString(),
-			cache: 'no-store',
-		})
-		
-		console.log('[Auth] Resposta:', res.status, res.statusText)
-		
-		if (!res.ok) {
-			const errorText = await res.text()
-			console.error('[Auth] Erro:', errorText)
-			throw new Error(`Falha no login: ${res.status} ${res.statusText}`)
+		try {
+			const { data, error } = await supabase.auth.signInWithPassword({
+				email,
+				password,
+			})
+
+			if (error) {
+				console.error('[Auth] Erro do Supabase:', error)
+				throw new Error(error.message || 'Falha no login')
+			}
+
+			if (!data.user || !data.session) {
+				throw new Error('Credenciais inválidas')
+			}
+
+			console.log('[Auth] Login bem-sucedido:', data.user.email)
+			
+			setToken(data.session.access_token)
+			setUser({
+				id: data.user.id,
+				email: data.user.email || '',
+				name: data.user.user_metadata?.name || data.user.email?.split('@')[0],
+				role: data.user.user_metadata?.role || 'user'
+			})
+		} catch (error: any) {
+			console.error('[Auth] Erro ao fazer login:', error)
+			throw error
 		}
-		
-		const data = await res.json()
-		localStorage.setItem('pegasus_token', data.access_token)
-		setToken(data.access_token)
-		const payload = JSON.parse(atob(data.access_token.split('.')[1]))
-		setUser({ id: 0, email, name: payload.name, role: payload.role })
-		console.log('[Auth] Login bem-sucedido para:', email)
 	}
 
-	const logout = () => {
-		localStorage.removeItem('pegasus_token')
+	const logout = async () => {
+		console.log('[Auth] Fazendo logout')
+		await supabase.auth.signOut()
 		setUser(null)
 		setToken(null)
 	}
 
 	const value = useMemo(() => ({ user, token, login, logout }), [user, token])
+	
+	// Não renderizar até verificar sessão
+	if (loading) {
+		return <div className="min-h-screen flex items-center justify-center">
+			<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+		</div>
+	}
+
 	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
