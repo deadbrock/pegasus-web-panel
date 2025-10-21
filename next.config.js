@@ -17,6 +17,19 @@ const nextConfig = {
 	},
 	// Especificar apenas onde o Next.js deve procurar páginas
 	pageExtensions: ['js', 'jsx', 'ts', 'tsx'],
+	// Configuração experimental para Server Actions
+	experimental: {
+		serverActions: {
+			allowedOrigins: [
+				'pegasus-production-1453.up.railway.app',
+				'pegasus-web-panel-6nroyy96n-douglas-projects-c2be5a2b.vercel.app',
+				'*.vercel.app',
+				'*.railway.app',
+				'localhost:8080',
+				'localhost:3000'
+			],
+		},
+	},
 	async rewrites() {
 		return [
 			{ source: '/api/chat/:path*', destination: '/api/pegai/:path*' },
