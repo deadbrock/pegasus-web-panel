@@ -216,7 +216,19 @@ export function getModulesForRole(userRole: string): ModulePermission[] {
 
 // Função para verificar se um usuário pode acessar uma rota
 export function canAccessRoute(userRole: string, path: string): boolean {
+  // Permitir acesso a rotas de login e configurações
+  if (path === '/login' || path === '/' || path.startsWith('/_next')) {
+    return true;
+  }
+  
   const module = ALL_MODULES.find(m => path.startsWith(m.path));
+  
+  // Se não encontrar módulo específico mas está dentro do dashboard, permitir
+  // (permite navegação para rotas não explicitamente bloqueadas)
+  if (!module && path.startsWith('/dashboard')) {
+    return true;
+  }
+  
   if (!module) return false;
   
   return module.allowedRoles.includes(userRole);

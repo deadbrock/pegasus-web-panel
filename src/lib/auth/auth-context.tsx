@@ -26,14 +26,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				const { data: { session } } = await supabase.auth.getSession()
 				
 				if (session?.user) {
-					console.log('[Auth] Sessão encontrada:', session.user.email)
-					setToken(session.access_token)
-					setUser({
-						id: session.user.id,
-						email: session.user.email || '',
-						name: session.user.user_metadata?.name || session.user.email?.split('@')[0],
-						role: session.user.user_metadata?.role || 'user'
-					})
+			console.log('[Auth] Sessão encontrada:', session.user.email)
+			setToken(session.access_token)
+			setUser({
+				id: session.user.id,
+				email: session.user.email || '',
+				name: session.user.user_metadata?.name || session.user.email?.split('@')[0],
+				role: session.user.user_metadata?.role || 'admin' // Default: admin
+			})
 				}
 			} catch (error) {
 				console.error('[Auth] Erro ao verificar sessão:', error)
@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 					id: session.user.id,
 					email: session.user.email || '',
 					name: session.user.user_metadata?.name || session.user.email?.split('@')[0],
-					role: session.user.user_metadata?.role || 'user'
+					role: session.user.user_metadata?.role || 'admin' // Default: admin
 				})
 			} else {
 				setToken(null)
@@ -83,15 +83,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				throw new Error('Credenciais inválidas')
 			}
 
-			console.log('[Auth] Login bem-sucedido:', data.user.email)
-			
-			setToken(data.session.access_token)
-			setUser({
-				id: data.user.id,
-				email: data.user.email || '',
-				name: data.user.user_metadata?.name || data.user.email?.split('@')[0],
-				role: data.user.user_metadata?.role || 'user'
-			})
+		console.log('[Auth] Login bem-sucedido:', data.user.email)
+		console.log('[Auth] Role do usuário:', data.user.user_metadata?.role || 'admin (padrão)')
+		
+		setToken(data.session.access_token)
+		setUser({
+			id: data.user.id,
+			email: data.user.email || '',
+			name: data.user.user_metadata?.name || data.user.email?.split('@')[0],
+			role: data.user.user_metadata?.role || 'admin' // Default: admin
+		})
 		} catch (error: any) {
 			console.error('[Auth] Erro ao fazer login:', error)
 			throw error
