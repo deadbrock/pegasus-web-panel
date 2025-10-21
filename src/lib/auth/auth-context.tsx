@@ -7,6 +7,7 @@ type User = { id: string; email: string; name?: string; role: string } | null
 type AuthState = {
 	user: User
 	token: string | null
+	loading: boolean
 	login: (email: string, password: string) => Promise<void>
 	logout: () => void
 }
@@ -104,15 +105,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		setToken(null)
 	}
 
-	const value = useMemo(() => ({ user, token, login, logout }), [user, token])
+	const value = useMemo(() => ({ user, token, loading, login, logout }), [user, token, loading])
 	
-	// Não renderizar até verificar sessão
-	if (loading) {
-		return <div className="min-h-screen flex items-center justify-center">
-			<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-		</div>
-	}
-
 	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
