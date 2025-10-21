@@ -1,10 +1,15 @@
 import { getSupabaseClient } from '@/lib/supabaseClient'
 
+/**
+ * Helper para chamadas autenticadas
+ * Usa URLs relativas (API Routes locais) em vez de backend externo
+ */
 export async function postAuth(path: string, body?: any) {
   const supabase = getSupabaseClient()
   const token = (await supabase.auth.getSession()).data.session?.access_token
-  const base = process.env.NEXT_PUBLIC_API_URL || ''
-  const res = await fetch(`${base}${path}`, {
+  
+  // Usa API Routes locais
+  const res = await fetch(path, {
     method: body ? 'POST' : 'GET',
     headers: {
       'Content-Type': 'application/json',

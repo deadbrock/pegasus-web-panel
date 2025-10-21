@@ -11,10 +11,16 @@ export default function InsightsPage() {
   const [rows, setRows] = useState<Row[]>([])
 
   const load = async () => {
-    const token = (await supabase.auth.getSession()).data.session?.access_token
-    const base = process.env.NEXT_PUBLIC_API_URL || ''
-    const res = await fetch(`${base}/api/forecast`, { headers: { Authorization: `Bearer ${token}` } })
-    if (res.ok) setRows(await res.json())
+    try {
+      const token = (await supabase.auth.getSession()).data.session?.access_token
+      const res = await fetch('/api/forecast', { 
+        headers: { Authorization: `Bearer ${token}` } 
+      })
+      if (res.ok) setRows(await res.json())
+    } catch (error) {
+      console.error('Erro ao carregar insights:', error)
+      setRows([])
+    }
   }
 
   useEffect(() => { load() }, [])

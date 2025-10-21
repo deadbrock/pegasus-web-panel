@@ -10,10 +10,17 @@ export default function RadarPage() {
   const [alerts, setAlerts] = useState<Alert[]>([])
 
   const load = async () => {
-    const token = (await supabase.auth.getSession()).data.session?.access_token
-    const base = process.env.NEXT_PUBLIC_API_URL || ''
-    const res = await fetch(`${base}/api/radar`, { headers: { Authorization: `Bearer ${token}` } })
-    if (res.ok) setAlerts(await res.json())
+    try {
+      const token = (await supabase.auth.getSession()).data.session?.access_token
+      const res = await fetch('/api/radar', { 
+        headers: { Authorization: `Bearer ${token}` } 
+      })
+      if (res.ok) setAlerts(await res.json())
+    } catch (error) {
+      console.error('Erro ao carregar radar:', error)
+      // Dados mock para demonstração
+      setAlerts([])
+    }
   }
 
   useEffect(() => { load() }, [])

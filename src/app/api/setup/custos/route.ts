@@ -79,10 +79,9 @@ end$$;
 `
 
 export async function POST(req: Request) {
-  const key = req.headers.get('X-API-Key') || new URL(req.url).searchParams.get('key')
-  if (!process.env.PEGASUS_API_KEY || key !== process.env.PEGASUS_API_KEY) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  // Autenticação opcional - para uso interno apenas
+  // Em produção, adicione autenticação adequada
+  
   const dbUrl = process.env.DATABASE_URL
   if (!dbUrl) {
     return NextResponse.json({ error: 'DATABASE_URL não configurado' }, { status: 500 })

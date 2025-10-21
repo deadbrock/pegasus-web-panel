@@ -11,8 +11,10 @@ export default function DataHubPage() {
   const refresh = async () => {
     try {
       const token = (await supabase.auth.getSession()).data.session?.access_token
-      const base = process.env.NEXT_PUBLIC_API_URL || ''
-      const res = await fetch(`${base}/api/datahub/refresh`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+      const res = await fetch('/api/datahub/refresh', { 
+        method: 'POST', 
+        headers: { Authorization: `Bearer ${token}` } 
+      })
       if (!res.ok) throw new Error(await res.text())
       const j = await res.json()
       toast({ title: 'Data Hub', description: `Eventos consolidados: ${j.rows}` })

@@ -16,8 +16,10 @@ export default function ForecastPage() {
   const run = async () => {
     try {
       const token = (await supabase.auth.getSession()).data.session?.access_token
-      const base = process.env.NEXT_PUBLIC_API_URL || ''
-      const res = await fetch(`${base}/api/forecast/run`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+      const res = await fetch('/api/forecast/run', { 
+        method: 'POST', 
+        headers: { Authorization: `Bearer ${token}` } 
+      })
       if (!res.ok) throw new Error(await res.text())
       toast({ title: 'Forecast', description: 'Previsões geradas.' })
       await load()
@@ -27,10 +29,16 @@ export default function ForecastPage() {
   }
 
   const load = async () => {
-    const token = (await supabase.auth.getSession()).data.session?.access_token
-    const base = process.env.NEXT_PUBLIC_API_URL || ''
-    const res = await fetch(`${base}/api/forecast`, { headers: { Authorization: `Bearer ${token}` } })
-    if (res.ok) setRows(await res.json())
+    try {
+      const token = (await supabase.auth.getSession()).data.session?.access_token
+      const res = await fetch('/api/forecast', { 
+        headers: { Authorization: `Bearer ${token}` } 
+      })
+      if (res.ok) setRows(await res.json())
+    } catch (error) {
+      console.error('Erro ao carregar forecast:', error)
+      setRows([])
+    }
   }
 
   useEffect(() => { load() }, [])

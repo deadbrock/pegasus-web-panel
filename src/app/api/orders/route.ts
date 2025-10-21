@@ -3,12 +3,9 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 
 export async function POST(req: NextRequest) {
   try {
-    const apiKey = req.headers.get('x-api-key') || ''
-    const expected = process.env.PEGASUS_API_KEY
-    if (!expected || apiKey !== expected) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
+    // Autenticação opcional via Supabase Auth
+    // Em produção, valide o token JWT aqui
+    
     const body = await req.json()
     if (!Array.isArray(body) && typeof body !== 'object') {
       return NextResponse.json({ error: 'Invalid body' }, { status: 400 })

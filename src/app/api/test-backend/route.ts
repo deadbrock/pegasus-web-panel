@@ -1,39 +1,45 @@
+import { supabase } from '@/lib/supabase'
+
 export const runtime = 'nodejs'
 
+/**
+ * Endpoint de teste de conexão
+ * Verifica se Supabase está acessível
+ */
 export async function GET() {
   try {
-    const backendUrl = process.env.PEGASUS_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     
-    if (!backendUrl) {
+    if (!supabaseUrl) {
       return Response.json({ 
-        error: 'Backend URL não configurada',
-        env_vars: {
-          PEGASUS_BACKEND_URL: !!process.env.PEGASUS_BACKEND_URL,
-          NEXT_PUBLIC_API_URL: !!process.env.NEXT_PUBLIC_API_URL
-        }
+        error: 'Supabase não configurado',
+        message: 'NEXT_PUBLIC_SUPABASE_URL não definida'
       }, { status: 500 })
     }
 
-    const testUrl = `${backendUrl.replace(/\/$/, '')}/docs`
+    // Testar conexão com Supabase
+    const { data, error } = await supabase.from('users').select('count', { count: 'exact', head: true })
     
-    const response = await fetch(testUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'text/html,application/json',
-      }
-    })
+    if (error) {
+      return Response.json({
+        supabase_url: supabaseUrl,
+        status: 'error',
+        error: error.message,
+        accessible: false
+      }, { status: 500 })
+    }
 
     return Response.json({
-      backend_url: backendUrl,
-      test_url: testUrl,
-      status: response.status,
-      accessible: response.ok,
-      response_headers: Object.fromEntries(response.headers.entries())
+      supabase_url: supabaseUrl,
+      status: 'ok',
+      accessible: true,
+      message: 'Supabase conectado com sucesso',
+      architecture: 'Vercel + Supabase (sem backend Python)'
     })
 
   } catch (error: any) {
     return Response.json({ 
-      error: 'Erro ao testar backend',
+      error: 'Erro ao testar conexão',
       message: error?.message || 'Erro desconhecido'
     }, { status: 500 })
   }
