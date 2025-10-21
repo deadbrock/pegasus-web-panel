@@ -31,18 +31,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		const form = new URLSearchParams()
 		form.append('username', email)
 		form.append('password', password)
-		const res = await fetch('/api/backend/auth/token', {
+		
+		const endpoint = '/api/backend/auth/token'
+		console.log('[Auth] Fazendo login em:', endpoint)
+		
+		const res = await fetch(endpoint, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 			body: form.toString(),
 			cache: 'no-store',
 		})
-		if (!res.ok) throw new Error('Falha no login')
+		
+		console.log('[Auth] Resposta:', res.status, res.statusText)
+		
+		if (!res.ok) {
+			const errorText = await res.text()
+			console.error('[Auth] Erro:', errorText)
+			throw new Error(`Falha no login: ${res.status} ${res.statusText}`)
+		}
+		
 		const data = await res.json()
 		localStorage.setItem('pegasus_token', data.access_token)
 		setToken(data.access_token)
 		const payload = JSON.parse(atob(data.access_token.split('.')[1]))
 		setUser({ id: 0, email, name: payload.name, role: payload.role })
+		console.log('[Auth] Login bem-sucedido para:', email)
 	}
 
 	const logout = () => {

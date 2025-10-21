@@ -32,7 +32,9 @@ const nextConfig = {
 	},
 	async rewrites() {
 		return [
+			// Redirecionamentos de compatibilidade
 			{ source: '/api/chat/:path*', destination: '/api/pegai/:path*' },
+			{ source: '/api/auth/:path*', destination: '/api/backend/auth/:path*' },
 		]
 	},
 	webpack: (config) => {
