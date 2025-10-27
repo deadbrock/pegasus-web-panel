@@ -8,6 +8,7 @@ export default function PerfilScreen() {
   const [loading, setLoading] = useState(false)
   const [userName, setUserName] = useState('Supervisor Teste')
   const [userEmail, setUserEmail] = useState('supervisor@teste.com')
+  const [userPhone, setUserPhone] = useState('(11) 98765-4321')
   const [userRole, setUserRole] = useState('supervisor')
   
   // Diálogos
@@ -17,6 +18,8 @@ export default function PerfilScreen() {
   
   // Campos de edição
   const [novoNome, setNovoNome] = useState(userName)
+  const [novoEmail, setNovoEmail] = useState(userEmail)
+  const [novoTelefone, setNovoTelefone] = useState(userPhone)
   const [senhaAtual, setSenhaAtual] = useState('')
   const [novaSenha, setNovaSenha] = useState('')
   const [confirmaSenha, setConfirmaSenha] = useState('')
@@ -28,15 +31,30 @@ export default function PerfilScreen() {
 
   const handleEditarPerfil = () => {
     setNovoNome(userName)
+    setNovoEmail(userEmail)
+    setNovoTelefone(userPhone)
     setEditDialogVisible(true)
   }
 
   const handleSalvarPerfil = () => {
-    if (novoNome.trim()) {
-      setUserName(novoNome)
-      setEditDialogVisible(false)
-      Alert.alert('Sucesso', 'Perfil atualizado com sucesso!')
+    if (!novoNome.trim()) {
+      Alert.alert('Erro', 'Nome é obrigatório')
+      return
     }
+    if (!novoEmail.trim() || !novoEmail.includes('@')) {
+      Alert.alert('Erro', 'Email inválido')
+      return
+    }
+    if (!novoTelefone.trim()) {
+      Alert.alert('Erro', 'Telefone é obrigatório')
+      return
+    }
+    
+    setUserName(novoNome)
+    setUserEmail(novoEmail)
+    setUserPhone(novoTelefone)
+    setEditDialogVisible(false)
+    Alert.alert('Sucesso', 'Perfil atualizado com sucesso!')
   }
 
   const handleAlterarSenha = () => {
@@ -128,6 +146,7 @@ export default function PerfilScreen() {
         />
         <Text style={styles.name}>{userName}</Text>
         <Text style={styles.email}>{userEmail}</Text>
+        <Text style={styles.phone}>{userPhone}</Text>
         <Text style={styles.role}>{getRoleLabel(userRole)}</Text>
       </View>
 
@@ -253,12 +272,30 @@ export default function PerfilScreen() {
         {/* Dialog Editar Perfil */}
         <Dialog visible={editDialogVisible} onDismiss={() => setEditDialogVisible(false)}>
           <Dialog.Title>Editar Perfil</Dialog.Title>
-          <Dialog.Content>
+          <Dialog.Content style={{ gap: 12 }}>
             <TextInput
-              label="Nome"
+              label="Nome Completo"
               value={novoNome}
               onChangeText={setNovoNome}
               mode="outlined"
+              left={<TextInput.Icon icon="account" />}
+            />
+            <TextInput
+              label="Email"
+              value={novoEmail}
+              onChangeText={setNovoEmail}
+              mode="outlined"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              left={<TextInput.Icon icon="email" />}
+            />
+            <TextInput
+              label="Telefone Celular"
+              value={novoTelefone}
+              onChangeText={setNovoTelefone}
+              mode="outlined"
+              keyboardType="phone-pad"
+              left={<TextInput.Icon icon="phone" />}
             />
           </Dialog.Content>
           <Dialog.Actions>
@@ -355,6 +392,11 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   email: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 4,
+  },
+  phone: {
     fontSize: 14,
     color: '#6b7280',
     marginBottom: 8,

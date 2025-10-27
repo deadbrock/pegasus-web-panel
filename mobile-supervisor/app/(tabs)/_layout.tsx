@@ -28,7 +28,7 @@ export default function TabsLayout() {
         name="dashboard"
         options={{
           title: 'Início',
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color, size}) => (
             <MaterialCommunityIcons name="home" size={size} color={color} />
           ),
         }}
@@ -39,6 +39,15 @@ export default function TabsLayout() {
           title: 'Pedidos',
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="clipboard-list" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="contratos"
+        options={{
+          title: 'Contratos',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="file-document-multiple" size={size} color={color} />
           ),
         }}
       />
