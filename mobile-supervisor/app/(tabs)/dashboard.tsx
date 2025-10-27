@@ -5,9 +5,9 @@ import { MaterialCommunityIcons } from '@expo/vector-icons'
 
 type Stats = {
   pedidos_ativos: number
-  pedidos_entregues_hoje: number
-  veiculos_em_rota: number
-  alertas_criticos: number
+  pedidos_pendentes: number
+  pedidos_concluidos: number
+  total_pedidos: number
 }
 
 export default function DashboardScreen() {
@@ -15,10 +15,10 @@ export default function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false)
   const [userName, setUserName] = useState('Supervisor')
   const [stats, setStats] = useState<Stats>({
-    pedidos_ativos: 12,
-    pedidos_entregues_hoje: 8,
-    veiculos_em_rota: 5,
-    alertas_criticos: 3,
+    pedidos_ativos: 5,
+    pedidos_pendentes: 3,
+    pedidos_concluidos: 12,
+    total_pedidos: 20,
   })
 
   useEffect(() => {
@@ -60,33 +60,33 @@ export default function DashboardScreen() {
       <View style={styles.statsGrid}>
         <Card style={[styles.statCard, styles.blueCard]}>
           <Card.Content>
-            <MaterialCommunityIcons name="package-variant" size={32} color="#3b82f6" />
+            <MaterialCommunityIcons name="clipboard-list" size={32} color="#3b82f6" />
             <Title style={styles.statNumber}>{stats.pedidos_ativos}</Title>
-            <Paragraph style={styles.statLabel}>Pedidos Ativos</Paragraph>
+            <Paragraph style={styles.statLabel}>Em Andamento</Paragraph>
+          </Card.Content>
+        </Card>
+
+        <Card style={[styles.statCard, styles.orangeCard]}>
+          <Card.Content>
+            <MaterialCommunityIcons name="clock-outline" size={32} color="#f59e0b" />
+            <Title style={styles.statNumber}>{stats.pedidos_pendentes}</Title>
+            <Paragraph style={styles.statLabel}>Pendentes</Paragraph>
           </Card.Content>
         </Card>
 
         <Card style={[styles.statCard, styles.greenCard]}>
           <Card.Content>
             <MaterialCommunityIcons name="check-circle" size={32} color="#10b981" />
-            <Title style={styles.statNumber}>{stats.pedidos_entregues_hoje}</Title>
-            <Paragraph style={styles.statLabel}>Entregues Hoje</Paragraph>
+            <Title style={styles.statNumber}>{stats.pedidos_concluidos}</Title>
+            <Paragraph style={styles.statLabel}>Concluídos</Paragraph>
           </Card.Content>
         </Card>
 
         <Card style={[styles.statCard, styles.purpleCard]}>
           <Card.Content>
-            <MaterialCommunityIcons name="truck-fast" size={32} color="#8b5cf6" />
-            <Title style={styles.statNumber}>{stats.veiculos_em_rota}</Title>
-            <Paragraph style={styles.statLabel}>Veículos em Rota</Paragraph>
-          </Card.Content>
-        </Card>
-
-        <Card style={[styles.statCard, styles.redCard]}>
-          <Card.Content>
-            <MaterialCommunityIcons name="alert-circle" size={32} color="#ef4444" />
-            <Title style={styles.statNumber}>{stats.alertas_criticos}</Title>
-            <Paragraph style={styles.statLabel}>Alertas Críticos</Paragraph>
+            <MaterialCommunityIcons name="format-list-bulleted" size={32} color="#8b5cf6" />
+            <Title style={styles.statNumber}>{stats.total_pedidos}</Title>
+            <Paragraph style={styles.statLabel}>Total de Pedidos</Paragraph>
           </Card.Content>
         </Card>
       </View>
@@ -99,8 +99,8 @@ export default function DashboardScreen() {
           <Card.Content style={styles.actionContent}>
             <MaterialCommunityIcons name="plus-circle" size={24} color="#3b82f6" />
             <View style={styles.actionText}>
-              <Text style={styles.actionTitle}>Novo Pedido</Text>
-              <Text style={styles.actionDescription}>Criar um novo pedido de entrega</Text>
+              <Text style={styles.actionTitle}>Novo Pedido de Material</Text>
+              <Text style={styles.actionDescription}>Solicitar materiais do almoxarifado</Text>
             </View>
             <MaterialCommunityIcons name="chevron-right" size={24} color="#9ca3af" />
           </Card.Content>
@@ -108,10 +108,10 @@ export default function DashboardScreen() {
 
         <Card style={styles.actionCard}>
           <Card.Content style={styles.actionContent}>
-            <MaterialCommunityIcons name="clipboard-check" size={24} color="#10b981" />
+            <MaterialCommunityIcons name="history" size={24} color="#10b981" />
             <View style={styles.actionText}>
-              <Text style={styles.actionTitle}>Checklist Vistoria</Text>
-              <Text style={styles.actionDescription}>Realizar vistoria de veículo</Text>
+              <Text style={styles.actionTitle}>Histórico de Pedidos</Text>
+              <Text style={styles.actionDescription}>Ver todos os pedidos anteriores</Text>
             </View>
             <MaterialCommunityIcons name="chevron-right" size={24} color="#9ca3af" />
           </Card.Content>
@@ -119,10 +119,10 @@ export default function DashboardScreen() {
 
         <Card style={styles.actionCard}>
           <Card.Content style={styles.actionContent}>
-            <MaterialCommunityIcons name="map-search" size={24} color="#8b5cf6" />
+            <MaterialCommunityIcons name="clipboard-text" size={24} color="#f59e0b" />
             <View style={styles.actionText}>
-              <Text style={styles.actionTitle}>Rastrear Veículo</Text>
-              <Text style={styles.actionDescription}>Ver localização em tempo real</Text>
+              <Text style={styles.actionTitle}>Pedidos Pendentes</Text>
+              <Text style={styles.actionDescription}>Verificar status dos pedidos</Text>
             </View>
             <MaterialCommunityIcons name="chevron-right" size={24} color="#9ca3af" />
           </Card.Content>
@@ -191,14 +191,14 @@ const styles = StyleSheet.create({
   blueCard: {
     backgroundColor: '#eff6ff',
   },
+  orangeCard: {
+    backgroundColor: '#fff7ed',
+  },
   greenCard: {
     backgroundColor: '#f0fdf4',
   },
   purpleCard: {
     backgroundColor: '#faf5ff',
-  },
-  redCard: {
-    backgroundColor: '#fef2f2',
   },
   statNumber: {
     fontSize: 32,

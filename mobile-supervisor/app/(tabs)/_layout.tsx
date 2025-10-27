@@ -27,9 +27,9 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="dashboard"
         options={{
-          title: 'Dashboard',
+          title: 'Início',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="view-dashboard" size={size} color={color} />
+            <MaterialCommunityIcons name="home" size={size} color={color} />
           ),
         }}
       />
@@ -38,16 +38,7 @@ export default function TabsLayout() {
         options={{
           title: 'Pedidos',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="package-variant" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="rastreamento"
-        options={{
-          title: 'Rastreamento',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="map-marker-radius" size={size} color={color} />
+            <MaterialCommunityIcons name="clipboard-list" size={size} color={color} />
           ),
         }}
       />

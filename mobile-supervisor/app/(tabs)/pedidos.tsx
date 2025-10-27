@@ -2,17 +2,16 @@ import { useState, useEffect } from 'react'
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native'
 import { Card, Title, Paragraph, Text, Chip, FAB, ActivityIndicator, Badge } from 'react-native-paper'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import { supabase } from '../../services/supabase'
 
 type Pedido = {
   id: string
   numero_pedido: string
-  cliente: string
-  origem: string
-  destino: string
+  produto: string
+  quantidade: number
+  unidade: string
   status: string
-  data_entrega_prevista?: string
-  valor?: number
+  data_solicitacao: string
+  urgencia: 'Baixa' | 'Média' | 'Alta' | 'Urgente'
 }
 
 export default function PedidosScreen() {
@@ -23,39 +22,55 @@ export default function PedidosScreen() {
 
   useEffect(() => {
     loadPedidos()
-    
-    // Configurar realtime
-    const subscription = supabase
-      .channel('pedidos-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos' }, () => {
-        loadPedidos()
-      })
-      .subscribe()
-
-    return () => {
-      subscription.unsubscribe()
-    }
   }, [filter])
 
   const loadPedidos = async () => {
     try {
-      let query = supabase
-        .from('pedidos')
-        .select('*')
-        .order('created_at', { ascending: false })
+      // Dados mockados de pedidos de material
+      const pedidosMock: Pedido[] = [
+        {
+          id: '1',
+          numero_pedido: 'PED-2025-001',
+          produto: 'Parafuso M8 x 50mm',
+          quantidade: 100,
+          unidade: 'UN',
+          status: 'Aprovado',
+          data_solicitacao: '2025-10-25',
+          urgencia: 'Média'
+        },
+        {
+          id: '2',
+          numero_pedido: 'PED-2025-002',
+          produto: 'Tinta Branca 18L',
+          quantidade: 5,
+          unidade: 'UN',
+          status: 'Pendente',
+          data_solicitacao: '2025-10-26',
+          urgencia: 'Alta'
+        },
+        {
+          id: '3',
+          numero_pedido: 'PED-2025-003',
+          produto: 'Luva PVC 50mm',
+          quantidade: 20,
+          unidade: 'UN',
+          status: 'Entregue',
+          data_solicitacao: '2025-10-20',
+          urgencia: 'Baixa'
+        },
+      ]
 
       // Aplicar filtro
+      let pedidosFiltrados = pedidosMock
       if (filter === 'ativos') {
-        query = query.in('status', ['Pendente', 'Em Trânsito'])
+        pedidosFiltrados = pedidosMock.filter(p => 
+          ['Pendente', 'Aprovado', 'Separando'].includes(p.status)
+        )
       } else if (filter === 'entregues') {
-        query = query.eq('status', 'Entregue')
+        pedidosFiltrados = pedidosMock.filter(p => p.status === 'Entregue')
       }
 
-      const { data, error } = await query
-
-      if (error) throw error
-
-      setPedidos(data || [])
+      setPedidos(pedidosFiltrados)
     } catch (error) {
       console.error('Erro ao carregar pedidos:', error)
     } finally {
@@ -73,13 +88,15 @@ export default function PedidosScreen() {
     switch (status) {
       case 'Pendente':
         return '#fbbf24'
-      case 'Em Trânsito':
+      case 'Aprovado':
         return '#3b82f6'
+      case 'Separando':
+        return '#8b5cf6'
       case 'Entregue':
         return '#10b981'
       case 'Cancelado':
         return '#ef4444'
-      case 'Atrasado':
+      case 'Rejeitado':
         return '#dc2626'
       default:
         return '#6b7280'
@@ -90,16 +107,48 @@ export default function PedidosScreen() {
     switch (status) {
       case 'Pendente':
         return 'clock-outline'
-      case 'Em Trânsito':
-        return 'truck-fast'
+      case 'Aprovado':
+        return 'check-circle-outline'
+      case 'Separando':
+        return 'package-variant'
       case 'Entregue':
         return 'check-circle'
       case 'Cancelado':
         return 'close-circle'
-      case 'Atrasado':
+      case 'Rejeitado':
         return 'alert-circle'
       default:
         return 'help-circle'
+    }
+  }
+
+  const getUrgenciaColor = (urgencia: string) => {
+    switch (urgencia) {
+      case 'Baixa':
+        return '#10b981'
+      case 'Média':
+        return '#f59e0b'
+      case 'Alta':
+        return '#ef4444'
+      case 'Urgente':
+        return '#dc2626'
+      default:
+        return '#6b7280'
+    }
+  }
+
+  const getUrgenciaIcon = (urgencia: string) => {
+    switch (urgencia) {
+      case 'Baixa':
+        return 'arrow-down'
+      case 'Média':
+        return 'minus'
+      case 'Alta':
+        return 'arrow-up'
+      case 'Urgente':
+        return 'fire'
+      default:
+        return 'minus'
     }
   }
 
@@ -173,43 +222,35 @@ export default function PedidosScreen() {
                   </Chip>
                 </View>
 
-                {/* Cliente */}
+                {/* Produto */}
                 <View style={styles.infoRow}>
-                  <MaterialCommunityIcons name="account" size={16} color="#6b7280" />
-                  <Text style={styles.infoText}>{pedido.cliente}</Text>
+                  <MaterialCommunityIcons name="package-variant" size={16} color="#6b7280" />
+                  <Text style={styles.infoText}>{pedido.produto}</Text>
                 </View>
 
-                {/* Origem e Destino */}
+                {/* Quantidade e Urgência */}
                 <View style={styles.routeContainer}>
                   <View style={styles.routePoint}>
-                    <MaterialCommunityIcons name="map-marker" size={16} color="#10b981" />
-                    <Text style={styles.routeText}>{pedido.origem}</Text>
+                    <MaterialCommunityIcons name="package-variant-closed" size={16} color="#3b82f6" />
+                    <Text style={styles.routeText}>{pedido.quantidade} {pedido.unidade}</Text>
                   </View>
-                  <MaterialCommunityIcons name="arrow-right" size={16} color="#9ca3af" />
-                  <View style={styles.routePoint}>
-                    <MaterialCommunityIcons name="map-marker" size={16} color="#ef4444" />
-                    <Text style={styles.routeText}>{pedido.destino}</Text>
-                  </View>
+                  <Chip
+                    icon={getUrgenciaIcon(pedido.urgencia)}
+                    style={{ backgroundColor: getUrgenciaColor(pedido.urgencia) + '20' }}
+                    textStyle={{ color: getUrgenciaColor(pedido.urgencia), fontSize: 11 }}
+                  >
+                    {pedido.urgencia}
+                  </Chip>
                 </View>
 
-                {/* Data e Valor */}
+                {/* Data */}
                 <View style={styles.bottomRow}>
-                  {pedido.data_entrega_prevista && (
-                    <View style={styles.infoRow}>
-                      <MaterialCommunityIcons name="calendar" size={14} color="#6b7280" />
-                      <Text style={styles.smallText}>
-                        {new Date(pedido.data_entrega_prevista).toLocaleDateString('pt-BR')}
-                      </Text>
-                    </View>
-                  )}
-                  {pedido.valor && (
-                    <View style={styles.infoRow}>
-                      <MaterialCommunityIcons name="currency-usd" size={14} color="#6b7280" />
-                      <Text style={styles.smallText}>
-                        {pedido.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                      </Text>
-                    </View>
-                  )}
+                  <View style={styles.infoRow}>
+                    <MaterialCommunityIcons name="calendar" size={14} color="#6b7280" />
+                    <Text style={styles.smallText}>
+                      {new Date(pedido.data_solicitacao).toLocaleDateString('pt-BR')}
+                    </Text>
+                  </View>
                 </View>
               </Card.Content>
             </Card>
