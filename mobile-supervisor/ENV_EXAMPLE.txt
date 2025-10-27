@@ -1,0 +1,31 @@
+# ========================================
+# VARIÁVEIS DE AMBIENTE - PEGASUS SUPERVISOR
+# ========================================
+#
+# Copie este conteúdo para um arquivo chamado ".env" na raiz do projeto
+# e preencha com suas credenciais do Supabase
+#
+# ========================================
+
+# Supabase Configuration
+EXPO_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=sua-chave-anonima-aqui
+
+# ========================================
+# COMO OBTER AS CREDENCIAIS:
+# ========================================
+#
+# 1. Acesse: https://supabase.com/dashboard
+# 2. Selecione seu projeto (ou crie um novo)
+# 3. Vá em Settings > API
+# 4. Copie:
+#    - Project URL → EXPO_PUBLIC_SUPABASE_URL
+#    - anon public → EXPO_PUBLIC_SUPABASE_ANON_KEY
+#
+# ========================================
+
+# Exemplo de arquivo .env preenchido:
+#
+# EXPO_PUBLIC_SUPABASE_URL=https://xyzcompany.supabase.co
+# EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
