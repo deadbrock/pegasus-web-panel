@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -34,12 +34,28 @@ import {
   DollarSign,
   AlertCircle,
   Download,
-  FileText
+  FileText,
+  Trash2,
+  Edit,
+  RefreshCw
 } from 'lucide-react'
+import {
+  fetchMetasFinanceiras,
+  createMeta,
+  updateMetaProgresso,
+  deleteMeta,
+  fetchMetasEstatisticas,
+  type MetaFinanceira
+} from '@/lib/services/metas-service'
+import { useToast } from '@/hooks/use-toast'
 
 export default function PlanejamentoPage() {
-  const [selectedPeriod, setSelectedPeriod] = useState('2024')
+  const { toast } = useToast()
+  const [selectedPeriod, setSelectedPeriod] = useState('2025')
   const [isMetaDialogOpen, setIsMetaDialogOpen] = useState(false)
+  const [metas, setMetas] = useState<MetaFinanceira[]>([])
+  const [loading, setLoading] = useState(true)
+  const [estatisticas, setEstatisticas] = useState<any>(null)
   const [novaMetaData, setNovaMetaData] = useState({
     categoria: '',
     metaAnual: '',
@@ -47,18 +63,38 @@ export default function PlanejamentoPage() {
     descricao: ''
   })
 
+  // Carregar metas do Supabase
+  useEffect(() => {
+    loadMetas()
+  }, [selectedPeriod])
+
+  const loadMetas = async () => {
+    setLoading(true)
+    try {
+      const [metasData, statsData] = await Promise.all([
+        fetchMetasFinanceiras(selectedPeriod),
+        fetchMetasEstatisticas(selectedPeriod)
+      ])
+      setMetas(metasData)
+      setEstatisticas(statsData)
+    } catch (error) {
+      console.error('Erro ao carregar metas:', error)
+      toast({
+        title: 'Erro ao carregar metas',
+        description: 'Não foi possível carregar as metas financeiras',
+        variant: 'destructive'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // Função para exportar relatório
   const handleExportRelatorio = () => {
     const relatorioData = {
       periodo: selectedPeriod,
-      metas: metasFinanceiras,
-      projecoes: projecoes,
-      resumo: {
-        receita_prevista: 320000,
-        custos_previstos: 249000,
-        lucro_projetado: 71000,
-        metas_atingidas: '75%'
-      },
+      metas: metas,
+      estatisticas: estatisticas,
       gerado_em: new Date().toLocaleString('pt-BR')
     }
     
@@ -72,82 +108,105 @@ export default function PlanejamentoPage() {
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
+    
+    toast({
+      title: 'Relatório exportado!',
+      description: 'O relatório foi baixado com sucesso'
+    })
   }
 
   // Função para criar nova meta
-  const handleCriarNovaMeta = () => {
-    console.log('Nova Meta:', novaMetaData)
-    // Aqui você pode adicionar a lógica para salvar no Supabase
-    alert(`Meta "${novaMetaData.categoria}" criada com sucesso!\nValor: R$ ${novaMetaData.metaAnual}`)
-    setIsMetaDialogOpen(false)
-    setNovaMetaData({ categoria: '', metaAnual: '', periodo: '', descricao: '' })
+  const handleCriarNovaMeta = async () => {
+    try {
+      const result = await createMeta({
+        categoria: novaMetaData.categoria,
+        meta_anual: Number(novaMetaData.metaAnual),
+        periodo: novaMetaData.periodo,
+        ano: selectedPeriod,
+        descricao: novaMetaData.descricao
+      })
+
+      if (result) {
+        toast({
+          title: 'Meta criada!',
+          description: `Meta "${novaMetaData.categoria}" foi criada com sucesso`
+        })
+        setIsMetaDialogOpen(false)
+        setNovaMetaData({ categoria: '', metaAnual: '', periodo: '', descricao: '' })
+        loadMetas() // Recarregar metas
+      } else {
+        throw new Error('Falha ao criar meta')
+      }
+    } catch (error) {
+      console.error('Erro ao criar meta:', error)
+      toast({
+        title: 'Erro ao criar meta',
+        description: 'Não foi possível criar a meta',
+        variant: 'destructive'
+      })
+    }
   }
 
-  // Dados simulados de planejamento financeiro
-  const metasFinanceiras = [
-    {
-      id: 1,
-      categoria: 'Receita Operacional',
-      metaAnual: 500000,
-      realizadoAtual: 125000,
-      periodo: 'Q1 2024',
-      status: 'em_andamento',
-      progresso: 25
-    },
-    {
-      id: 2,
-      categoria: 'Redução de Custos',
-      metaAnual: 50000,
-      realizadoAtual: 15000,
-      periodo: 'Q1 2024',
-      status: 'atrasado',
-      progresso: 30
-    },
-    {
-      id: 3,
-      categoria: 'Investimentos',
-      metaAnual: 100000,
-      realizadoAtual: 35000,
-      periodo: 'Q1 2024',
-      status: 'no_prazo',
-      progresso: 35
-    },
-    {
-      id: 4,
-      categoria: 'Margem de Lucro',
-      metaAnual: 15, // percentual
-      realizadoAtual: 12,
-      periodo: 'Q1 2024',
-      status: 'em_andamento',
-      progresso: 80
+  // Função para deletar meta
+  const handleDeletarMeta = async (id: string, categoria: string) => {
+    if (!confirm(`Deseja realmente deletar a meta "${categoria}"?`)) {
+      return
     }
-  ]
 
-  const projecoes = [
-    { mes: 'Jan', receita: 45000, despesa: 38000, lucro: 7000 },
-    { mes: 'Fev', receita: 52000, despesa: 41000, lucro: 11000 },
-    { mes: 'Mar', receita: 48000, despesa: 39000, lucro: 9000 },
-    { mes: 'Abr', receita: 55000, despesa: 42000, lucro: 13000 },
-    { mes: 'Mai', receita: 58000, despesa: 44000, lucro: 14000 },
-    { mes: 'Jun', receita: 62000, despesa: 45000, lucro: 17000 }
-  ]
+    try {
+      const success = await deleteMeta(id)
+      if (success) {
+        toast({
+          title: 'Meta deletada!',
+          description: `Meta "${categoria}" foi removida`
+        })
+        loadMetas()
+      }
+    } catch (error) {
+      console.error('Erro ao deletar meta:', error)
+      toast({
+        title: 'Erro ao deletar meta',
+        description: 'Não foi possível deletar a meta',
+        variant: 'destructive'
+      })
+    }
+  }
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', { 
+      style: 'currency', 
+      currency: 'BRL',
+      minimumFractionDigits: 0
+    }).format(value)
+  }
 
   const getStatusBadge = (status: string) => {
     const colors = {
       no_prazo: 'bg-green-100 text-green-800',
       em_andamento: 'bg-blue-100 text-blue-800',
       atrasado: 'bg-red-100 text-red-800',
-      concluido: 'bg-gray-100 text-gray-800'
+      concluido: 'bg-gray-100 text-gray-800',
+      cancelado: 'bg-red-200 text-red-900'
     }
     const labels = {
       no_prazo: 'No Prazo',
       em_andamento: 'Em Andamento',
       atrasado: 'Atrasado',
-      concluido: 'Concluído'
+      concluido: 'Concluído',
+      cancelado: 'Cancelado'
     }
     return <Badge className={colors[status as keyof typeof colors]}>
       {labels[status as keyof typeof labels]}
     </Badge>
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <RefreshCw className="w-8 h-8 animate-spin text-blue-600" />
+        <span className="ml-2 text-lg">Carregando metas...</span>
+      </div>
+    )
   }
 
   return (
@@ -291,45 +350,53 @@ export default function PlanejamentoPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receita Prevista</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">R$ 320.000</div>
-            <p className="text-xs text-green-600">+15% vs planejado</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Custos Previstos</CardTitle>
-            <TrendingDown className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">R$ 249.000</div>
-            <p className="text-xs text-red-600">+8% vs planejado</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Lucro Projetado</CardTitle>
+            <CardTitle className="text-sm font-medium">Meta Total</CardTitle>
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$ 71.000</div>
-            <p className="text-xs text-green-600">22.2% margem</p>
+            <div className="text-2xl font-bold">
+              {formatCurrency(estatisticas?.meta_total || 0)}
+            </div>
+            <p className="text-xs text-muted-foreground">{selectedPeriod}</p>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Metas Atingidas</CardTitle>
+            <CardTitle className="text-sm font-medium">Realizado</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {formatCurrency(estatisticas?.realizado_total || 0)}
+            </div>
+            <p className="text-xs text-blue-600">{estatisticas?.progresso_medio || 0}% concluído</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Metas</CardTitle>
             <PieChart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">75%</div>
-            <p className="text-xs text-muted-foreground">3 de 4 metas</p>
+            <div className="text-2xl font-bold">{estatisticas?.total || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              {estatisticas?.concluidas || 0} concluídas
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Taxa de Sucesso</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{estatisticas?.taxa_conclusao || 0}%</div>
+            <p className="text-xs text-green-600">
+              {estatisticas?.no_prazo || 0} no prazo
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -339,8 +406,8 @@ export default function PlanejamentoPage() {
         <CardContent className="pt-6">
           <div className="flex items-center space-x-4">
             <span className="text-sm font-medium">Período:</span>
-            <div className="flex space-x-2">
-              {['2024', '2023', '2022'].map((year) => (
+            <div className="flex flex-wrap gap-2">
+              {['2025', '2026', '2027', '2028', '2029', '2030'].map((year) => (
                 <Button
                   key={year}
                   variant={selectedPeriod === year ? 'default' : 'outline'}
@@ -358,116 +425,90 @@ export default function PlanejamentoPage() {
       {/* Metas Financeiras */}
       <Card>
         <CardHeader>
-          <CardTitle>Metas Financeiras {selectedPeriod}</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Metas Financeiras {selectedPeriod}</CardTitle>
+            <Button variant="outline" size="sm" onClick={loadMetas}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Atualizar
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-6">
-            {metasFinanceiras.map((meta) => (
-              <div key={meta.id} className="border rounded-lg p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{meta.categoria}</h3>
-                    <p className="text-sm text-gray-500">{meta.periodo}</p>
+          {metas.length === 0 ? (
+            <div className="text-center py-12">
+              <Target className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Nenhuma meta cadastrada
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Crie sua primeira meta financeira para {selectedPeriod}
+              </p>
+              <Button onClick={() => setIsMetaDialogOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Criar Primeira Meta
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {metas.map((meta) => (
+                <div key={meta.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900">{meta.categoria}</h3>
+                      <p className="text-sm text-gray-500">{meta.periodo}</p>
+                      {meta.descricao && (
+                        <p className="text-xs text-gray-400 mt-1">{meta.descricao}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(meta.status)}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeletarMeta(meta.id, meta.categoria)}
+                      >
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </Button>
+                    </div>
                   </div>
-                  {getStatusBadge(meta.status)}
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                      <p className="text-xs text-gray-500">Meta Anual</p>
+                      <p className="font-semibold">
+                        {formatCurrency(Number(meta.meta_anual))}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Realizado</p>
+                      <p className="font-semibold">
+                        {formatCurrency(Number(meta.realizado_atual))}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Progresso</p>
+                      <p className="font-semibold">{meta.progresso}%</p>
+                    </div>
+                  </div>
+                  
+                  {/* Barra de Progresso */}
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full transition-all ${
+                        meta.status === 'atrasado' ? 'bg-red-500' :
+                        meta.status === 'no_prazo' ? 'bg-green-500' :
+                        meta.status === 'concluido' ? 'bg-gray-500' : 'bg-blue-500'
+                      }`}
+                      style={{ width: `${meta.progresso}%` }}
+                    />
+                  </div>
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div>
-                    <p className="text-xs text-gray-500">Meta Anual</p>
-                    <p className="font-semibold">
-                      {meta.categoria === 'Margem de Lucro' 
-                        ? `${meta.metaAnual}%` 
-                        : meta.metaAnual.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-                      }
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Realizado</p>
-                    <p className="font-semibold">
-                      {meta.categoria === 'Margem de Lucro' 
-                        ? `${meta.realizadoAtual}%` 
-                        : meta.realizadoAtual.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-                      }
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Progresso</p>
-                    <p className="font-semibold">{meta.progresso}%</p>
-                  </div>
-                </div>
-                
-                {/* Barra de Progresso */}
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className={`h-2 rounded-full ${
-                      meta.status === 'atrasado' ? 'bg-red-500' :
-                      meta.status === 'no_prazo' ? 'bg-green-500' : 'bg-blue-500'
-                    }`}
-                    style={{ width: `${meta.progresso}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Projeções Mensais */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Projeções Mensais</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-600 font-medium">Receita Total</p>
-                <p className="text-2xl font-bold text-blue-700">
-                  {projecoes.reduce((acc, p) => acc + p.receita, 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                </p>
-              </div>
-              <div className="p-4 bg-red-50 rounded-lg">
-                <p className="text-sm text-red-600 font-medium">Despesas Total</p>
-                <p className="text-2xl font-bold text-red-700">
-                  {projecoes.reduce((acc, p) => acc + p.despesa, 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                </p>
-              </div>
-              <div className="p-4 bg-green-50 rounded-lg">
-                <p className="text-sm text-green-600 font-medium">Lucro Total</p>
-                <p className="text-2xl font-bold text-green-700">
-                  {projecoes.reduce((acc, p) => acc + p.lucro, 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                </p>
-              </div>
-            </div>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-2">Mês</th>
-                    <th className="text-right p-2">Receita</th>
-                    <th className="text-right p-2">Despesas</th>
-                    <th className="text-right p-2">Lucro</th>
-                    <th className="text-right p-2">Margem</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {projecoes.map((proj, index) => (
-                    <tr key={index} className="border-b hover:bg-gray-50">
-                      <td className="p-2 font-medium">{proj.mes}</td>
-                      <td className="p-2 text-right">{proj.receita.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                      <td className="p-2 text-right">{proj.despesa.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                      <td className="p-2 text-right font-semibold text-green-600">{proj.lucro.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                      <td className="p-2 text-right">{((proj.lucro / proj.receita) * 100).toFixed(1)}%</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }

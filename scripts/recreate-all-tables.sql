@@ -371,6 +371,31 @@ CREATE POLICY fornecedores_all ON public.fornecedores FOR ALL USING (true) WITH 
 CREATE POLICY notas_fiscais_all ON public.notas_fiscais FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY audit_findings_all ON public.audit_findings FOR ALL USING (true) WITH CHECK (true);
 
+-- 14. METAS FINANCEIRAS (PLANEJAMENTO)
+CREATE TABLE public.metas_financeiras (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  categoria TEXT NOT NULL,
+  meta_anual NUMERIC NOT NULL,
+  realizado_atual NUMERIC DEFAULT 0,
+  periodo TEXT NOT NULL,
+  ano TEXT NOT NULL,
+  descricao TEXT NULL,
+  status TEXT NOT NULL DEFAULT 'em_andamento' CHECK (status IN ('em_andamento','no_prazo','atrasado','concluido','cancelado')),
+  progresso NUMERIC DEFAULT 0 CHECK (progresso >= 0 AND progresso <= 100),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX metas_financeiras_ano_idx ON public.metas_financeiras(ano);
+CREATE INDEX metas_financeiras_status_idx ON public.metas_financeiras(status);
+CREATE INDEX metas_financeiras_categoria_idx ON public.metas_financeiras(categoria);
+
+ALTER TABLE public.metas_financeiras ENABLE ROW LEVEL SECURITY;
+CREATE POLICY metas_financeiras_all ON public.metas_financeiras FOR ALL USING (true) WITH CHECK (true);
+
+CREATE TRIGGER trg_metas_financeiras_updated_at BEFORE UPDATE ON public.metas_financeiras
+FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
 -- ============================================
 -- PRONTO! TODAS AS TABELAS FORAM CRIADAS
 -- ============================================
