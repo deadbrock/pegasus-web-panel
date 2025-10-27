@@ -3,6 +3,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { 
   BarChart3,
   TrendingUp,
@@ -171,13 +179,38 @@ const moduleStatus = [
 export default function DashboardPage() {
   const router = useRouter()
   const [kpis, setKpis] = useState<DashboardKPIs | null>(null)
+  const [selectedPeriod, setSelectedPeriod] = useState('Maio 2024')
+  
   useEffect(() => { fetchDashboardKPIs().then(setKpis) }, [])
+  
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { 
       style: 'currency', 
       currency: 'BRL',
       minimumFractionDigits: 0
     }).format(value)
+  }
+
+  const handleExportDashboard = () => {
+    // Exportar dados do dashboard
+    const dashboardData = {
+      periodo: selectedPeriod,
+      receita_total: kpis?.receita_total ?? dashboardDataDefault.kpis_principais.receita_total,
+      custo_total: kpis?.custo_total ?? dashboardDataDefault.kpis_principais.custo_total,
+      lucro_liquido: kpis?.lucro_liquido ?? dashboardDataDefault.kpis_principais.lucro_liquido,
+      exportado_em: new Date().toLocaleString('pt-BR')
+    }
+    
+    const dataStr = JSON.stringify(dashboardData, null, 2)
+    const dataBlob = new Blob([dataStr], { type: 'application/json' })
+    const url = URL.createObjectURL(dataBlob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `dashboard-executivo-${new Date().toISOString().split('T')[0]}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
   }
 
   const getVariationColor = (variation: number) => {
@@ -214,7 +247,7 @@ export default function DashboardPage() {
           <div>
             <h1 className="text-3xl font-bold">Dashboard Executivo</h1>
             <p className="text-blue-100 mt-1">
-              Visão consolidada da operação - Maio 2024
+              Visão consolidada da operação - {selectedPeriod}
             </p>
             <div className="flex items-center gap-4 mt-3">
               <div className="flex items-center gap-1">
@@ -228,15 +261,50 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" className="bg-white text-black border-white hover:bg-gray-100 hover:text-blue-600">
-              <Calendar className="w-4 h-4 mr-2" />
-              Período
-            </Button>
-            <Button variant="outline" className="bg-white text-black border-white hover:bg-gray-100 hover:text-blue-600">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="bg-white text-black border-white hover:bg-gray-100 hover:text-blue-600">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Período
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Selecionar Período</DialogTitle>
+                  <DialogDescription>
+                    Escolha o período para visualizar os dados do dashboard
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-3 py-4">
+                  {['Janeiro 2024', 'Fevereiro 2024', 'Março 2024', 'Abril 2024', 'Maio 2024', 'Junho 2024'].map((period) => (
+                    <Button
+                      key={period}
+                      variant={selectedPeriod === period ? 'default' : 'outline'}
+                      className="w-full justify-start"
+                      onClick={() => setSelectedPeriod(period)}
+                    >
+                      <Calendar className="w-4 h-4 mr-2" />
+                      {period}
+                    </Button>
+                  ))}
+                </div>
+              </DialogContent>
+            </Dialog>
+            
+            <Button 
+              variant="outline" 
+              className="bg-white text-black border-white hover:bg-gray-100 hover:text-blue-600"
+              onClick={handleExportDashboard}
+            >
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button variant="outline" className="bg-white text-black border-white hover:bg-gray-100 hover:text-blue-600">
+            
+            <Button 
+              variant="outline" 
+              className="bg-white text-black border-white hover:bg-gray-100 hover:text-blue-600"
+              onClick={() => router.push('/dashboard/configuracoes')}
+            >
               <Settings className="w-4 h-4 mr-2" />
               Configurar
             </Button>
