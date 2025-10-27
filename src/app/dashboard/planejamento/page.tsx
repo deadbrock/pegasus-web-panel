@@ -5,6 +5,24 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { 
   Calendar, 
   Plus, 
@@ -14,11 +32,56 @@ import {
   PieChart,
   BarChart3,
   DollarSign,
-  AlertCircle
+  AlertCircle,
+  Download,
+  FileText
 } from 'lucide-react'
 
 export default function PlanejamentoPage() {
   const [selectedPeriod, setSelectedPeriod] = useState('2024')
+  const [isMetaDialogOpen, setIsMetaDialogOpen] = useState(false)
+  const [novaMetaData, setNovaMetaData] = useState({
+    categoria: '',
+    metaAnual: '',
+    periodo: '',
+    descricao: ''
+  })
+
+  // Função para exportar relatório
+  const handleExportRelatorio = () => {
+    const relatorioData = {
+      periodo: selectedPeriod,
+      metas: metasFinanceiras,
+      projecoes: projecoes,
+      resumo: {
+        receita_prevista: 320000,
+        custos_previstos: 249000,
+        lucro_projetado: 71000,
+        metas_atingidas: '75%'
+      },
+      gerado_em: new Date().toLocaleString('pt-BR')
+    }
+    
+    const dataStr = JSON.stringify(relatorioData, null, 2)
+    const dataBlob = new Blob([dataStr], { type: 'application/json' })
+    const url = URL.createObjectURL(dataBlob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `relatorio-planejamento-${selectedPeriod}-${new Date().toISOString().split('T')[0]}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  // Função para criar nova meta
+  const handleCriarNovaMeta = () => {
+    console.log('Nova Meta:', novaMetaData)
+    // Aqui você pode adicionar a lógica para salvar no Supabase
+    alert(`Meta "${novaMetaData.categoria}" criada com sucesso!\nValor: R$ ${novaMetaData.metaAnual}`)
+    setIsMetaDialogOpen(false)
+    setNovaMetaData({ categoria: '', metaAnual: '', periodo: '', descricao: '' })
+  }
 
   // Dados simulados de planejamento financeiro
   const metasFinanceiras = [
@@ -96,14 +159,131 @@ export default function PlanejamentoPage() {
           <p className="text-gray-600">Metas, projeções e análise estratégica</p>
         </div>
         <div className="flex space-x-2">
-          <Button variant="outline" size="sm">
-            <BarChart3 className="w-4 h-4 mr-2" />
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleExportRelatorio}
+          >
+            <Download className="w-4 h-4 mr-2" />
             Relatórios
           </Button>
-          <Button size="sm">
-            <Plus className="w-4 h-4 mr-2" />
-            Nova Meta
-          </Button>
+          
+          <Dialog open={isMetaDialogOpen} onOpenChange={setIsMetaDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Plus className="w-4 h-4 mr-2" />
+                Nova Meta
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Criar Nova Meta</DialogTitle>
+                <DialogDescription>
+                  Defina uma nova meta financeira para acompanhamento
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4 py-4">
+                {/* Categoria */}
+                <div className="space-y-2">
+                  <Label htmlFor="categoria">Categoria da Meta *</Label>
+                  <Select 
+                    value={novaMetaData.categoria} 
+                    onValueChange={(value) => setNovaMetaData({...novaMetaData, categoria: value})}
+                  >
+                    <SelectTrigger id="categoria">
+                      <SelectValue placeholder="Selecione a categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Receita Operacional">Receita Operacional</SelectItem>
+                      <SelectItem value="Redução de Custos">Redução de Custos</SelectItem>
+                      <SelectItem value="Investimentos">Investimentos</SelectItem>
+                      <SelectItem value="Margem de Lucro">Margem de Lucro</SelectItem>
+                      <SelectItem value="Expansão">Expansão</SelectItem>
+                      <SelectItem value="Marketing">Marketing</SelectItem>
+                      <SelectItem value="Inovação">Inovação</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Valor da Meta */}
+                <div className="space-y-2">
+                  <Label htmlFor="metaAnual">Valor da Meta Anual (R$) *</Label>
+                  <Input
+                    id="metaAnual"
+                    type="number"
+                    placeholder="Ex: 500000"
+                    value={novaMetaData.metaAnual}
+                    onChange={(e) => setNovaMetaData({...novaMetaData, metaAnual: e.target.value})}
+                  />
+                </div>
+
+                {/* Período */}
+                <div className="space-y-2">
+                  <Label htmlFor="periodo">Período *</Label>
+                  <Select 
+                    value={novaMetaData.periodo} 
+                    onValueChange={(value) => setNovaMetaData({...novaMetaData, periodo: value})}
+                  >
+                    <SelectTrigger id="periodo">
+                      <SelectValue placeholder="Selecione o período" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Q1 2025">Q1 2025 (Jan-Mar)</SelectItem>
+                      <SelectItem value="Q2 2025">Q2 2025 (Abr-Jun)</SelectItem>
+                      <SelectItem value="Q3 2025">Q3 2025 (Jul-Set)</SelectItem>
+                      <SelectItem value="Q4 2025">Q4 2025 (Out-Dez)</SelectItem>
+                      <SelectItem value="Anual 2025">Anual 2025</SelectItem>
+                      <SelectItem value="Anual 2026">Anual 2026</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Descrição */}
+                <div className="space-y-2">
+                  <Label htmlFor="descricao">Descrição (Opcional)</Label>
+                  <Textarea
+                    id="descricao"
+                    placeholder="Descreva os objetivos e estratégias desta meta..."
+                    value={novaMetaData.descricao}
+                    onChange={(e) => setNovaMetaData({...novaMetaData, descricao: e.target.value})}
+                    rows={3}
+                  />
+                </div>
+
+                {/* Preview */}
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <Target className="w-5 h-5 text-blue-600 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-xs text-blue-600 font-medium">Preview da Meta:</p>
+                      <p className="text-sm font-bold text-blue-900">
+                        {novaMetaData.categoria || 'Categoria'} - 
+                        {novaMetaData.metaAnual ? ` R$ ${Number(novaMetaData.metaAnual).toLocaleString('pt-BR')}` : ' R$ 0,00'}
+                      </p>
+                      <p className="text-xs text-blue-700">{novaMetaData.periodo || 'Período não definido'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsMetaDialogOpen(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleCriarNovaMeta}
+                  disabled={!novaMetaData.categoria || !novaMetaData.metaAnual || !novaMetaData.periodo}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Criar Meta
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
