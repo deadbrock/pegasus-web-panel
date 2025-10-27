@@ -1,0 +1,179 @@
+import { supabase } from './supabase'
+
+export type PedidoMobile = {
+  id: string
+  numero_pedido: string
+  supervisor_id: string
+  supervisor_nome: string
+  supervisor_email: string
+  produto_id?: string
+  produto_nome: string
+  quantidade: number
+  unidade: string
+  urgencia: 'Baixa' | 'Média' | 'Alta' | 'Urgente'
+  observacoes?: string
+  status: 'Pendente' | 'Aprovado' | 'Em Separação' | 'Saiu para Entrega' | 'Entregue' | 'Cancelado' | 'Rejeitado'
+  mes_solicitacao: number
+  ano_solicitacao: number
+  requer_autorizacao: boolean
+  autorizacao_status?: 'Pendente' | 'Aprovada' | 'Rejeitada'
+  autorizacao_justificativa?: string
+  data_solicitacao: string
+  created_at: string
+}
+
+export type VerificacaoMensal = {
+  pode_fazer: boolean
+  total_pedidos_mes: number
+  requer_autorizacao: boolean
+}
+
+/**
+ * Verifica se o supervisor pode fazer pedido no mês atual
+ * Retorna se pode fazer e se precisa de autorização
+ */
+export async function verificarPodeFazerPedido(supervisorId: string): Promise<VerificacaoMensal> {
+  try {
+    const agora = new Date()
+    const mes = agora.getMonth() + 1 // 1-12
+    const ano = agora.getFullYear()
+
+    const { data, error } = await supabase
+      .rpc('pode_fazer_pedido_no_mes', {
+        p_supervisor_id: supervisorId,
+        p_mes: mes,
+        p_ano: ano
+      })
+
+    if (error) throw error
+
+    if (data && data.length > 0) {
+      return data[0]
+    }
+
+    // Fallback: permitir se não houver dados
+    return {
+      pode_fazer: true,
+      total_pedidos_mes: 0,
+      requer_autorizacao: false
+    }
+  } catch (error) {
+    console.error('Erro ao verificar pedidos do mês:', error)
+    // Em caso de erro, permitir mas avisar
+    return {
+      pode_fazer: true,
+      total_pedidos_mes: 0,
+      requer_autorizacao: false
+    }
+  }
+}
+
+/**
+ * Busca todos os pedidos do supervisor
+ */
+export async function fetchMeusPedidos(supervisorId: string): Promise<PedidoMobile[]> {
+  try {
+    const { data, error } = await supabase
+      .from('pedidos_supervisores')
+      .select('*')
+      .eq('supervisor_id', supervisorId)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+
+    return data || []
+  } catch (error) {
+    console.error('Erro ao buscar pedidos:', error)
+    return []
+  }
+}
+
+/**
+ * Cria um novo pedido
+ */
+export async function criarPedido(pedido: {
+  supervisor_id: string
+  supervisor_nome: string
+  supervisor_email: string
+  produto_id?: string
+  produto_nome: string
+  quantidade: number
+  unidade: string
+  urgencia: string
+  observacoes?: string
+  requer_autorizacao: boolean
+  autorizacao_justificativa?: string
+}): Promise<PedidoMobile | null> {
+  try {
+    const agora = new Date()
+    const mes = agora.getMonth() + 1
+    const ano = agora.getFullYear()
+
+    // Gerar número do pedido
+    const { count } = await supabase
+      .from('pedidos_supervisores')
+      .select('*', { count: 'exact', head: true })
+
+    const numeroPedido = `PED-${ano}-${String((count || 0) + 1).padStart(4, '0')}`
+
+    const { data, error } = await supabase
+      .from('pedidos_supervisores')
+      .insert({
+        numero_pedido: numeroPedido,
+        supervisor_id: pedido.supervisor_id,
+        supervisor_nome: pedido.supervisor_nome,
+        supervisor_email: pedido.supervisor_email,
+        produto_id: pedido.produto_id,
+        produto_nome: pedido.produto_nome,
+        quantidade: pedido.quantidade,
+        unidade: pedido.unidade,
+        urgencia: pedido.urgencia,
+        observacoes: pedido.observacoes,
+        mes_solicitacao: mes,
+        ano_solicitacao: ano,
+        requer_autorizacao: pedido.requer_autorizacao,
+        autorizacao_status: pedido.requer_autorizacao ? 'Pendente' : null,
+        autorizacao_solicitada_em: pedido.requer_autorizacao ? new Date().toISOString() : null,
+        autorizacao_justificativa: pedido.autorizacao_justificativa,
+        status: pedido.requer_autorizacao ? 'Pendente' : 'Pendente'
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+
+    return data
+  } catch (error) {
+    console.error('Erro ao criar pedido:', error)
+    throw error
+  }
+}
+
+/**
+ * Subscribe para mudanças nos pedidos (realtime)
+ */
+export function subscribePedidosRealtime(
+  supervisorId: string,
+  callback: (pedidos: PedidoMobile[]) => void
+) {
+  const channel = supabase
+    .channel('pedidos-supervisores-changes')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'pedidos_supervisores',
+        filter: `supervisor_id=eq.${supervisorId}`
+      },
+      async () => {
+        // Recarregar pedidos quando houver mudança
+        const pedidos = await fetchMeusPedidos(supervisorId)
+        callback(pedidos)
+      }
+    )
+    .subscribe()
+
+  return channel
+}
+

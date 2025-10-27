@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { View, StyleSheet, ScrollView, RefreshControl, Alert, TouchableOpacity } from 'react-native'
-import { Card, Title, Paragraph, Text, Chip, ActivityIndicator, Dialog, Portal, TextInput, Button } from 'react-native-paper'
+import { View, StyleSheet, ScrollView, RefreshControl, Alert, TouchableOpacity, FlatList } from 'react-native'
+import { Card, Title, Paragraph, Text, Chip, ActivityIndicator, Dialog, Portal, TextInput, Button, Searchbar } from 'react-native-paper'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
+import { fetchProdutosDisponiveis, type Produto } from '../../services/produtos-service'
 
 type Stats = {
   pedidos_ativos: number
@@ -25,11 +26,17 @@ export default function DashboardScreen() {
 
   // Dialog Novo Pedido
   const [novoPedidoVisible, setNovoPedidoVisible] = useState(false)
-  const [produtoNome, setProdutoNome] = useState('')
+  const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(null)
   const [quantidade, setQuantidade] = useState('')
   const [unidade, setUnidade] = useState('UN')
   const [urgencia, setUrgencia] = useState('Média')
   const [observacoes, setObservacoes] = useState('')
+  
+  // Produtos do estoque
+  const [produtos, setProdutos] = useState<Produto[]>([])
+  const [produtosFiltered, setProdutosFiltered] = useState<Produto[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [loadingProdutos, setLoadingProdutos] = useState(false)
 
   useEffect(() => {
     // Simular carregamento
@@ -41,18 +48,50 @@ export default function DashboardScreen() {
     setTimeout(() => setRefreshing(false), 1000)
   }
 
-  const handleNovoPedido = () => {
-    setProdutoNome('')
+  const handleNovoPedido = async () => {
+    setProdutoSelecionado(null)
     setQuantidade('')
     setUnidade('UN')
     setUrgencia('Média')
     setObservacoes('')
+    setSearchQuery('')
     setNovoPedidoVisible(true)
+    
+    // Carregar produtos do estoque
+    setLoadingProdutos(true)
+    try {
+      const produtosData = await fetchProdutosDisponiveis()
+      setProdutos(produtosData)
+      setProdutosFiltered(produtosData)
+    } catch (error) {
+      console.error('Erro ao carregar produtos:', error)
+      Alert.alert('Aviso', 'Não foi possível carregar a lista de produtos do estoque')
+    } finally {
+      setLoadingProdutos(false)
+    }
+  }
+
+  const handleSearchProdutos = (query: string) => {
+    setSearchQuery(query)
+    if (query.trim() === '') {
+      setProdutosFiltered(produtos)
+    } else {
+      const filtered = produtos.filter(p => 
+        p.nome.toLowerCase().includes(query.toLowerCase()) ||
+        p.codigo?.toLowerCase().includes(query.toLowerCase())
+      )
+      setProdutosFiltered(filtered)
+    }
+  }
+
+  const handleSelecionarProduto = (produto: Produto) => {
+    setProdutoSelecionado(produto)
+    setUnidade(produto.unidade || 'UN')
   }
 
   const handleSalvarPedido = () => {
-    if (!produtoNome.trim()) {
-      Alert.alert('Erro', 'Nome do produto é obrigatório')
+    if (!produtoSelecionado) {
+      Alert.alert('Erro', 'Selecione um produto da lista')
       return
     }
     if (!quantidade || Number(quantidade) <= 0) {
@@ -63,7 +102,7 @@ export default function DashboardScreen() {
     setNovoPedidoVisible(false)
     Alert.alert(
       'Pedido Criado!',
-      `Pedido de ${quantidade} ${unidade} de ${produtoNome} foi enviado com urgência ${urgencia}.`,
+      `Pedido de ${quantidade} ${unidade} de ${produtoSelecionado.nome} foi enviado com urgência ${urgencia}.`,
       [{ text: 'OK' }]
     )
     
@@ -202,68 +241,128 @@ export default function DashboardScreen() {
 
       {/* Dialog Novo Pedido */}
       <Portal>
-        <Dialog visible={novoPedidoVisible} onDismiss={() => setNovoPedidoVisible(false)}>
+        <Dialog visible={novoPedidoVisible} onDismiss={() => setNovoPedidoVisible(false)} style={{ maxHeight: '90%' }}>
           <Dialog.Title>Novo Pedido de Material</Dialog.Title>
-          <Dialog.Content style={{ gap: 12 }}>
-            <TextInput
-              label="Produto/Material"
-              value={produtoNome}
-              onChangeText={setProdutoNome}
-              mode="outlined"
-              placeholder="Ex: Parafuso M8, Tinta Branca..."
-              left={<TextInput.Icon icon="package-variant" />}
-            />
-            
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <TextInput
-                label="Quantidade"
-                value={quantidade}
-                onChangeText={setQuantidade}
-                mode="outlined"
-                keyboardType="numeric"
-                style={{ flex: 2 }}
-                left={<TextInput.Icon icon="numeric" />}
-              />
-              <TextInput
-                label="Unidade"
-                value={unidade}
-                onChangeText={setUnidade}
-                mode="outlined"
-                placeholder="UN, KG, L..."
-                style={{ flex: 1 }}
-              />
-            </View>
-
-            <View>
-              <Text style={{ fontSize: 12, color: '#6b7280', marginBottom: 8 }}>Urgência:</Text>
-              <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-                {['Baixa', 'Média', 'Alta', 'Urgente'].map((urg) => (
-                  <Chip
-                    key={urg}
-                    selected={urgencia === urg}
-                    onPress={() => setUrgencia(urg)}
-                    style={{ backgroundColor: urgencia === urg ? '#3b82f6' : '#f3f4f6' }}
-                    textStyle={{ color: urgencia === urg ? 'white' : '#4b5563' }}
-                  >
-                    {urg}
-                  </Chip>
-                ))}
+          <Dialog.Content>
+            {/* Produto Selecionado */}
+            {produtoSelecionado ? (
+              <View style={styles.produtoSelecionadoContainer}>
+                <Text style={styles.produtoSelecionadoLabel}>Produto Selecionado:</Text>
+                <Chip
+                  icon="package-variant"
+                  onClose={() => setProdutoSelecionado(null)}
+                  style={styles.produtoSelecionadoChip}
+                >
+                  {produtoSelecionado.nome}
+                </Chip>
               </View>
-            </View>
+            ) : (
+              <View>
+                <Text style={styles.sectionLabel}>Selecione o Produto do Estoque:</Text>
+                
+                {/* Busca */}
+                <Searchbar
+                  placeholder="Buscar produto..."
+                  onChangeText={handleSearchProdutos}
+                  value={searchQuery}
+                  style={styles.searchBar}
+                />
 
-            <TextInput
-              label="Observações (opcional)"
-              value={observacoes}
-              onChangeText={setObservacoes}
-              mode="outlined"
-              multiline
-              numberOfLines={3}
-              placeholder="Detalhes adicionais..."
-            />
+                {/* Lista de Produtos */}
+                {loadingProdutos ? (
+                  <View style={styles.loadingProdutos}>
+                    <ActivityIndicator size="small" color="#3b82f6" />
+                    <Text style={{ marginLeft: 8, color: '#6b7280' }}>Carregando produtos...</Text>
+                  </View>
+                ) : (
+                  <View style={styles.produtosListContainer}>
+                    <FlatList
+                      data={produtosFiltered}
+                      keyExtractor={(item) => item.id}
+                      renderItem={({ item }) => (
+                        <TouchableOpacity onPress={() => handleSelecionarProduto(item)}>
+                          <View style={styles.produtoItem}>
+                            <MaterialCommunityIcons name="package-variant" size={20} color="#3b82f6" />
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.produtoNome}>{item.nome}</Text>
+                              {item.codigo && (
+                                <Text style={styles.produtoCodigo}>Cód: {item.codigo}</Text>
+                              )}
+                            </View>
+                            <MaterialCommunityIcons name="chevron-right" size={20} color="#9ca3af" />
+                          </View>
+                        </TouchableOpacity>
+                      )}
+                      style={styles.produtosList}
+                      ListEmptyComponent={
+                        <View style={styles.emptyProdutos}>
+                          <Text style={styles.emptyText}>
+                            {searchQuery ? 'Nenhum produto encontrado' : 'Nenhum produto no estoque'}
+                          </Text>
+                        </View>
+                      }
+                    />
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* Formulário (só aparece depois de selecionar produto) */}
+            {produtoSelecionado && (
+              <View style={{ gap: 12, marginTop: 16 }}>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TextInput
+                    label="Quantidade"
+                    value={quantidade}
+                    onChangeText={setQuantidade}
+                    mode="outlined"
+                    keyboardType="numeric"
+                    style={{ flex: 2 }}
+                    left={<TextInput.Icon icon="numeric" />}
+                  />
+                  <TextInput
+                    label="Unidade"
+                    value={unidade}
+                    onChangeText={setUnidade}
+                    mode="outlined"
+                    style={{ flex: 1 }}
+                  />
+                </View>
+
+                <View>
+                  <Text style={{ fontSize: 12, color: '#6b7280', marginBottom: 8 }}>Urgência:</Text>
+                  <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                    {['Baixa', 'Média', 'Alta', 'Urgente'].map((urg) => (
+                      <Chip
+                        key={urg}
+                        selected={urgencia === urg}
+                        onPress={() => setUrgencia(urg)}
+                        style={{ backgroundColor: urgencia === urg ? '#3b82f6' : '#f3f4f6' }}
+                        textStyle={{ color: urgencia === urg ? 'white' : '#4b5563' }}
+                      >
+                        {urg}
+                      </Chip>
+                    ))}
+                  </View>
+                </View>
+
+                <TextInput
+                  label="Observações (opcional)"
+                  value={observacoes}
+                  onChangeText={setObservacoes}
+                  mode="outlined"
+                  multiline
+                  numberOfLines={2}
+                  placeholder="Detalhes adicionais..."
+                />
+              </View>
+            )}
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setNovoPedidoVisible(false)}>Cancelar</Button>
-            <Button onPress={handleSalvarPedido} mode="contained">Enviar Pedido</Button>
+            {produtoSelecionado && (
+              <Button onPress={handleSalvarPedido} mode="contained">Enviar Pedido</Button>
+            )}
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -376,6 +475,70 @@ const styles = StyleSheet.create({
   },
   statusText: {
     color: '#15803d',
+  },
+  sectionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 12,
+  },
+  searchBar: {
+    marginBottom: 12,
+  },
+  produtosListContainer: {
+    maxHeight: 300,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    backgroundColor: '#fafafa',
+  },
+  produtosList: {
+    maxHeight: 300,
+  },
+  produtoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    backgroundColor: 'white',
+  },
+  produtoNome: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1f2937',
+  },
+  produtoCodigo: {
+    fontSize: 11,
+    color: '#9ca3af',
+    marginTop: 2,
+  },
+  loadingProdutos: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    justifyContent: 'center',
+  },
+  emptyProdutos: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#9ca3af',
+  },
+  produtoSelecionadoContainer: {
+    marginBottom: 16,
+  },
+  produtoSelecionadoLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginBottom: 8,
+  },
+  produtoSelecionadoChip: {
+    backgroundColor: '#eff6ff',
+    alignSelf: 'flex-start',
   },
 })
 

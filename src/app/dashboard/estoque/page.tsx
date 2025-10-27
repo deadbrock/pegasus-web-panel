@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -30,7 +30,6 @@ import { StockChart } from '@/components/estoque/stock-chart'
 import { StockLevelChart } from '@/components/estoque/stock-level-chart'
 import { ImportExportButtons } from '@/components/estoque/import-export'
 import { requestOpenImportDialog } from '@/components/estoque/import-export'
-import { stockData } from '@/components/estoque/stock-data'
 import { 
   exportRelatorioEstoqueAtual,
   exportRelatorioProdutosCriticos,
@@ -39,11 +38,42 @@ import {
   exportRelatorioMovimentacoesTemplate,
 } from '@/components/estoque/reports'
 import { toast } from '@/hooks/use-toast'
+import { fetchProdutos, fetchProdutosStats } from '@/lib/services/produtos-service'
 
 export default function EstoquePage() {
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false)
   const [isStockUpdateDialogOpen, setIsStockUpdateDialogOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState(null)
+  
+  // Dados reais do Supabase
+  const [produtos, setProdutos] = useState<any[]>([])
+  const [stats, setStats] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadDados()
+  }, [])
+
+  const loadDados = async () => {
+    setLoading(true)
+    try {
+      const [produtosData, statsData] = await Promise.all([
+        fetchProdutos('', 'todos'),
+        fetchProdutosStats()
+      ])
+      setProdutos(produtosData)
+      setStats(statsData)
+    } catch (error) {
+      console.error('Erro ao carregar dados do estoque:', error)
+      toast({
+        title: 'Erro ao carregar dados',
+        description: 'Não foi possível carregar o estoque. Tente novamente.',
+        variant: 'destructive'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleNewProduct = () => {
     setSelectedProduct(null)
@@ -62,26 +92,23 @@ export default function EstoquePage() {
 
   // Ações rápidas
   const handleQuickVerifyStock = () => {
-    const totalProdutos = stockData.length
-    const semEstoque = stockData.filter(p => p.quantidade === 0).length
-    const abaixoMinimo = stockData.filter(p => p.quantidade > 0 && p.quantidade <= p.estoqueMinimo).length
-    const ok = totalProdutos - semEstoque - abaixoMinimo
+    if (!stats) return
     toast({
       title: 'Verificação de estoque concluída',
-      description: `Total: ${totalProdutos} | OK: ${ok} | Baixo: ${abaixoMinimo} | Sem estoque: ${semEstoque}`,
+      description: `Total: ${stats.total} | OK: ${stats.total - stats.estoque_baixo - stats.estoque_critico} | Baixo: ${stats.estoque_baixo} | Crítico: ${stats.estoque_critico}`,
     })
   }
 
   const handleQuickVerifyMinimums = () => {
-    const criticos = stockData.filter(p => p.quantidade <= p.estoqueMinimo).length
+    if (!stats) return
     toast({
       title: 'Verificação de mínimos',
-      description: `${criticos} produto(s) abaixo do mínimo`,
+      description: `${stats.estoque_baixo + stats.estoque_critico} produto(s) abaixo do mínimo`,
     })
   }
 
-  const handleQuickRefreshStock = () => {
-    // Futuro: integrar com Supabase e refetch
+  const handleQuickRefreshStock = async () => {
+    await loadDados()
     toast({ title: 'Estoque atualizado', description: 'Sincronização concluída.' })
   }
 
@@ -112,35 +139,35 @@ export default function EstoquePage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
           title="Total de Produtos"
-          value="1,247"
-          change="+5.2%"
+          value={loading ? '...' : stats?.total || '0'}
+          change={loading ? '' : '+5.2%'}
           changeType="positive"
           icon={Package}
           description="Cadastrados"
         />
         <MetricCard
           title="Alertas de Estoque"
-          value="23"
-          change="+3"
+          value={loading ? '...' : (stats?.estoque_baixo || 0) + (stats?.estoque_critico || 0)}
+          change={loading ? '' : `${stats?.estoque_critico || 0} críticos`}
           changeType="negative"
           icon={AlertTriangle}
           description="Abaixo do mínimo"
         />
         <MetricCard
           title="Valor do Estoque"
-          value="R$ 2.456.780"
-          change="+8.1%"
+          value={loading ? '...' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats?.valor_total_estoque || 0)}
+          change={loading ? '' : '+8.1%'}
           changeType="positive"
           icon={BarChart3}
           description="Total em estoque"
         />
         <MetricCard
-          title="Movimentações Hoje"
-          value="156"
-          change="+12.3%"
-          changeType="positive"
-          icon={RefreshCw}
-          description="Entradas e saídas"
+          title="Produtos Críticos"
+          value={loading ? '...' : stats?.estoque_critico || '0'}
+          change={loading ? '' : 'Atenção'}
+          changeType="negative"
+          icon={TrendingDown}
+          description="Sem estoque"
         />
       </div>
 
@@ -202,6 +229,8 @@ export default function EstoquePage() {
               </CardHeader>
               <CardContent>
                 <StockTable 
+                  produtos={produtos}
+                  loading={loading}
                   onEdit={handleEditProduct}
                   onUpdateStock={handleUpdateStock}
                 />

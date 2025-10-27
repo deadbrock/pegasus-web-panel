@@ -4,14 +4,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Edit, RefreshCw, Eye, MapPin, Package } from 'lucide-react'
-import { stockData } from './stock-data'
 
 interface StockTableProps {
+  produtos?: any[]
+  loading?: boolean
   onEdit: (product: any) => void
   onUpdateStock: (product: any) => void
 }
 
-export function StockTable({ onEdit, onUpdateStock }: StockTableProps) {
+export function StockTable({ produtos = [], loading = false, onEdit, onUpdateStock }: StockTableProps) {
   const getStockStatusBadge = (quantidade: number, estoqueMinimo: number) => {
     if (quantidade === 0) {
       return <Badge variant="destructive">Sem Estoque</Badge>
@@ -57,37 +58,49 @@ export function StockTable({ onEdit, onUpdateStock }: StockTableProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {stockData.map((product) => (
+          {loading ? (
+            <TableRow>
+              <TableCell colSpan={10} className="text-center py-8 text-gray-500">
+                Carregando produtos...
+              </TableCell>
+            </TableRow>
+          ) : produtos.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={10} className="text-center py-8 text-gray-500">
+                Nenhum produto cadastrado
+              </TableCell>
+            </TableRow>
+          ) : produtos.map((product) => (
             <TableRow key={product.id}>
-              <TableCell className="font-mono text-sm">{product.codigo}</TableCell>
+              <TableCell className="font-mono text-sm">{product.codigo || 'N/A'}</TableCell>
               <TableCell>
                 <div>
                   <p className="font-medium">{product.nome}</p>
-                  <p className="text-sm text-gray-500">{product.fornecedor}</p>
+                  <p className="text-sm text-gray-500">{product.fornecedor || '-'}</p>
                 </div>
               </TableCell>
-              <TableCell>{product.categoria}</TableCell>
+              <TableCell>{product.categoria || 'Geral'}</TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
                   <Package className="w-4 h-4 text-gray-500" />
-                  <span className="font-medium">{product.quantidade}</span>
-                  <span className="text-sm text-gray-500">{product.unidade}</span>
+                  <span className="font-medium">{product.estoque_atual || 0}</span>
+                  <span className="text-sm text-gray-500">{product.unidade || 'UN'}</span>
                 </div>
               </TableCell>
-              <TableCell className="text-gray-600">{product.estoqueMinimo}</TableCell>
+              <TableCell className="text-gray-600">{product.estoque_minimo || 0}</TableCell>
               <TableCell>
-                {getStockStatusBadge(product.quantidade, product.estoqueMinimo)}
+                {getStockStatusBadge(product.estoque_atual || 0, product.estoque_minimo || 0)}
               </TableCell>
               <TableCell className="font-medium">
-                {formatCurrency(product.valorUnitario)}
+                {formatCurrency(product.preco_unitario || 0)}
               </TableCell>
               <TableCell className="font-medium">
-                {formatCurrency(calculateTotalValue(product.quantidade, product.valorUnitario))}
+                {formatCurrency(calculateTotalValue(product.estoque_atual || 0, product.preco_unitario || 0))}
               </TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-gray-500" />
-                  <span className="text-sm">{product.localizacao}</span>
+                  <span className="text-sm">{product.localizacao || 'N/A'}</span>
                 </div>
               </TableCell>
               <TableCell className="text-right">
