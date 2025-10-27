@@ -187,9 +187,9 @@ const moduleStatus = [
 export default function DashboardPage() {
   const router = useRouter()
   const [kpis, setKpis] = useState<DashboardKPIs | null>(null)
-  const [selectedPeriod, setSelectedPeriod] = useState('Maio 2024')
+  const [selectedPeriod, setSelectedPeriod] = useState('Maio 2025')
   const [selectedMonth, setSelectedMonth] = useState('Maio')
-  const [selectedYear, setSelectedYear] = useState('2024')
+  const [selectedYear, setSelectedYear] = useState('2025')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   
   useEffect(() => { fetchDashboardKPIs().then(setKpis) }, [])
@@ -199,7 +199,8 @@ export default function DashboardPage() {
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
   ]
 
-  const years = ['2022', '2023', '2024', '2025']
+  // Gerar anos de 2025 a 2050
+  const years = Array.from({ length: 26 }, (_, i) => (2025 + i).toString())
 
   const handleApplyPeriod = () => {
     setSelectedPeriod(`${selectedMonth} ${selectedYear}`)
@@ -214,20 +215,20 @@ export default function DashboardPage() {
     switch(period) {
       case 'current':
         setSelectedMonth(currentMonth)
-        setSelectedYear(currentYear)
-        setSelectedPeriod(`${currentMonth} ${currentYear}`)
+        setSelectedYear('2025')
+        setSelectedPeriod(`${currentMonth} 2025`)
         break
       case 'last':
         const lastMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1
-        const lastYear = now.getMonth() === 0 ? (now.getFullYear() - 1).toString() : currentYear
+        const lastYear = now.getMonth() === 0 ? '2025' : '2025'
         setSelectedMonth(months[lastMonth])
         setSelectedYear(lastYear)
         setSelectedPeriod(`${months[lastMonth]} ${lastYear}`)
         break
       case 'year':
         setSelectedMonth('Dezembro')
-        setSelectedYear(currentYear)
-        setSelectedPeriod(`Ano ${currentYear}`)
+        setSelectedYear('2025')
+        setSelectedPeriod(`Ano 2025`)
         break
     }
     setIsDialogOpen(false)
