@@ -226,15 +226,15 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" className="text-white border-white hover:bg-white hover:text-blue-600">
+            <Button variant="outline" className="bg-white text-black border-white hover:bg-gray-100 hover:text-blue-600">
               <Calendar className="w-4 h-4 mr-2" />
               Período
             </Button>
-            <Button variant="outline" className="text-white border-white hover:bg-white hover:text-blue-600">
+            <Button variant="outline" className="bg-white text-black border-white hover:bg-gray-100 hover:text-blue-600">
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button variant="outline" className="text-white border-white hover:bg-white hover:text-blue-600">
+            <Button variant="outline" className="bg-white text-black border-white hover:bg-gray-100 hover:text-blue-600">
               <Settings className="w-4 h-4 mr-2" />
               Configurar
             </Button>
