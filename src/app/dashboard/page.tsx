@@ -11,6 +11,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 import { 
   BarChart3,
   TrendingUp,
@@ -180,8 +188,50 @@ export default function DashboardPage() {
   const router = useRouter()
   const [kpis, setKpis] = useState<DashboardKPIs | null>(null)
   const [selectedPeriod, setSelectedPeriod] = useState('Maio 2024')
+  const [selectedMonth, setSelectedMonth] = useState('Maio')
+  const [selectedYear, setSelectedYear] = useState('2024')
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
   
   useEffect(() => { fetchDashboardKPIs().then(setKpis) }, [])
+
+  const months = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ]
+
+  const years = ['2022', '2023', '2024', '2025']
+
+  const handleApplyPeriod = () => {
+    setSelectedPeriod(`${selectedMonth} ${selectedYear}`)
+    setIsDialogOpen(false)
+  }
+
+  const handleQuickPeriod = (period: string) => {
+    const now = new Date()
+    const currentMonth = months[now.getMonth()]
+    const currentYear = now.getFullYear().toString()
+    
+    switch(period) {
+      case 'current':
+        setSelectedMonth(currentMonth)
+        setSelectedYear(currentYear)
+        setSelectedPeriod(`${currentMonth} ${currentYear}`)
+        break
+      case 'last':
+        const lastMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1
+        const lastYear = now.getMonth() === 0 ? (now.getFullYear() - 1).toString() : currentYear
+        setSelectedMonth(months[lastMonth])
+        setSelectedYear(lastYear)
+        setSelectedPeriod(`${months[lastMonth]} ${lastYear}`)
+        break
+      case 'year':
+        setSelectedMonth('Dezembro')
+        setSelectedYear(currentYear)
+        setSelectedPeriod(`Ano ${currentYear}`)
+        break
+    }
+    setIsDialogOpen(false)
+  }
   
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { 
@@ -261,32 +311,121 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="flex gap-3">
-            <Dialog>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="bg-white text-black border-white hover:bg-gray-100 hover:text-blue-600">
                   <Calendar className="w-4 h-4 mr-2" />
                   Período
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
+              <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
                   <DialogTitle>Selecionar Período</DialogTitle>
                   <DialogDescription>
-                    Escolha o período para visualizar os dados do dashboard
+                    Escolha o mês e ano para visualizar os dados do dashboard
                   </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-3 py-4">
-                  {['Janeiro 2024', 'Fevereiro 2024', 'Março 2024', 'Abril 2024', 'Maio 2024', 'Junho 2024'].map((period) => (
+                
+                <div className="space-y-6 py-4">
+                  {/* Atalhos Rápidos */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Atalhos Rápidos</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleQuickPeriod('current')}
+                        className="w-full"
+                      >
+                        Mês Atual
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleQuickPeriod('last')}
+                        className="w-full"
+                      >
+                        Mês Passado
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleQuickPeriod('year')}
+                        className="w-full"
+                      >
+                        Ano Atual
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Seletores Personalizados */}
+                  <div className="space-y-4">
+                    <Label className="text-sm font-medium">Período Personalizado</Label>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Seletor de Mês */}
+                      <div className="space-y-2">
+                        <Label htmlFor="month" className="text-xs text-gray-600">Mês</Label>
+                        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                          <SelectTrigger id="month">
+                            <SelectValue placeholder="Selecione o mês" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {months.map((month) => (
+                              <SelectItem key={month} value={month}>
+                                {month}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Seletor de Ano */}
+                      <div className="space-y-2">
+                        <Label htmlFor="year" className="text-xs text-gray-600">Ano</Label>
+                        <Select value={selectedYear} onValueChange={setSelectedYear}>
+                          <SelectTrigger id="year">
+                            <SelectValue placeholder="Selecione o ano" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {years.map((year) => (
+                              <SelectItem key={year} value={year}>
+                                {year}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Preview do Período Selecionado */}
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-blue-600" />
+                        <div>
+                          <p className="text-xs text-blue-600 font-medium">Período Selecionado:</p>
+                          <p className="text-sm font-bold text-blue-900">{selectedMonth} de {selectedYear}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Botões de Ação */}
+                  <div className="flex gap-2 pt-2">
                     <Button
-                      key={period}
-                      variant={selectedPeriod === period ? 'default' : 'outline'}
-                      className="w-full justify-start"
-                      onClick={() => setSelectedPeriod(period)}
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => setIsDialogOpen(false)}
                     >
-                      <Calendar className="w-4 h-4 mr-2" />
-                      {period}
+                      Cancelar
                     </Button>
-                  ))}
+                    <Button
+                      className="flex-1"
+                      onClick={handleApplyPeriod}
+                    >
+                      Aplicar Período
+                    </Button>
+                  </div>
                 </div>
               </DialogContent>
             </Dialog>
