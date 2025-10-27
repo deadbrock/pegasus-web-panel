@@ -1,15 +1,13 @@
 import { useState } from 'react'
-import { View, StyleSheet, Image, Alert, KeyboardAvoidingView, Platform } from 'react-native'
-import { TextInput, Button, Text, useTheme } from 'react-native-paper'
+import { View, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native'
+import { TextInput, Button, Text } from 'react-native-paper'
 import { router } from 'expo-router'
-import { supabase } from '../../services/supabase'
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const theme = useTheme()
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -18,34 +16,17 @@ export default function LoginScreen() {
     }
 
     setLoading(true)
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      })
-
-      if (error) {
-        throw error
-      }
-
-      if (data.user) {
-        // Verificar se o usuário tem permissão (supervisor ou admin)
-        const role = data.user.user_metadata?.role || 'user'
-        
-        if (role !== 'supervisor' && role !== 'admin') {
-          await supabase.auth.signOut()
-          Alert.alert('Acesso Negado', 'Este app é exclusivo para supervisores')
-          return
-        }
-
-        // Redirecionar para o dashboard
+    
+    // LOGIN FAKE PARA TESTE
+    setTimeout(() => {
+      if (email === 'teste@teste.com' && password === '123456') {
+        Alert.alert('Sucesso!', 'Login realizado')
         router.replace('/(tabs)/dashboard')
+      } else {
+        Alert.alert('Erro', 'Use: teste@teste.com / 123456')
       }
-    } catch (error: any) {
-      Alert.alert('Erro no Login', error.message || 'Credenciais inválidas')
-    } finally {
       setLoading(false)
-    }
+    }, 1000)
   }
 
   return (

@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native'
 import { Card, Title, Paragraph, Text, Chip, ActivityIndicator } from 'react-native-paper'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import { supabase, getCurrentUser } from '../../services/supabase'
 
 type Stats = {
   pedidos_ativos: number
@@ -14,83 +13,22 @@ type Stats = {
 export default function DashboardScreen() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [userName, setUserName] = useState('')
+  const [userName, setUserName] = useState('Supervisor')
   const [stats, setStats] = useState<Stats>({
-    pedidos_ativos: 0,
-    pedidos_entregues_hoje: 0,
-    veiculos_em_rota: 0,
-    alertas_criticos: 0,
+    pedidos_ativos: 12,
+    pedidos_entregues_hoje: 8,
+    veiculos_em_rota: 5,
+    alertas_criticos: 3,
   })
 
   useEffect(() => {
-    loadData()
+    // Simular carregamento
+    setTimeout(() => setLoading(false), 500)
   }, [])
-
-  const loadData = async () => {
-    try {
-      // Buscar nome do usuário
-      const user = await getCurrentUser()
-      if (user) {
-        setUserName(user.user_metadata?.name || user.email?.split('@')[0] || 'Supervisor')
-      }
-
-      // Buscar estatísticas
-      await loadStats()
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error)
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
-    }
-  }
-
-  const loadStats = async () => {
-    try {
-      // Pedidos ativos (Pendente ou Em Trânsito)
-      const { count: pedidosAtivos } = await supabase
-        .from('pedidos')
-        .select('*', { count: 'exact', head: true })
-        .in('status', ['Pendente', 'Em Trânsito'])
-
-      // Pedidos entregues hoje
-      const hoje = new Date().toISOString().split('T')[0]
-      const { count: pedidosEntregues } = await supabase
-        .from('pedidos')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'Entregue')
-        .gte('data_entrega', hoje)
-
-      // Veículos em rota (status Ativo)
-      const { count: veiculosRota } = await supabase
-        .from('veiculos')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'Ativo')
-
-      // Alertas críticos (estoque + documentos)
-      const { count: estoquesCriticos } = await supabase
-        .from('produtos')
-        .select('*', { count: 'exact', head: true })
-        .lte('estoque_atual', 0)
-
-      const { count: documentosVencidos } = await supabase
-        .from('documentos')
-        .select('*', { count: 'exact', head: true })
-        .lt('data_validade', new Date().toISOString())
-
-      setStats({
-        pedidos_ativos: pedidosAtivos || 0,
-        pedidos_entregues_hoje: pedidosEntregues || 0,
-        veiculos_em_rota: veiculosRota || 0,
-        alertas_criticos: (estoquesCriticos || 0) + (documentosVencidos || 0),
-      })
-    } catch (error) {
-      console.error('Erro ao buscar estatísticas:', error)
-    }
-  }
 
   const onRefresh = () => {
     setRefreshing(true)
-    loadData()
+    setTimeout(() => setRefreshing(false), 1000)
   }
 
   if (loading) {
