@@ -1,149 +1,315 @@
 import { supabase } from '../supabase'
 
 export type Documento = {
-  id: string
-  tipo: string
-  numero: string
-  descricao?: string
-  entidade_tipo: 'Veículo' | 'Motorista' | 'Empresa' | 'Contrato'
-  entidade_id?: string
-  data_emissao: string
+  id?: string
+  nome: string
+  tipo: 'CNH' | 'CRLV' | 'Seguro' | 'Licenciamento' | 'Contrato' | 'Certidão' | 'Alvará' | 'Outros'
+  numero_documento?: string
+  entidade_relacionada?: string // Pode ser veiculo_id, motorista_id, etc.
+  tipo_entidade?: 'Veículo' | 'Motorista' | 'Empresa' | 'Contrato' | 'Outros'
+  data_emissao?: string
   data_validade?: string
-  status: 'Válido' | 'Vencido' | 'Pendente' | 'Em Renovação'
+  status: 'Válido' | 'Vencido' | 'A Vencer' | 'Pendente' | 'Cancelado'
+  orgao_emissor?: string
   arquivo_url?: string
+  alerta_renovacao_dias?: number
   observacoes?: string
-  created_at: string
-  updated_at: string
+  created_at?: string
+  updated_at?: string
 }
 
-export type CreateDocumentoInput = Omit<Documento, 'id' | 'created_at' | 'updated_at'>
+export type DocumentoStats = {
+  total: number
+  validos: number
+  vencidos: number
+  a_vencer: number
+  pendentes: number
+  por_tipo: Record<string, number>
+  vencendo_30_dias: number
+  vencendo_60_dias: number
+}
 
+/**
+ * Busca todos os documentos
+ */
 export async function fetchDocumentos(): Promise<Documento[]> {
-  try {
-    const { data, error } = await supabase
-      .from('documentos')
-      .select('*')
-      .order('data_validade', { ascending: true })
+  const { data, error } = await supabase
+    .from('documentos')
+    .select('*')
+    .order('data_validade', { ascending: true })
 
-    if (error) throw error
-    return data || []
-  } catch (error) {
+  if (error) {
     console.error('Erro ao buscar documentos:', error)
-    return []
+    throw error
   }
+  return data || []
 }
 
+/**
+ * Busca um documento por ID
+ */
 export async function fetchDocumentoById(id: string): Promise<Documento | null> {
-  try {
-    const { data, error } = await supabase
-      .from('documentos')
-      .select('*')
-      .eq('id', id)
-      .single()
+  const { data, error } = await supabase
+    .from('documentos')
+    .select('*')
+    .eq('id', id)
+    .single()
 
-    if (error) throw error
-    return data
-  } catch (error) {
+  if (error) {
     console.error('Erro ao buscar documento:', error)
-    return null
+    throw error
   }
+  return data
 }
 
-export async function createDocumento(input: Partial<CreateDocumentoInput>): Promise<Documento | null> {
-  try {
-    const { data, error } = await supabase
-      .from('documentos')
-      .insert([input])
-      .select()
-      .single()
+/**
+ * Cria um novo documento
+ */
+export async function createDocumento(documento: Omit<Documento, 'id' | 'created_at' | 'updated_at'>): Promise<Documento | null> {
+  const { data, error } = await supabase
+    .from('documentos')
+    .insert(documento)
+    .select()
+    .single()
 
-    if (error) throw error
-    return data
-  } catch (error) {
+  if (error) {
     console.error('Erro ao criar documento:', error)
-    return null
+    throw error
   }
+  return data
 }
 
+/**
+ * Atualiza um documento existente
+ */
 export async function updateDocumento(id: string, updates: Partial<Documento>): Promise<Documento | null> {
-  try {
-    const { data, error } = await supabase
-      .from('documentos')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single()
+  const { data, error } = await supabase
+    .from('documentos')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single()
 
-    if (error) throw error
-    return data
-  } catch (error) {
+  if (error) {
     console.error('Erro ao atualizar documento:', error)
-    return null
+    throw error
   }
+  return data
 }
 
+/**
+ * Deleta um documento
+ */
 export async function deleteDocumento(id: string): Promise<boolean> {
-  try {
-    const { error } = await supabase
-      .from('documentos')
-      .delete()
-      .eq('id', id)
+  const { error } = await supabase
+    .from('documentos')
+    .delete()
+    .eq('id', id)
 
-    if (error) throw error
-    return true
-  } catch (error) {
+  if (error) {
     console.error('Erro ao deletar documento:', error)
-    return false
+    throw error
   }
+  return true
 }
 
-export async function fetchDocumentosStats() {
-  try {
-    const documentos = await fetchDocumentos()
-    
-    const total = documentos.length
-    const validos = documentos.filter(d => d.status === 'Válido').length
-    const vencidos = documentos.filter(d => d.status === 'Vencido').length
-    const pendentes = documentos.filter(d => d.status === 'Pendente').length
-    const em_renovacao = documentos.filter(d => d.status === 'Em Renovação').length
-    
-    // Documentos vencendo em 30 dias
-    const hoje = new Date()
-    const proximos30dias = new Date(hoje.getTime() + 30 * 24 * 60 * 60 * 1000)
-    const vencendo_30_dias = documentos.filter(d => {
-      if (!d.data_validade) return false
-      const dataValidade = new Date(d.data_validade)
-      return dataValidade >= hoje && dataValidade <= proximos30dias && d.status === 'Válido'
-    }).length
+/**
+ * Busca estatísticas de documentos
+ */
+export async function fetchDocumentosStats(): Promise<DocumentoStats> {
+  const { data, error } = await supabase
+    .from('documentos')
+    .select('*')
 
-    // Por entidade
-    const por_entidade = {
-      veiculo: documentos.filter(d => d.entidade_tipo === 'Veículo').length,
-      motorista: documentos.filter(d => d.entidade_tipo === 'Motorista').length,
-      empresa: documentos.filter(d => d.entidade_tipo === 'Empresa').length,
-      contrato: documentos.filter(d => d.entidade_tipo === 'Contrato').length
-    }
-
-    return {
-      total,
-      validos,
-      vencidos,
-      pendentes,
-      em_renovacao,
-      vencendo_30_dias,
-      por_entidade
-    }
-  } catch (error) {
+  if (error) {
     console.error('Erro ao buscar estatísticas:', error)
-    return {
-      total: 0,
-      validos: 0,
-      vencidos: 0,
-      pendentes: 0,
-      em_renovacao: 0,
-      vencendo_30_dias: 0,
-      por_entidade: { veiculo: 0, motorista: 0, empresa: 0, contrato: 0 }
-    }
+    throw error
+  }
+
+  const hoje = new Date()
+  const daquiA30Dias = new Date()
+  daquiA30Dias.setDate(hoje.getDate() + 30)
+  const daquiA60Dias = new Date()
+  daquiA60Dias.setDate(hoje.getDate() + 60)
+
+  const total = data?.length || 0
+  const validos = data?.filter(d => d.status === 'Válido').length || 0
+  const vencidos = data?.filter(d => d.status === 'Vencido').length || 0
+  const a_vencer = data?.filter(d => d.status === 'A Vencer').length || 0
+  const pendentes = data?.filter(d => d.status === 'Pendente').length || 0
+
+  // Agrupar por tipo
+  const por_tipo: Record<string, number> = {}
+  data?.forEach(d => {
+    por_tipo[d.tipo] = (por_tipo[d.tipo] || 0) + 1
+  })
+
+  const vencendo_30_dias = data?.filter(d => {
+    if (!d.data_validade || d.status === 'Vencido' || d.status === 'Cancelado') return false
+    const dataValidade = new Date(d.data_validade)
+    return dataValidade >= hoje && dataValidade <= daquiA30Dias
+  }).length || 0
+
+  const vencendo_60_dias = data?.filter(d => {
+    if (!d.data_validade || d.status === 'Vencido' || d.status === 'Cancelado') return false
+    const dataValidade = new Date(d.data_validade)
+    return dataValidade > daquiA30Dias && dataValidade <= daquiA60Dias
+  }).length || 0
+
+  return {
+    total,
+    validos,
+    vencidos,
+    a_vencer,
+    pendentes,
+    por_tipo,
+    vencendo_30_dias,
+    vencendo_60_dias
   }
 }
 
+/**
+ * Busca documentos por tipo
+ */
+export async function fetchDocumentosByTipo(tipo: Documento['tipo']): Promise<Documento[]> {
+  const { data, error } = await supabase
+    .from('documentos')
+    .select('*')
+    .eq('tipo', tipo)
+    .order('data_validade', { ascending: true })
+
+  if (error) {
+    console.error('Erro ao buscar documentos por tipo:', error)
+    throw error
+  }
+  return data || []
+}
+
+/**
+ * Busca documentos por status
+ */
+export async function fetchDocumentosByStatus(status: Documento['status']): Promise<Documento[]> {
+  const { data, error } = await supabase
+    .from('documentos')
+    .select('*')
+    .eq('status', status)
+    .order('data_validade', { ascending: true })
+
+  if (error) {
+    console.error('Erro ao buscar documentos por status:', error)
+    throw error
+  }
+  return data || []
+}
+
+/**
+ * Busca documentos vencendo em X dias
+ */
+export async function fetchDocumentosVencendo(dias: number = 30): Promise<Documento[]> {
+  const hoje = new Date()
+  const dataLimite = new Date()
+  dataLimite.setDate(hoje.getDate() + dias)
+
+  const { data, error } = await supabase
+    .from('documentos')
+    .select('*')
+    .in('status', ['Válido', 'A Vencer'])
+    .gte('data_validade', hoje.toISOString().split('T')[0])
+    .lte('data_validade', dataLimite.toISOString().split('T')[0])
+    .order('data_validade', { ascending: true })
+
+  if (error) {
+    console.error('Erro ao buscar documentos vencendo:', error)
+    throw error
+  }
+  return data || []
+}
+
+/**
+ * Busca documentos vencidos
+ */
+export async function fetchDocumentosVencidos(): Promise<Documento[]> {
+  const hoje = new Date().toISOString().split('T')[0]
+
+  const { data, error } = await supabase
+    .from('documentos')
+    .select('*')
+    .lt('data_validade', hoje)
+    .in('status', ['Válido', 'A Vencer'])
+    .order('data_validade', { ascending: false })
+
+  if (error) {
+    console.error('Erro ao buscar documentos vencidos:', error)
+    throw error
+  }
+  return data || []
+}
+
+/**
+ * Renova um documento
+ */
+export async function renovarDocumento(id: string, novaDataValidade: string, novoArquivo?: string): Promise<Documento | null> {
+  const updates: Partial<Documento> = {
+    data_validade: novaDataValidade,
+    data_emissao: new Date().toISOString().split('T')[0],
+    status: 'Válido'
+  }
+  
+  if (novoArquivo) {
+    updates.arquivo_url = novoArquivo
+  }
+
+  return updateDocumento(id, updates)
+}
+
+/**
+ * Busca documentos por entidade relacionada
+ */
+export async function fetchDocumentosByEntidade(entidadeId: string, tipoEntidade?: Documento['tipo_entidade']): Promise<Documento[]> {
+  let query = supabase
+    .from('documentos')
+    .select('*')
+    .eq('entidade_relacionada', entidadeId)
+
+  if (tipoEntidade) {
+    query = query.eq('tipo_entidade', tipoEntidade)
+  }
+
+  const { data, error } = await query.order('data_validade', { ascending: true })
+
+  if (error) {
+    console.error('Erro ao buscar documentos por entidade:', error)
+    throw error
+  }
+  return data || []
+}
+
+/**
+ * Atualiza status automaticamente baseado na data de validade
+ */
+export async function atualizarStatusDocumentos(): Promise<void> {
+  const hoje = new Date()
+  const daquiA30Dias = new Date()
+  daquiA30Dias.setDate(hoje.getDate() + 30)
+
+  const documentos = await fetchDocumentos()
+
+  for (const doc of documentos) {
+    if (!doc.data_validade || !doc.id) continue
+
+    const dataValidade = new Date(doc.data_validade)
+    let novoStatus: Documento['status'] = doc.status
+
+    if (dataValidade < hoje) {
+      novoStatus = 'Vencido'
+    } else if (dataValidade <= daquiA30Dias) {
+      novoStatus = 'A Vencer'
+    } else {
+      novoStatus = 'Válido'
+    }
+
+    if (novoStatus !== doc.status) {
+      await updateDocumento(doc.id, { status: novoStatus })
+    }
+  }
+}
