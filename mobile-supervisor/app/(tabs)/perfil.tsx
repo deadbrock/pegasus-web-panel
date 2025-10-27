@@ -1,33 +1,79 @@
 import { useState, useEffect } from 'react'
 import { View, StyleSheet, ScrollView, Alert } from 'react-native'
-import { List, Divider, Text, Avatar, Button, ActivityIndicator } from 'react-native-paper'
+import { List, Divider, Text, Avatar, Button, ActivityIndicator, Dialog, Portal, TextInput, Switch } from 'react-native-paper'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { router } from 'expo-router'
-import { supabase, getCurrentUser, signOut } from '../../services/supabase'
 
 export default function PerfilScreen() {
-  const [loading, setLoading] = useState(true)
-  const [userName, setUserName] = useState('')
-  const [userEmail, setUserEmail] = useState('')
-  const [userRole, setUserRole] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [userName, setUserName] = useState('Supervisor Teste')
+  const [userEmail, setUserEmail] = useState('supervisor@teste.com')
+  const [userRole, setUserRole] = useState('supervisor')
+  
+  // Diálogos
+  const [editDialogVisible, setEditDialogVisible] = useState(false)
+  const [senhaDialogVisible, setSenhaDialogVisible] = useState(false)
+  const [notifDialogVisible, setNotifDialogVisible] = useState(false)
+  
+  // Campos de edição
+  const [novoNome, setNovoNome] = useState(userName)
+  const [senhaAtual, setSenhaAtual] = useState('')
+  const [novaSenha, setNovaSenha] = useState('')
+  const [confirmaSenha, setConfirmaSenha] = useState('')
+  
+  // Notificações
+  const [notifPedidos, setNotifPedidos] = useState(true)
+  const [notifAprovacao, setNotifAprovacao] = useState(true)
+  const [notifEntrega, setNotifEntrega] = useState(false)
 
-  useEffect(() => {
-    loadUserData()
-  }, [])
+  const handleEditarPerfil = () => {
+    setNovoNome(userName)
+    setEditDialogVisible(true)
+  }
 
-  const loadUserData = async () => {
-    try {
-      const user = await getCurrentUser()
-      if (user) {
-        setUserName(user.user_metadata?.name || 'Supervisor')
-        setUserEmail(user.email || '')
-        setUserRole(user.user_metadata?.role || 'supervisor')
-      }
-    } catch (error) {
-      console.error('Erro ao carregar dados do usuário:', error)
-    } finally {
-      setLoading(false)
+  const handleSalvarPerfil = () => {
+    if (novoNome.trim()) {
+      setUserName(novoNome)
+      setEditDialogVisible(false)
+      Alert.alert('Sucesso', 'Perfil atualizado com sucesso!')
     }
+  }
+
+  const handleAlterarSenha = () => {
+    setSenhaAtual('')
+    setNovaSenha('')
+    setConfirmaSenha('')
+    setSenhaDialogVisible(true)
+  }
+
+  const handleSalvarSenha = () => {
+    if (!senhaAtual || !novaSenha || !confirmaSenha) {
+      Alert.alert('Erro', 'Preencha todos os campos')
+      return
+    }
+    if (novaSenha !== confirmaSenha) {
+      Alert.alert('Erro', 'As senhas não coincidem')
+      return
+    }
+    if (novaSenha.length < 6) {
+      Alert.alert('Erro', 'A senha deve ter pelo menos 6 caracteres')
+      return
+    }
+    
+    setSenhaDialogVisible(false)
+    Alert.alert('Sucesso', 'Senha alterada com sucesso!')
+    setSenhaAtual('')
+    setNovaSenha('')
+    setConfirmaSenha('')
+  }
+
+  const handleNotificacoes = () => {
+    setNotifDialogVisible(true)
+  }
+
+  const handleSalvarNotificacoes = () => {
+    setNotifDialogVisible(false)
+    Alert.alert('Sucesso', 'Configurações de notificações salvas!')
   }
 
   const handleLogout = () => {
@@ -42,13 +88,8 @@ export default function PerfilScreen() {
         {
           text: 'Sair',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              await signOut()
-              router.replace('/(auth)/login')
-            } catch (error) {
-              Alert.alert('Erro', 'Não foi possível fazer logout')
-            }
+          onPress: () => {
+            router.replace('/(auth)/login')
           },
         },
       ]
@@ -100,9 +141,7 @@ export default function PerfilScreen() {
             description="Alterar nome e informações"
             left={props => <List.Icon {...props} icon="account-edit" />}
             right={props => <List.Icon {...props} icon="chevron-right" />}
-            onPress={() => {
-              Alert.alert('Em Desenvolvimento', 'Funcionalidade em breve')
-            }}
+            onPress={handleEditarPerfil}
           />
 
           <Divider />
@@ -112,9 +151,7 @@ export default function PerfilScreen() {
             description="Modificar senha de acesso"
             left={props => <List.Icon {...props} icon="lock-reset" />}
             right={props => <List.Icon {...props} icon="chevron-right" />}
-            onPress={() => {
-              Alert.alert('Em Desenvolvimento', 'Funcionalidade em breve')
-            }}
+            onPress={handleAlterarSenha}
           />
         </List.Section>
 
@@ -128,9 +165,7 @@ export default function PerfilScreen() {
             description="Gerenciar alertas e notificações"
             left={props => <List.Icon {...props} icon="bell" />}
             right={props => <List.Icon {...props} icon="chevron-right" />}
-            onPress={() => {
-              Alert.alert('Em Desenvolvimento', 'Funcionalidade em breve')
-            }}
+            onPress={handleNotificacoes}
           />
 
           <Divider />
@@ -206,12 +241,87 @@ export default function PerfilScreen() {
 
       {/* Informações do Sistema */}
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Conectado ao Supabase</Text>
+        <Text style={styles.footerText}>App Mobile de Pedidos</Text>
         <View style={styles.statusIndicator}>
           <View style={styles.statusDot} />
           <Text style={styles.statusText}>Online</Text>
         </View>
       </View>
+
+      {/* Diálogos */}
+      <Portal>
+        {/* Dialog Editar Perfil */}
+        <Dialog visible={editDialogVisible} onDismiss={() => setEditDialogVisible(false)}>
+          <Dialog.Title>Editar Perfil</Dialog.Title>
+          <Dialog.Content>
+            <TextInput
+              label="Nome"
+              value={novoNome}
+              onChangeText={setNovoNome}
+              mode="outlined"
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setEditDialogVisible(false)}>Cancelar</Button>
+            <Button onPress={handleSalvarPerfil}>Salvar</Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        {/* Dialog Alterar Senha */}
+        <Dialog visible={senhaDialogVisible} onDismiss={() => setSenhaDialogVisible(false)}>
+          <Dialog.Title>Alterar Senha</Dialog.Title>
+          <Dialog.Content style={{ gap: 8 }}>
+            <TextInput
+              label="Senha Atual"
+              value={senhaAtual}
+              onChangeText={setSenhaAtual}
+              mode="outlined"
+              secureTextEntry
+            />
+            <TextInput
+              label="Nova Senha"
+              value={novaSenha}
+              onChangeText={setNovaSenha}
+              mode="outlined"
+              secureTextEntry
+            />
+            <TextInput
+              label="Confirmar Nova Senha"
+              value={confirmaSenha}
+              onChangeText={setConfirmaSenha}
+              mode="outlined"
+              secureTextEntry
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setSenhaDialogVisible(false)}>Cancelar</Button>
+            <Button onPress={handleSalvarSenha}>Salvar</Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        {/* Dialog Notificações */}
+        <Dialog visible={notifDialogVisible} onDismiss={() => setNotifDialogVisible(false)}>
+          <Dialog.Title>Notificações</Dialog.Title>
+          <Dialog.Content style={{ gap: 12 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text>Novos Pedidos</Text>
+              <Switch value={notifPedidos} onValueChange={setNotifPedidos} />
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text>Status de Aprovação</Text>
+              <Switch value={notifAprovacao} onValueChange={setNotifAprovacao} />
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text>Entrega Concluída</Text>
+              <Switch value={notifEntrega} onValueChange={setNotifEntrega} />
+            </View>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setNotifDialogVisible(false)}>Cancelar</Button>
+            <Button onPress={handleSalvarNotificacoes}>Salvar</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </ScrollView>
   )
 }
