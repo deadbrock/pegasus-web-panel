@@ -29,6 +29,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { MetricCard } from '@/components/dashboard/metric-card'
 import { useEffect, useState } from 'react'
 import { fetchDashboardKPIs, type DashboardKPIs } from '@/lib/services/dashboard-service'
+import { useRouter } from 'next/navigation'
 
 // Estado com fallback; será preenchido por dados reais
 const dashboardDataDefault = {
@@ -168,6 +169,7 @@ const moduleStatus = [
 ]
 
 export default function DashboardPage() {
+  const router = useRouter()
   const [kpis, setKpis] = useState<DashboardKPIs | null>(null)
   useEffect(() => { fetchDashboardKPIs().then(setKpis) }, [])
   const formatCurrency = (value: number) => {
@@ -439,7 +441,12 @@ export default function DashboardPage() {
               ))}
             </div>
             <div className="mt-3 pt-3 border-t">
-              <Button variant="outline" size="sm" className="w-full">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full"
+                onClick={() => router.push('/dashboard/financeiro')}
+              >
                 <Eye className="w-4 h-4 mr-2" />
                 Ver Todas as Transações
               </Button>
@@ -485,7 +492,11 @@ export default function DashboardPage() {
             </div>
 
             <div className="pt-3 border-t">
-              <Button size="sm" className="w-full">
+              <Button 
+                size="sm" 
+                className="w-full"
+                onClick={() => router.push('/dashboard/financeiro')}
+              >
                 <FileText className="w-4 h-4 mr-2" />
                 Importar OFX
               </Button>
@@ -583,7 +594,11 @@ export default function DashboardPage() {
                     <p className="text-xs text-gray-600">12 produtos abaixo do mínimo</p>
                   </div>
                 </div>
-                <Button size="sm" variant="outline">
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => router.push('/dashboard/estoque')}
+                >
                   Ver
                 </Button>
               </div>
@@ -596,7 +611,11 @@ export default function DashboardPage() {
                     <p className="text-xs text-gray-600">8 documentos em 7 dias</p>
                   </div>
                 </div>
-                <Button size="sm" variant="outline">
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => router.push('/dashboard/documentos')}
+                >
                   Ver
                 </Button>
               </div>
@@ -609,7 +628,11 @@ export default function DashboardPage() {
                     <p className="text-xs text-gray-600">3 veículos atrasados</p>
                   </div>
                 </div>
-                <Button size="sm" variant="outline">
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => router.push('/dashboard/manutencao')}
+                >
                   Ver
                 </Button>
               </div>
@@ -622,7 +645,11 @@ export default function DashboardPage() {
                     <p className="text-xs text-gray-600">3 auditorias em atraso</p>
                   </div>
                 </div>
-                <Button size="sm" variant="outline">
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => router.push('/dashboard/auditoria')}
+                >
                   Ver
                 </Button>
               </div>
@@ -701,35 +728,67 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-20 flex flex-col items-center justify-center">
+            <Button 
+              variant="outline" 
+              className="h-20 flex flex-col items-center justify-center"
+              onClick={() => router.push('/dashboard/pedidos')}
+            >
               <Package className="w-6 h-6 mb-2" />
               <span className="text-sm">Novo Pedido</span>
             </Button>
-            <Button variant="outline" className="h-20 flex flex-col items-center justify-center">
+            <Button 
+              variant="outline" 
+              className="h-20 flex flex-col items-center justify-center"
+              onClick={() => router.push('/dashboard/rastreamento')}
+            >
               <MapPin className="w-6 h-6 mb-2" />
               <span className="text-sm">Rastreamento</span>
             </Button>
-            <Button variant="outline" className="h-20 flex flex-col items-center justify-center">
+            <Button 
+              variant="outline" 
+              className="h-20 flex flex-col items-center justify-center"
+              onClick={() => router.push('/dashboard/relatorios')}
+            >
               <FileText className="w-6 h-6 mb-2" />
               <span className="text-sm">Relatório Executivo</span>
             </Button>
-            <Button variant="outline" className="h-20 flex flex-col items-center justify-center">
+            <Button 
+              variant="outline" 
+              className="h-20 flex flex-col items-center justify-center"
+              onClick={() => router.push('/dashboard/motoristas')}
+            >
               <Users className="w-6 h-6 mb-2" />
               <span className="text-sm">Gestão Motoristas</span>
             </Button>
-            <Button variant="outline" className="h-20 flex flex-col items-center justify-center">
+            <Button 
+              variant="outline" 
+              className="h-20 flex flex-col items-center justify-center"
+              onClick={() => router.push('/dashboard/veiculos')}
+            >
               <Truck className="w-6 h-6 mb-2" />
               <span className="text-sm">Status Frota</span>
             </Button>
-            <Button variant="outline" className="h-20 flex flex-col items-center justify-center">
+            <Button 
+              variant="outline" 
+              className="h-20 flex flex-col items-center justify-center"
+              onClick={() => router.push('/dashboard/custos')}
+            >
               <DollarSign className="w-6 h-6 mb-2" />
               <span className="text-sm">Análise Custos</span>
             </Button>
-            <Button variant="outline" className="h-20 flex flex-col items-center justify-center">
+            <Button 
+              variant="outline" 
+              className="h-20 flex flex-col items-center justify-center"
+              onClick={() => router.push('/dashboard/gamificacao')}
+            >
               <Award className="w-6 h-6 mb-2" />
               <span className="text-sm">Gamificação</span>
             </Button>
-            <Button variant="outline" className="h-20 flex flex-col items-center justify-center">
+            <Button 
+              variant="outline" 
+              className="h-20 flex flex-col items-center justify-center"
+              onClick={() => router.push('/dashboard/configuracoes')}
+            >
               <Settings className="w-6 h-6 mb-2" />
               <span className="text-sm">Configurações</span>
             </Button>
