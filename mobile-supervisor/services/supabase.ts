@@ -3,8 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import Constants from 'expo-constants'
 import { Alert } from 'react-native'
 
-const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL || ''
-const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || ''
+const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || ''
+const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || ''
 
 // Logs para debug
 console.log('🔍 Verificando configuração do Supabase...')
