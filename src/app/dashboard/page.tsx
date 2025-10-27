@@ -472,19 +472,19 @@ export default function DashboardPage() {
         />
         <MetricCard
           title="Lucro Líquido"
-          value={formatCurrency(kpis?.lucro_liquido ?? dashboardDataDefault.kpis_principais.lucro_liquido)}
-          change={`${dashboardData.kpis_principais.margem_lucro}%`}
+          value={formatCurrency(kpis?.lucro_liquido ?? 0)}
+          change={kpis ? `Margem: ${kpis.margem_lucro.toFixed(1)}%` : 'Calculando...'}
           changeType="positive"
           icon={Target}
-          description="Margem"
+          description="Este mês"
         />
         <MetricCard
-          title="ROI"
-          value={`${dashboardDataDefault.kpis_principais.roi}%`}
-          change={`+${dashboardData.kpis_principais.variacao_roi}%`}
-          changeType="positive"
+          title="Margem de Lucro"
+          value={`${kpis?.margem_lucro?.toFixed(1) ?? '0.0'}%`}
+          change={kpis && kpis.margem_lucro > 20 ? 'Saudável' : 'Atenção'}
+          changeType={kpis && kpis.margem_lucro > 20 ? 'positive' : 'negative'}
           icon={TrendingUp}
-          description="Retorno"
+          description="Lucratividade"
         />
       </div>
 
@@ -717,35 +717,35 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
           title="Pedidos Ativos"
-          value={(kpis?.pedidos_ativos ?? dashboardDataDefault.operacional.pedidos_ativos).toString()}
-          change={`+${dashboardData.operacional.variacao_pedidos}%`}
-          changeType="positive"
+          value={(kpis?.pedidos_ativos ?? 0).toString()}
+          change={kpis ? `Total: ${kpis.pedidos_total}` : 'Carregando...'}
+          changeType="neutral"
           icon={Package}
           description="Em andamento"
         />
         <MetricCard
-          title="Taxa de Sucesso"
-          value={`${dashboardDataDefault.operacional.taxa_sucesso}%`}
-          change={`+${dashboardData.operacional.variacao_sucesso}%`}
+          title="Taxa de Entrega"
+          value={`${kpis?.taxa_entrega?.toFixed(1) ?? '0.0'}%`}
+          change={kpis ? `${kpis.entregas_no_prazo} entregas` : 'Carregando...'}
           changeType="positive"
           icon={CheckCircle}
-          description="Entregas"
+          description="No prazo"
         />
         <MetricCard
           title="Motoristas Ativos"
-          value={`${dashboardDataDefault.recursos.motoristas_ativos}/${dashboardDataDefault.recursos.total_motoristas}`}
-          change={`${dashboardData.recursos.performance_media}%`}
-          changeType="positive"
+          value={`${kpis?.motoristas_ativos ?? 0}/${kpis?.total_motoristas ?? 0}`}
+          change={kpis && kpis.cnh_vencendo > 0 ? `${kpis.cnh_vencendo} CNH vencendo` : 'Nenhum alerta'}
+          changeType={kpis && kpis.cnh_vencendo > 0 ? 'negative' : 'positive'}
           icon={Users}
-          description="Performance"
+          description="CNH válidas"
         />
         <MetricCard
-          title="Ocupação Frota"
-          value={`${dashboardDataDefault.recursos.ocupacao_frota}%`}
-          change={`+${dashboardData.recursos.variacao_ocupacao}%`}
-          changeType="positive"
+          title="Frota Ativa"
+          value={`${kpis?.veiculos_ativos ?? 0}/${kpis?.total_veiculos ?? 0}`}
+          change={kpis && kpis.veiculos_manutencao > 0 ? `${kpis.veiculos_manutencao} em manutenção` : 'Sem manutenções'}
+          changeType={kpis && kpis.veiculos_manutencao > 0 ? 'negative' : 'positive'}
           icon={Truck}
-          description="Utilização"
+          description="Veículos disponíveis"
         />
       </div>
 
@@ -794,73 +794,179 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Package className="w-5 h-5 text-red-600" />
-                  <div>
-                    <p className="font-medium text-sm">Estoque Crítico</p>
-                    <p className="text-xs text-gray-600">12 produtos abaixo do mínimo</p>
+              {kpis && kpis.estoque_critico > 0 && (
+                <div className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Package className="w-5 h-5 text-red-600" />
+                    <div>
+                      <p className="font-medium text-sm">Estoque Crítico</p>
+                      <p className="text-xs text-gray-600">{kpis.estoque_critico} produtos zerados</p>
+                    </div>
                   </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => router.push('/dashboard/estoque')}
+                  >
+                    Ver
+                  </Button>
                 </div>
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => router.push('/dashboard/estoque')}
-                >
-                  Ver
-                </Button>
-              </div>
+              )}
 
-              <div className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <FileText className="w-5 h-5 text-yellow-600" />
-                  <div>
-                    <p className="font-medium text-sm">Documentos Vencendo</p>
-                    <p className="text-xs text-gray-600">8 documentos em 7 dias</p>
+              {kpis && kpis.estoque_baixo > 0 && (
+                <div className="flex items-center justify-between p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Package className="w-5 h-5 text-orange-600" />
+                    <div>
+                      <p className="font-medium text-sm">Estoque Baixo</p>
+                      <p className="text-xs text-gray-600">{kpis.estoque_baixo} produtos abaixo do mínimo</p>
+                    </div>
                   </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => router.push('/dashboard/estoque')}
+                  >
+                    Ver
+                  </Button>
                 </div>
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => router.push('/dashboard/documentos')}
-                >
-                  Ver
-                </Button>
-              </div>
+              )}
 
-              <div className="flex items-center justify-between p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Truck className="w-5 h-5 text-orange-600" />
-                  <div>
-                    <p className="font-medium text-sm">Manutenção Vencida</p>
-                    <p className="text-xs text-gray-600">3 veículos atrasados</p>
+              {kpis && kpis.documentos_vencendo > 0 && (
+                <div className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <FileText className="w-5 h-5 text-yellow-600" />
+                    <div>
+                      <p className="font-medium text-sm">Documentos Vencendo</p>
+                      <p className="text-xs text-gray-600">{kpis.documentos_vencendo} documentos em 30 dias</p>
+                    </div>
                   </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => router.push('/dashboard/documentos')}
+                  >
+                    Ver
+                  </Button>
                 </div>
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => router.push('/dashboard/manutencao')}
-                >
-                  Ver
-                </Button>
-              </div>
+              )}
 
-              <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Shield className="w-5 h-5 text-blue-600" />
-                  <div>
-                    <p className="font-medium text-sm">Auditorias Pendentes</p>
-                    <p className="text-xs text-gray-600">3 auditorias em atraso</p>
+              {kpis && kpis.documentos_vencidos > 0 && (
+                <div className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <FileText className="w-5 h-5 text-red-600" />
+                    <div>
+                      <p className="font-medium text-sm">Documentos Vencidos</p>
+                      <p className="text-xs text-gray-600">{kpis.documentos_vencidos} documentos vencidos</p>
+                    </div>
                   </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => router.push('/dashboard/documentos')}
+                  >
+                    Ver
+                  </Button>
                 </div>
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => router.push('/dashboard/auditoria')}
-                >
-                  Ver
-                </Button>
-              </div>
+              )}
+
+              {kpis && kpis.manutencoes_proximas > 0 && (
+                <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Truck className="w-5 h-5 text-blue-600" />
+                    <div>
+                      <p className="font-medium text-sm">Manutenções Próximas</p>
+                      <p className="text-xs text-gray-600">{kpis.manutencoes_proximas} agendadas em 30 dias</p>
+                    </div>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => router.push('/dashboard/manutencao')}
+                  >
+                    Ver
+                  </Button>
+                </div>
+              )}
+
+              {kpis && kpis.achados_criticos > 0 && (
+                <div className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Shield className="w-5 h-5 text-red-600" />
+                    <div>
+                      <p className="font-medium text-sm">Achados Críticos</p>
+                      <p className="text-xs text-gray-600">{kpis.achados_criticos} auditorias críticas</p>
+                    </div>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => router.push('/dashboard/auditoria')}
+                  >
+                    Ver
+                  </Button>
+                </div>
+              )}
+
+              {kpis && kpis.contratos_vencendo > 0 && (
+                <div className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <FileText className="w-5 h-5 text-yellow-600" />
+                    <div>
+                      <p className="font-medium text-sm">Contratos Vencendo</p>
+                      <p className="text-xs text-gray-600">{kpis.contratos_vencendo} contratos em 30 dias</p>
+                    </div>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => router.push('/dashboard/contratos')}
+                  >
+                    Ver
+                  </Button>
+                </div>
+              )}
+
+              {kpis && kpis.cnh_vencendo > 0 && (
+                <div className="flex items-center justify-between p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Users className="w-5 h-5 text-orange-600" />
+                    <div>
+                      <p className="font-medium text-sm">CNH Vencendo</p>
+                      <p className="text-xs text-gray-600">{kpis.cnh_vencendo} motoristas em 30 dias</p>
+                    </div>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => router.push('/dashboard/motoristas')}
+                  >
+                    Ver
+                  </Button>
+                </div>
+              )}
+
+              {!kpis && (
+                <div className="text-center py-6 text-gray-500">
+                  <p className="text-sm">Carregando alertas...</p>
+                </div>
+              )}
+
+              {kpis && 
+                kpis.estoque_critico === 0 && 
+                kpis.estoque_baixo === 0 && 
+                kpis.documentos_vencendo === 0 && 
+                kpis.documentos_vencidos === 0 && 
+                kpis.manutencoes_proximas === 0 && 
+                kpis.achados_criticos === 0 && 
+                kpis.contratos_vencendo === 0 && 
+                kpis.cnh_vencendo === 0 && (
+                <div className="text-center py-6">
+                  <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
+                  <p className="text-sm font-medium text-green-700">Nenhum alerta crítico!</p>
+                  <p className="text-xs text-gray-600">Todos os indicadores estão normais</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
