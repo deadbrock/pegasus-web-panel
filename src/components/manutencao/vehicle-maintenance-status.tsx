@@ -15,11 +15,56 @@ import {
 import { toast } from '@/hooks/use-toast'
 import { useState } from 'react'
 import { VehicleScheduleDialog } from './vehicle-schedule-dialog'
-import { vehiclesData } from '@/components/veiculos/vehicles-table'
 import { VehicleDetailsDialog } from '@/components/veiculos/vehicle-details-dialog'
 
+// Mock data temporário - será substituído por dados reais do Supabase
+const vehiclesData = [
+  {
+    id: 1,
+    placa: 'BRA-2023',
+    marca: 'Volkswagen',
+    modelo: 'Constellation',
+    tipo: 'Caminhão',
+    ano: 2023,
+    cor: 'Branco',
+    combustivel: 'Diesel',
+    capacidade: 15000,
+    kmTotal: 45000,
+    status: 'Ativo',
+    ultimaManutencao: '2024-12-15'
+  },
+  {
+    id: 2,
+    placa: 'BRA-2024',
+    marca: 'Mercedes-Benz',
+    modelo: 'Actros',
+    tipo: 'Caminhão',
+    ano: 2024,
+    cor: 'Branco',
+    combustivel: 'Diesel',
+    capacidade: 18000,
+    kmTotal: 32000,
+    status: 'Ativo',
+    ultimaManutencao: '2025-01-05'
+  },
+  {
+    id: 3,
+    placa: 'BRA-2025',
+    marca: 'Scania',
+    modelo: 'R450',
+    tipo: 'Caminhão',
+    ano: 2025,
+    cor: 'Vermelho',
+    combustivel: 'Diesel',
+    capacidade: 20000,
+    kmTotal: 28500,
+    status: 'Em Manutenção',
+    ultimaManutencao: '2024-11-20'
+  }
+]
+
 // Deriva informações do cadastro de veículos para exibir detalhes consistentes
-const vehiclesStatus = vehiclesData.map(v => ({
+const vehiclesStatus = (vehiclesData || []).map(v => ({
   id: v.id,
   placa: v.placa,
   modelo: `${v.marca} ${v.modelo}`,
