@@ -200,122 +200,125 @@ export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
               font-family: Arial, sans-serif;
-              padding: 40px;
+              padding: 20px;
               color: #333;
               background: white;
+              font-size: 11px;
             }
             .header {
               text-align: center;
-              border-bottom: 3px solid #3b82f6;
-              padding-bottom: 20px;
-              margin-bottom: 30px;
+              border-bottom: 2px solid #3b82f6;
+              padding-bottom: 10px;
+              margin-bottom: 15px;
             }
             .logo {
-              font-size: 28px;
+              font-size: 18px;
               font-weight: bold;
               color: #3b82f6;
-              margin-bottom: 10px;
+              margin-bottom: 5px;
             }
             .pedido-numero {
-              font-size: 22px;
+              font-size: 16px;
               font-weight: bold;
-              margin: 10px 0;
+              margin: 5px 0;
               color: #1f2937;
             }
             .data-emissao {
-              font-size: 12px;
+              font-size: 9px;
               color: #6b7280;
             }
             .section {
-              margin: 25px 0;
+              margin: 12px 0;
               page-break-inside: avoid;
             }
             .section-title {
               font-weight: bold;
               color: #3b82f6;
-              margin-bottom: 15px;
-              font-size: 16px;
+              margin-bottom: 8px;
+              font-size: 12px;
               text-transform: uppercase;
-              letter-spacing: 0.5px;
+              letter-spacing: 0.3px;
             }
             .info-row {
               display: flex;
-              padding: 10px 0;
+              padding: 5px 0;
               border-bottom: 1px solid #e5e7eb;
             }
             .info-label {
               font-weight: 600;
-              width: 180px;
+              width: 140px;
               color: #4b5563;
+              font-size: 10px;
             }
             .info-value {
               flex: 1;
               color: #1f2937;
               font-weight: 500;
+              font-size: 10px;
             }
             .valor-total {
-              font-size: 28px;
+              font-size: 18px;
               font-weight: bold;
               color: #10b981;
-              text-align: right;
-              margin-top: 30px;
-              padding: 20px;
+              text-align: center;
+              margin-top: 15px;
+              padding: 12px;
               background: #f0fdf4;
-              border-radius: 8px;
+              border-radius: 6px;
               border: 2px solid #10b981;
             }
             .assinaturas-section {
-              margin-top: 50px;
+              margin-top: 20px;
               page-break-inside: avoid;
             }
             .assinaturas-grid {
               display: grid;
               grid-template-columns: 1fr 1fr 1fr;
-              gap: 30px;
-              margin-top: 20px;
+              gap: 20px;
+              margin-top: 30px;
             }
             .assinatura-campo {
               text-align: center;
             }
             .assinatura-linha {
-              border-top: 2px solid #1f2937;
-              margin-bottom: 8px;
-              padding-top: 60px;
+              border-top: 1.5px solid #1f2937;
+              margin-bottom: 5px;
+              padding-top: 0;
             }
             .assinatura-label {
               font-weight: 600;
               color: #4b5563;
-              font-size: 13px;
+              font-size: 9px;
               text-transform: uppercase;
-              letter-spacing: 0.5px;
+              letter-spacing: 0.3px;
             }
             .data-entrega-campo {
-              margin-top: 30px;
-              padding: 20px;
+              margin-top: 15px;
+              padding: 10px;
               background: #f9fafb;
-              border: 2px dashed #d1d5db;
-              border-radius: 8px;
+              border: 1.5px dashed #d1d5db;
+              border-radius: 6px;
             }
             .data-entrega-label {
               font-weight: 700;
               color: #1f2937;
-              font-size: 14px;
-              margin-bottom: 10px;
+              font-size: 11px;
+              margin-bottom: 8px;
               text-transform: uppercase;
             }
             .data-entrega-linha {
-              border-bottom: 2px solid #1f2937;
-              height: 40px;
-              width: 300px;
+              border-bottom: 1.5px solid #1f2937;
+              height: 30px;
+              width: 250px;
               margin: 0 auto;
             }
             .footer {
               text-align: center;
-              margin-top: 50px;
-              padding-top: 20px;
-              border-top: 2px solid #e5e7eb;
+              margin-top: 20px;
+              padding-top: 10px;
+              border-top: 1px solid #e5e7eb;
               color: #9ca3af;
-              font-size: 11px;
+              font-size: 8px;
             }
             .badge {
               display: inline-block;
@@ -345,11 +348,11 @@ export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
           <div class="section">
             <div class="section-title">📋 Dados do Cliente</div>
             <div class="info-row">
-              <div class="info-label">Nome do Cliente:</div>
+              <div class="info-label">Cliente:</div>
               <div class="info-value">${order.cliente}</div>
             </div>
             <div class="info-row">
-              <div class="info-label">Endereço de Entrega:</div>
+              <div class="info-label">Endereço:</div>
               <div class="info-value">${order.endereco}</div>
             </div>
           </div>
@@ -358,15 +361,15 @@ export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
             <div class="section-title">📦 Informações do Pedido</div>
             <div class="info-row">
               <div class="info-label">Prioridade:</div>
-              <div class="info-value"><span class="badge">${order.prioridade}</span></div>
+              <div class="info-value">${order.prioridade}</div>
             </div>
             <div class="info-row">
-              <div class="info-label">Quantidade de Itens:</div>
+              <div class="info-label">Itens:</div>
               <div class="info-value">${order.itens} ${order.itens === 1 ? 'item' : 'itens'}</div>
             </div>
             ${order.motorista ? `
             <div class="info-row">
-              <div class="info-label">Motorista Responsável:</div>
+              <div class="info-label">Motorista:</div>
               <div class="info-value">${order.motorista}</div>
             </div>
             ` : ''}
@@ -455,66 +458,121 @@ export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
           <meta charset="utf-8">
           <title>Pedido ${order.id}</title>
           <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
               font-family: Arial, sans-serif;
-              padding: 40px;
+              padding: 20px;
               color: #333;
+              font-size: 11px;
             }
             .header {
               text-align: center;
               border-bottom: 2px solid #3b82f6;
-              padding-bottom: 20px;
-              margin-bottom: 30px;
+              padding-bottom: 10px;
+              margin-bottom: 15px;
             }
             .logo {
-              font-size: 24px;
+              font-size: 18px;
               font-weight: bold;
               color: #3b82f6;
+              margin-bottom: 5px;
             }
             .pedido-numero {
-              font-size: 20px;
+              font-size: 16px;
               font-weight: bold;
-              margin: 10px 0;
+              margin: 5px 0;
             }
             .section {
-              margin: 20px 0;
+              margin: 12px 0;
+              page-break-inside: avoid;
             }
             .section-title {
               font-weight: bold;
               color: #3b82f6;
-              margin-bottom: 10px;
-              font-size: 16px;
+              margin-bottom: 8px;
+              font-size: 12px;
+              text-transform: uppercase;
+              letter-spacing: 0.3px;
             }
             .info-row {
               display: flex;
-              padding: 8px 0;
-              border-bottom: 1px solid #eee;
+              padding: 5px 0;
+              border-bottom: 1px solid #e5e7eb;
             }
             .info-label {
               font-weight: 600;
-              width: 150px;
-              color: #666;
+              width: 140px;
+              color: #4b5563;
+              font-size: 10px;
             }
             .info-value {
               flex: 1;
-              color: #333;
+              color: #1f2937;
+              font-size: 10px;
             }
             .valor-total {
-              font-size: 24px;
+              font-size: 18px;
               font-weight: bold;
               color: #10b981;
-              text-align: right;
+              text-align: center;
+              margin-top: 15px;
+              padding: 12px;
+              background: #f0fdf4;
+              border-radius: 6px;
+              border: 2px solid #10b981;
+            }
+            .assinaturas-section {
               margin-top: 20px;
-              padding-top: 20px;
-              border-top: 2px solid #3b82f6;
+              page-break-inside: avoid;
+            }
+            .assinaturas-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr 1fr;
+              gap: 20px;
+              margin-top: 30px;
+            }
+            .assinatura-campo {
+              text-align: center;
+            }
+            .assinatura-linha {
+              border-top: 1.5px solid #1f2937;
+              margin-bottom: 5px;
+              padding-top: 0;
+            }
+            .assinatura-label {
+              font-weight: 600;
+              color: #4b5563;
+              font-size: 9px;
+              text-transform: uppercase;
+              letter-spacing: 0.3px;
+            }
+            .data-entrega-campo {
+              margin-top: 15px;
+              padding: 10px;
+              background: #f9fafb;
+              border: 1.5px dashed #d1d5db;
+              border-radius: 6px;
+            }
+            .data-entrega-label {
+              font-weight: 700;
+              color: #1f2937;
+              font-size: 11px;
+              margin-bottom: 8px;
+              text-transform: uppercase;
+            }
+            .data-entrega-linha {
+              border-bottom: 1.5px solid #1f2937;
+              height: 30px;
+              width: 250px;
+              margin: 0 auto;
             }
             .footer {
               text-align: center;
-              margin-top: 40px;
-              padding-top: 20px;
-              border-top: 1px solid #eee;
-              color: #999;
-              font-size: 12px;
+              margin-top: 20px;
+              padding-top: 10px;
+              border-top: 1px solid #e5e7eb;
+              color: #9ca3af;
+              font-size: 8px;
             }
             @media print {
               body { padding: 20px; }
@@ -546,7 +604,7 @@ export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
               <div class="info-value">${order.prioridade}</div>
             </div>
             <div class="info-row">
-              <div class="info-label">Quantidade de Itens:</div>
+              <div class="info-label">Itens:</div>
               <div class="info-value">${order.itens} ${order.itens === 1 ? 'item' : 'itens'}</div>
             </div>
             ${order.motorista ? `
