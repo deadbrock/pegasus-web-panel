@@ -115,6 +115,7 @@ export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
       prioridade: o.prioridade || 'Normal',
       motorista: o.motorista,
       diasAtraso: o.diasAtraso,
+      formaPagamento: o.forma_pagamento || o.formaPagamento || '',
     })
     return acc
   }, {} as Record<string, any[]>)
@@ -326,9 +327,15 @@ export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
             ` : ''}
           </div>
 
+          ${order.formaPagamento === 'Material de Consumo' ? `
+          <div class="valor-total" style="background: #fef3c7; border-color: #f59e0b; color: #92400e;">
+            FORMA DE PAGAMENTO: MATERIAL DE CONSUMO
+          </div>
+          ` : `
           <div class="valor-total">
             VALOR TOTAL: ${formatCurrency(order.valor)}
           </div>
+          `}
 
           <div class="footer">
             Documento gerado automaticamente pelo Sistema Pegasus<br>
@@ -482,9 +489,15 @@ export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
             ` : ''}
           </div>
 
+          ${order.formaPagamento === 'Material de Consumo' ? `
+          <div class="valor-total" style="background: #fef3c7; border-color: #f59e0b; color: #92400e;">
+            FORMA DE PAGAMENTO: MATERIAL DE CONSUMO
+          </div>
+          ` : `
           <div class="valor-total">
             VALOR TOTAL: ${formatCurrency(order.valor)}
           </div>
+          `}
 
           <div class="footer">
             Impresso em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}<br>
@@ -553,10 +566,17 @@ export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
 
                     {/* Valor e Itens */}
                     <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                      <div className="flex items-center gap-1">
-                        <DollarSign className="w-4 h-4 text-green-600" />
-                        <span className="text-sm font-semibold text-green-700">{formatCurrency(order.valor)}</span>
-                      </div>
+                      {(order as any).formaPagamento === 'Material de Consumo' ? (
+                        <div className="flex items-center gap-1">
+                          <Package className="w-4 h-4 text-amber-600" />
+                          <span className="text-xs font-semibold text-amber-700">Material de Consumo</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <DollarSign className="w-4 h-4 text-green-600" />
+                          <span className="text-sm font-semibold text-green-700">{formatCurrency(order.valor)}</span>
+                        </div>
+                      )}
                       {order.itens > 0 && (
                         <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
                           {order.itens} {order.itens === 1 ? 'item' : 'itens'}
