@@ -24,29 +24,18 @@ export function VehicleMaintenanceOverview({ vehicles }: VehicleMaintenanceOverv
   }
 
   // Processar dados de manutenção
+  // TODO: Implementar lógica de manutenção quando houver campo no banco
   const vehicleMaintenanceData = vehicles
     .filter(v => v.placa && v.modelo)
     .map(v => {
-      const hoje = new Date()
-      let diasRestantes = 0
-      let status: 'Em Dia' | 'Próximo do Vencimento' | 'Atrasada' = 'Em Dia'
-      
-      if (v.proxima_manutencao) {
-        const dataManutencao = new Date(v.proxima_manutencao)
-        diasRestantes = Math.ceil((dataManutencao.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24))
-        
-        if (diasRestantes < 0) status = 'Atrasada'
-        else if (diasRestantes <= 7) status = 'Próximo do Vencimento'
-      }
-      
       return {
         id: v.id,
         placa: v.placa || 'N/A',
         modelo: v.modelo || 'N/A',
-        status,
-        proximaManutencao: v.proxima_manutencao,
-        diasRestantes,
-        manutencoesPendentes: diasRestantes < 0 ? 1 : 0,
+        status: 'Em Dia' as 'Em Dia' | 'Próximo do Vencimento' | 'Atrasada',
+        proximaManutencao: undefined,
+        diasRestantes: 30, // Placeholder
+        manutencoesPendentes: 0,
         manutencoesConcluidas: 0, // TODO: calcular quando houver histórico
         custosAnuais: 0 // TODO: calcular quando houver histórico de custos
       }

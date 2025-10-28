@@ -33,7 +33,7 @@ export function calcularEstatisticasVeiculos(vehicles: VehicleRecord[]): Vehicle
   const vendidos = vehicles.filter(v => v.status === 'Vendido').length
   
   // Quilometragem total
-  const kmTotal = vehicles.reduce((acc, v) => acc + (v.km_atual || 0), 0)
+  const kmTotal = vehicles.reduce((acc, v) => acc + (v.kmTotal || 0), 0)
   
   // Idade da frota
   const hoje = new Date()
@@ -45,8 +45,8 @@ export function calcularEstatisticasVeiculos(vehicles: VehicleRecord[]): Vehicle
   }
   
   vehicles.forEach(v => {
-    if (v.ano_fabricacao) {
-      const idade = hoje.getFullYear() - v.ano_fabricacao
+    if (v.ano) {
+      const idade = hoje.getFullYear() - v.ano
       if (idade <= 2) porIdade['0-2 anos']++
       else if (idade <= 5) porIdade['3-5 anos']++
       else if (idade <= 10) porIdade['6-10 anos']++
@@ -75,11 +75,11 @@ export function calcularEstatisticasVeiculos(vehicles: VehicleRecord[]): Vehicle
  */
 export function calcularKmPorVeiculo(vehicles: VehicleRecord[]) {
   return vehicles
-    .filter(v => v.placa && v.km_atual)
+    .filter(v => v.placa && v.kmTotal)
     .slice(0, 6) // Top 6 veículos
     .map(v => ({
       placa: v.placa,
-      kmTotal: v.km_atual || 0,
+      kmTotal: v.kmTotal || 0,
       kmMensal: 0 // TODO: implementar cálculo de KM mensal quando houver histórico
     }))
 }
@@ -100,16 +100,12 @@ export function calcularPerformanceFrota(vehicles: VehicleRecord[]) {
   const ativos = vehicles.filter(v => v.status === 'Ativo').length
   const disponibilidade = (ativos / total) * 100
   
-  // Eficiência operacional = veículos em boa condição
-  const emBoaCondicao = vehicles.filter(v => 
-    v.status === 'Ativo' && (!v.proxima_manutencao || new Date(v.proxima_manutencao) > new Date())
-  ).length
+  // Eficiência operacional = veículos em boa condição (ativos)
+  const emBoaCondicao = vehicles.filter(v => v.status === 'Ativo').length
   const eficienciaOperacional = (emBoaCondicao / total) * 100
   
-  // Manutenções em dia = veículos sem manutenção atrasada
-  const comManutencaoEmDia = vehicles.filter(v => 
-    !v.proxima_manutencao || new Date(v.proxima_manutencao) >= new Date()
-  ).length
+  // Manutenções em dia = assumindo que veículos ativos estão em dia
+  const comManutencaoEmDia = vehicles.filter(v => v.status === 'Ativo').length
   const manutencoesEmDia = (comManutencaoEmDia / total) * 100
   
   return {
@@ -121,31 +117,11 @@ export function calcularPerformanceFrota(vehicles: VehicleRecord[]) {
 
 /**
  * Busca próximas manutenções
+ * TODO: Implementar quando houver campo de manutenção no banco de dados
  */
 export function buscarProximasManutencoes(vehicles: VehicleRecord[]) {
-  const hoje = new Date()
-  const seteDiasDepois = new Date(hoje)
-  seteDiasDepois.setDate(hoje.getDate() + 7)
-  
-  return vehicles
-    .filter(v => v.proxima_manutencao)
-    .map(v => {
-      const dataManutencao = new Date(v.proxima_manutencao!)
-      const diasRestantes = Math.ceil((dataManutencao.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24))
-      
-      let status: 'atrasada' | 'urgente' | 'proxima' = 'proxima'
-      if (diasRestantes < 0) status = 'atrasada'
-      else if (diasRestantes <= 3) status = 'urgente'
-      
-      return {
-        placa: v.placa,
-        modelo: v.modelo,
-        dataManutencao: v.proxima_manutencao,
-        diasRestantes,
-        status
-      }
-    })
-    .sort((a, b) => a.diasRestantes - b.diasRestantes)
-    .slice(0, 3) // Top 3 próximas manutenções
+  // Retorna lista vazia por enquanto, pois não temos campo de próxima manutenção
+  // no VehicleRecord atual
+  return []
 }
 
