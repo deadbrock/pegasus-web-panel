@@ -72,7 +72,7 @@ export function calcularEstatisticasMotoristas(drivers: DriverRecord[]): DriverS
     { name: 'Férias', value: 0, color: '#3b82f6' }
   ]
   
-  // Status de documentos (mock por enquanto, pode ser expandido)
+  // Status de documentos
   const documentosStatus = {
     vencidos: cnhVencidas,
     vencendo: cnhVencendo,
@@ -80,12 +80,14 @@ export function calcularEstatisticasMotoristas(drivers: DriverRecord[]): DriverS
     emDia: total - cnhVencidas - cnhVencendo
   }
   
-  // Performance média (mock por enquanto)
+  // Performance média - calculada dos motoristas (se disponível)
+  // Por enquanto, calcula baseado na taxa de documentos em dia
+  const taxaDocumentosEmDia = total > 0 ? Math.round(((total - cnhVencidas) / total) * 100) : 0
   const performance = {
-    pontualidade: 91,
-    seguranca: 95,
-    eficiencia: 88,
-    satisfacao: 93
+    pontualidade: total > 0 ? taxaDocumentosEmDia : 0,
+    seguranca: total > 0 ? taxaDocumentosEmDia : 0,
+    eficiencia: total > 0 ? Math.round((ativos / total) * 100) : 0,
+    satisfacao: total > 0 ? taxaDocumentosEmDia : 0
   }
   
   return {
