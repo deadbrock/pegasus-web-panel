@@ -8,7 +8,8 @@ import {
   criarPedido, 
   fetchMeusPedidos, 
   subscribePedidosRealtime,
-  type PedidoMobile 
+  type PedidoMobile,
+  type ItemPedido
 } from '../../services/pedidos-mobile-service'
 
 export default function PedidosScreen() {
@@ -25,6 +26,7 @@ export default function PedidosScreen() {
   const [unidade, setUnidade] = useState('UN')
   const [urgencia, setUrgencia] = useState<'Baixa' | 'Média' | 'Alta' | 'Urgente'>('Média')
   const [observacoes, setObservacoes] = useState('')
+  const [itensPedido, setItensPedido] = useState<ItemPedido[]>([]) // ✨ NOVO: múltiplos produtos
   
   // Produtos do estoque
   const [produtos, setProdutos] = useState<Produto[]>([])
