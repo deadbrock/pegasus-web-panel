@@ -44,7 +44,7 @@ export default function ManutencaoPage() {
   }
 
   const handleExport = () => {
-    const rows = maintenanceData.map(m => ({
+    const rows = (maintenanceData || []).map(m => ({
       veiculo: m.veiculo,
       tipo: m.tipo,
       descricao: m.descricao,
