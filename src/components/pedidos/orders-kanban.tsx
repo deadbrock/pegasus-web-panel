@@ -178,32 +178,186 @@ export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
   }
 
   const handleBaixarPedido = (order: any) => {
-    // Criar JSON do pedido para download
-    const pedidoData = {
-      numero: order.id,
-      cliente: order.cliente,
-      endereco: order.endereco,
-      valor: order.valor,
-      itens: order.itens,
-      motorista: order.motorista,
-      prioridade: order.prioridade,
-      data_exportacao: new Date().toISOString()
+    // Abrir janela de impressão para salvar como PDF
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível abrir janela. Verifique se pop-ups estão bloqueados.',
+        variant: 'destructive'
+      })
+      return
     }
 
-    const dataStr = JSON.stringify(pedidoData, null, 2)
-    const dataBlob = new Blob([dataStr], { type: 'application/json' })
-    const url = URL.createObjectURL(dataBlob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `pedido-${order.id}-${new Date().toISOString().split('T')[0]}.json`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Pedido ${order.id}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+              font-family: Arial, sans-serif;
+              padding: 40px;
+              color: #333;
+              background: white;
+            }
+            .header {
+              text-align: center;
+              border-bottom: 3px solid #3b82f6;
+              padding-bottom: 20px;
+              margin-bottom: 30px;
+            }
+            .logo {
+              font-size: 28px;
+              font-weight: bold;
+              color: #3b82f6;
+              margin-bottom: 10px;
+            }
+            .pedido-numero {
+              font-size: 22px;
+              font-weight: bold;
+              margin: 10px 0;
+              color: #1f2937;
+            }
+            .data-emissao {
+              font-size: 12px;
+              color: #6b7280;
+            }
+            .section {
+              margin: 25px 0;
+              page-break-inside: avoid;
+            }
+            .section-title {
+              font-weight: bold;
+              color: #3b82f6;
+              margin-bottom: 15px;
+              font-size: 16px;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+            .info-row {
+              display: flex;
+              padding: 10px 0;
+              border-bottom: 1px solid #e5e7eb;
+            }
+            .info-label {
+              font-weight: 600;
+              width: 180px;
+              color: #4b5563;
+            }
+            .info-value {
+              flex: 1;
+              color: #1f2937;
+              font-weight: 500;
+            }
+            .valor-total {
+              font-size: 28px;
+              font-weight: bold;
+              color: #10b981;
+              text-align: right;
+              margin-top: 30px;
+              padding: 20px;
+              background: #f0fdf4;
+              border-radius: 8px;
+              border: 2px solid #10b981;
+            }
+            .footer {
+              text-align: center;
+              margin-top: 50px;
+              padding-top: 20px;
+              border-top: 2px solid #e5e7eb;
+              color: #9ca3af;
+              font-size: 11px;
+            }
+            .badge {
+              display: inline-block;
+              padding: 4px 12px;
+              border-radius: 12px;
+              font-size: 12px;
+              font-weight: 600;
+              background: #eff6ff;
+              color: #3b82f6;
+            }
+            @media print {
+              body { padding: 20px; }
+              .no-print { display: none; }
+            }
+            @page {
+              margin: 20mm;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="logo">🚚 SISTEMA PEGASUS</div>
+            <div class="pedido-numero">PEDIDO Nº ${order.id}</div>
+            <div class="data-emissao">Emitido em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}</div>
+          </div>
+          
+          <div class="section">
+            <div class="section-title">📋 Dados do Cliente</div>
+            <div class="info-row">
+              <div class="info-label">Nome do Cliente:</div>
+              <div class="info-value">${order.cliente}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Endereço de Entrega:</div>
+              <div class="info-value">${order.endereco}</div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">📦 Informações do Pedido</div>
+            <div class="info-row">
+              <div class="info-label">Prioridade:</div>
+              <div class="info-value"><span class="badge">${order.prioridade}</span></div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Quantidade de Itens:</div>
+              <div class="info-value">${order.itens} ${order.itens === 1 ? 'item' : 'itens'}</div>
+            </div>
+            ${order.motorista ? `
+            <div class="info-row">
+              <div class="info-label">Motorista Responsável:</div>
+              <div class="info-value">${order.motorista}</div>
+            </div>
+            ` : ''}
+          </div>
+
+          <div class="valor-total">
+            VALOR TOTAL: ${formatCurrency(order.valor)}
+          </div>
+
+          <div class="footer">
+            Documento gerado automaticamente pelo Sistema Pegasus<br>
+            ${new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} - ${new Date().toLocaleTimeString('pt-BR')}<br>
+            www.sistempegasus.com.br
+          </div>
+
+          <div class="no-print" style="position: fixed; bottom: 20px; right: 20px; background: white; padding: 10px; border: 1px solid #ccc; border-radius: 8px;">
+            <p style="margin-bottom: 10px; font-size: 14px;">Para salvar como PDF:</p>
+            <p style="font-size: 12px; color: #666;">1. Clique em Ctrl+P</p>
+            <p style="font-size: 12px; color: #666;">2. Escolha "Salvar como PDF"</p>
+            <p style="font-size: 12px; color: #666;">3. Salve o arquivo</p>
+          </div>
+
+          <script>
+            window.onload = function() {
+              setTimeout(() => window.print(), 100);
+            }
+          </script>
+        </body>
+      </html>
+    `
+
+    printWindow.document.write(html)
+    printWindow.document.close()
 
     toast({
-      title: 'Pedido baixado!',
-      description: `Arquivo ${order.id}.json foi baixado`
+      title: 'Pedido pronto para impressão!',
+      description: 'Use Ctrl+P e escolha "Salvar como PDF" para baixar'
     })
   }
 
