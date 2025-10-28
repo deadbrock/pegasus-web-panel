@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Clock, Truck, CheckCircle, AlertTriangle, Package, User, MapPin, DollarSign, Edit } from 'lucide-react'
+import { Clock, Truck, CheckCircle, AlertTriangle, Package, User, MapPin, DollarSign, Edit, Download, Printer } from 'lucide-react'
 import { updateOrder } from '@/services/ordersService'
 import { useToast } from '@/hooks/use-toast'
 // TODO: integrar com Supabase para ler colunas dinamicamente
@@ -177,6 +177,179 @@ export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
     toast({ title: ok ? 'Status atualizado' : 'Falha ao atualizar', description: `${orderId} → ${newStatus}` })
   }
 
+  const handleBaixarPedido = (order: any) => {
+    // Criar JSON do pedido para download
+    const pedidoData = {
+      numero: order.id,
+      cliente: order.cliente,
+      endereco: order.endereco,
+      valor: order.valor,
+      itens: order.itens,
+      motorista: order.motorista,
+      prioridade: order.prioridade,
+      data_exportacao: new Date().toISOString()
+    }
+
+    const dataStr = JSON.stringify(pedidoData, null, 2)
+    const dataBlob = new Blob([dataStr], { type: 'application/json' })
+    const url = URL.createObjectURL(dataBlob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `pedido-${order.id}-${new Date().toISOString().split('T')[0]}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+
+    toast({
+      title: 'Pedido baixado!',
+      description: `Arquivo ${order.id}.json foi baixado`
+    })
+  }
+
+  const handleImprimirPedido = (order: any) => {
+    // Criar HTML para impressão
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível abrir janela de impressão',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Pedido ${order.id}</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              padding: 40px;
+              color: #333;
+            }
+            .header {
+              text-align: center;
+              border-bottom: 2px solid #3b82f6;
+              padding-bottom: 20px;
+              margin-bottom: 30px;
+            }
+            .logo {
+              font-size: 24px;
+              font-weight: bold;
+              color: #3b82f6;
+            }
+            .pedido-numero {
+              font-size: 20px;
+              font-weight: bold;
+              margin: 10px 0;
+            }
+            .section {
+              margin: 20px 0;
+            }
+            .section-title {
+              font-weight: bold;
+              color: #3b82f6;
+              margin-bottom: 10px;
+              font-size: 16px;
+            }
+            .info-row {
+              display: flex;
+              padding: 8px 0;
+              border-bottom: 1px solid #eee;
+            }
+            .info-label {
+              font-weight: 600;
+              width: 150px;
+              color: #666;
+            }
+            .info-value {
+              flex: 1;
+              color: #333;
+            }
+            .valor-total {
+              font-size: 24px;
+              font-weight: bold;
+              color: #10b981;
+              text-align: right;
+              margin-top: 20px;
+              padding-top: 20px;
+              border-top: 2px solid #3b82f6;
+            }
+            .footer {
+              text-align: center;
+              margin-top: 40px;
+              padding-top: 20px;
+              border-top: 1px solid #eee;
+              color: #999;
+              font-size: 12px;
+            }
+            @media print {
+              body { padding: 20px; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="logo">🚚 SISTEMA PEGASUS</div>
+            <div class="pedido-numero">PEDIDO ${order.id}</div>
+          </div>
+          
+          <div class="section">
+            <div class="section-title">Dados do Cliente</div>
+            <div class="info-row">
+              <div class="info-label">Cliente:</div>
+              <div class="info-value">${order.cliente}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Endereço:</div>
+              <div class="info-value">${order.endereco}</div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Informações do Pedido</div>
+            <div class="info-row">
+              <div class="info-label">Prioridade:</div>
+              <div class="info-value">${order.prioridade}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Quantidade de Itens:</div>
+              <div class="info-value">${order.itens} ${order.itens === 1 ? 'item' : 'itens'}</div>
+            </div>
+            ${order.motorista ? `
+            <div class="info-row">
+              <div class="info-label">Motorista:</div>
+              <div class="info-value">${order.motorista}</div>
+            </div>
+            ` : ''}
+          </div>
+
+          <div class="valor-total">
+            VALOR TOTAL: ${formatCurrency(order.valor)}
+          </div>
+
+          <div class="footer">
+            Impresso em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}<br>
+            Sistema Pegasus - Gestão Logística
+          </div>
+
+          <script>
+            window.onload = function() {
+              window.print();
+            }
+          </script>
+        </body>
+      </html>
+    `
+
+    printWindow.document.write(html)
+    printWindow.document.close()
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 min-h-[600px]">
       {statuses.map((status) => {
@@ -256,7 +429,7 @@ export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
                     )}
 
                     {/* Actions */}
-                    <div className="pt-3 border-t border-gray-100">
+                    <div className="pt-3 border-t border-gray-100 space-y-2">
                       <Button
                         variant="outline"
                         size="sm"
@@ -266,6 +439,26 @@ export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
                         <Edit className="w-3 h-3 mr-2" />
                         Editar
                       </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => handleBaixarPedido(order)}
+                        >
+                          <Download className="w-3 h-3 mr-1" />
+                          Baixar
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => handleImprimirPedido(order)}
+                        >
+                          <Printer className="w-3 h-3 mr-1" />
+                          Imprimir
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
