@@ -94,16 +94,26 @@ export const stockData: StockProduct[] = [
   }
 ]
 
+// Colunas obrigatórias alinhadas com o banco de dados
 export const REQUIRED_COLUMNS = [
   'codigo',
   'nome',
   'categoria',
   'unidade',
-  'estoqueMinimo',
-  'quantidade',
-  'valorUnitario',
+  'estoque_minimo',
+  'estoque_atual',
+  'preco_unitario'
+] as const
+
+// Colunas opcionais
+export const OPTIONAL_COLUMNS = [
   'localizacao',
-  'fornecedor'
+  'fornecedor',
+  'estoque_maximo',
+  'data_validade',
+  'lote',
+  'descricao',
+  'observacoes'
 ] as const
 
 
