@@ -264,6 +264,51 @@ export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
               border-radius: 8px;
               border: 2px solid #10b981;
             }
+            .assinaturas-section {
+              margin-top: 50px;
+              page-break-inside: avoid;
+            }
+            .assinaturas-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr 1fr;
+              gap: 30px;
+              margin-top: 20px;
+            }
+            .assinatura-campo {
+              text-align: center;
+            }
+            .assinatura-linha {
+              border-top: 2px solid #1f2937;
+              margin-bottom: 8px;
+              padding-top: 60px;
+            }
+            .assinatura-label {
+              font-weight: 600;
+              color: #4b5563;
+              font-size: 13px;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+            .data-entrega-campo {
+              margin-top: 30px;
+              padding: 20px;
+              background: #f9fafb;
+              border: 2px dashed #d1d5db;
+              border-radius: 8px;
+            }
+            .data-entrega-label {
+              font-weight: 700;
+              color: #1f2937;
+              font-size: 14px;
+              margin-bottom: 10px;
+              text-transform: uppercase;
+            }
+            .data-entrega-linha {
+              border-bottom: 2px solid #1f2937;
+              height: 40px;
+              width: 300px;
+              margin: 0 auto;
+            }
             .footer {
               text-align: center;
               margin-top: 50px;
@@ -336,6 +381,29 @@ export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
             VALOR TOTAL: ${formatCurrency(order.valor)}
           </div>
           `}
+
+          <div class="data-entrega-campo">
+            <div class="data-entrega-label">📅 Data de Entrega</div>
+            <div class="data-entrega-linha"></div>
+          </div>
+
+          <div class="assinaturas-section">
+            <div class="section-title">✍️ Assinaturas e Confirmações</div>
+            <div class="assinaturas-grid">
+              <div class="assinatura-campo">
+                <div class="assinatura-linha"></div>
+                <div class="assinatura-label">Logística</div>
+              </div>
+              <div class="assinatura-campo">
+                <div class="assinatura-linha"></div>
+                <div class="assinatura-label">Motorista</div>
+              </div>
+              <div class="assinatura-campo">
+                <div class="assinatura-linha"></div>
+                <div class="assinatura-label">Solicitante</div>
+              </div>
+            </div>
+          </div>
 
           <div class="footer">
             Documento gerado automaticamente pelo Sistema Pegasus<br>
@@ -498,6 +566,29 @@ export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
             VALOR TOTAL: ${formatCurrency(order.valor)}
           </div>
           `}
+
+          <div class="data-entrega-campo">
+            <div class="data-entrega-label">📅 Data de Entrega</div>
+            <div class="data-entrega-linha"></div>
+          </div>
+
+          <div class="assinaturas-section">
+            <div class="section-title">✍️ Assinaturas e Confirmações</div>
+            <div class="assinaturas-grid">
+              <div class="assinatura-campo">
+                <div class="assinatura-linha"></div>
+                <div class="assinatura-label">Logística</div>
+              </div>
+              <div class="assinatura-campo">
+                <div class="assinatura-linha"></div>
+                <div class="assinatura-label">Motorista</div>
+              </div>
+              <div class="assinatura-campo">
+                <div class="assinatura-linha"></div>
+                <div class="assinatura-label">Solicitante</div>
+              </div>
+            </div>
+          </div>
 
           <div class="footer">
             Impresso em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}<br>
