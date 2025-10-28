@@ -1,47 +1,19 @@
 'use client'
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { MapPin, Package } from 'lucide-react'
-
-const locationsData = [
-  { id: 1, localizacao: 'A1-B3', produto: 'Parafuso M6x20', quantidade: 850 },
-  { id: 2, localizacao: 'C2-A1', produto: 'Óleo Lubrificante 1L', quantidade: 45 },
-  { id: 3, localizacao: 'B1-C2', produto: 'Filtro de Ar', quantidade: 15 },
-  { id: 4, localizacao: 'D1-A1', produto: 'Pneu 205/55R16', quantidade: 8 },
-  { id: 5, localizacao: 'E1-B2', produto: 'Bateria 12V 60Ah', quantidade: 25 }
-]
+import { MapPin } from 'lucide-react'
 
 export function StockLocationsTable() {
+  // Dados virão do campo localizacao da tabela produtos
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Localização</TableHead>
-            <TableHead>Produto</TableHead>
-            <TableHead>Quantidade</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {locationsData.map((location) => (
-            <TableRow key={location.id}>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-blue-500" />
-                  <span className="font-mono font-medium">{location.localizacao}</span>
-                </div>
-              </TableCell>
-              <TableCell className="font-medium">{location.produto}</TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <Package className="w-4 h-4 text-gray-500" />
-                  <span className="font-medium">{location.quantidade}</span>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+    <div className="text-center py-16 text-gray-500">
+      <MapPin className="mx-auto h-16 w-16 mb-4 text-gray-400" />
+      <p className="text-lg font-medium">Localizações em Desenvolvimento</p>
+      <p className="text-sm mt-2">
+        Você pode definir a localização dos produtos ao editá-los
+      </p>
+      <p className="text-xs mt-4 text-gray-400">
+        Ex: "Prateleira A3", "Galpão 2", "Setor B - Rack 15"
+      </p>
     </div>
   )
 }

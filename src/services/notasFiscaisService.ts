@@ -247,6 +247,7 @@ async function createItensNotaFiscal(notaFiscalId: string, itens: NFeData['itens
     const itensInsert = itens.map(item => ({
       nota_fiscal_id: notaFiscalId,
       produto_codigo: item.codigo_produto,
+      produto_descricao: item.descricao, // Nome/descrição do produto do XML
       quantidade: item.quantidade,
       valor_unitario: item.valor_unitario,
       valor_total: item.valor_total,

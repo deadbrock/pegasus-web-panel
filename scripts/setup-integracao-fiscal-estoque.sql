@@ -72,7 +72,7 @@ BEGIN
         ativo
       ) VALUES (
         v_item.produto_codigo,
-        LEFT(v_item.produto_codigo, 100), -- Nome temporário (será o código até usuário editar)
+        COALESCE(v_item.produto_descricao, v_item.produto_codigo), -- Usa descrição do XML, ou código se não tiver
         'Geral', -- Categoria padrão
         'UN', -- Unidade padrão
         v_item.quantidade, -- Quantidade da nota

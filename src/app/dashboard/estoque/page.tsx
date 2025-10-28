@@ -253,18 +253,18 @@ export default function EstoquePage() {
               <CardContent className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Estoque Crítico</span>
-                  <span className="font-semibold text-red-600">8</span>
+                  <span className="font-semibold text-red-600">{loading ? '...' : stats?.estoque_critico || 0}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Estoque Baixo</span>
-                  <span className="font-semibold text-orange-600">15</span>
+                  <span className="font-semibold text-orange-600">{loading ? '...' : stats?.estoque_baixo || 0}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Sem Estoque Mínimo</span>
-                  <span className="font-semibold text-gray-600">42</span>
+                  <span className="text-sm text-gray-600">Produtos Ativos</span>
+                  <span className="font-semibold text-gray-600">{loading ? '...' : stats?.ativos || 0}</span>
                 </div>
                 <div className="pt-2 border-t">
-                  <Button variant="outline" className="w-full" size="sm">
+                  <Button variant="outline" className="w-full" size="sm" onClick={handleQuickVerifyMinimums}>
                     <TrendingDown className="w-4 h-4 mr-2" />
                     Definir Mínimos
                   </Button>
@@ -278,7 +278,7 @@ export default function EstoquePage() {
                 <CardTitle>Alertas de Estoque</CardTitle>
               </CardHeader>
               <CardContent>
-                <StockAlertsTable />
+                <StockAlertsTable produtos={produtos} loading={loading} />
               </CardContent>
             </Card>
           </div>
@@ -352,29 +352,23 @@ export default function EstoquePage() {
                 <CardTitle>Produtos Mais Movimentados</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                    <div>
-                      <p className="font-medium">Parafuso M6x20</p>
-                      <p className="text-sm text-gray-600">245 movimentações</p>
-                    </div>
-                    <Package className="w-5 h-5 text-blue-600" />
+                {loading ? (
+                  <div className="flex items-center justify-center h-32">
+                    <p className="text-gray-500">Carregando...</p>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                    <div>
-                      <p className="font-medium">Óleo Lubrificante</p>
-                      <p className="text-sm text-gray-600">198 movimentações</p>
-                    </div>
-                    <Package className="w-5 h-5 text-green-600" />
+                ) : produtos.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Package className="mx-auto h-12 w-12 mb-4 text-gray-400" />
+                    <p>Nenhuma movimentação registrada</p>
+                    <p className="text-sm mt-2">Importe notas fiscais para ver movimentações</p>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
-                    <div>
-                      <p className="font-medium">Filtro de Ar</p>
-                      <p className="text-sm text-gray-600">156 movimentações</p>
-                    </div>
-                    <Package className="w-5 h-5 text-orange-600" />
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Package className="mx-auto h-12 w-12 mb-4 text-gray-400" />
+                    <p>Em desenvolvimento</p>
+                    <p className="text-sm mt-2">Análise de movimentações em breve</p>
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -416,35 +410,25 @@ export default function EstoquePage() {
                 <CardTitle>Métricas de Performance</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Acuracidade do Estoque</span>
-                      <span>94%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-green-600 h-2 rounded-full w-[94%]"></div>
+                {loading ? (
+                  <div className="flex items-center justify-center h-32">
+                    <p className="text-gray-500">Carregando...</p>
+                  </div>
+                ) : produtos.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <BarChart3 className="mx-auto h-12 w-12 mb-4 text-gray-400" />
+                    <p>Nenhum dado disponível</p>
+                    <p className="text-sm mt-2">Adicione produtos para ver métricas</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="text-center py-8 text-gray-500">
+                      <BarChart3 className="mx-auto h-12 w-12 mb-4 text-gray-400" />
+                      <p>Em desenvolvimento</p>
+                      <p className="text-sm mt-2">Métricas de performance em breve</p>
                     </div>
                   </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Giro de Estoque</span>
-                      <span>8.2x/ano</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-blue-600 h-2 rounded-full w-[82%]"></div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Cobertura de Estoque</span>
-                      <span>45 dias</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-orange-600 h-2 rounded-full w-[75%]"></div>
-                    </div>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </div>
