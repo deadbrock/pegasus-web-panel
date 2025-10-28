@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { View, StyleSheet, ScrollView, RefreshControl, Alert, FlatList, TouchableOpacity } from 'react-native'
 import { Card, Title, Paragraph, Text, Chip, FAB, ActivityIndicator, Badge, Dialog, Portal, TextInput, Button, Searchbar } from 'react-native-paper'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { fetchProdutosDisponiveis, type Produto } from '../../services/produtos-service'
 import { 
   verificarPodeFazerPedido, 
@@ -17,7 +18,9 @@ export default function PedidosScreen() {
   const [refreshing, setRefreshing] = useState(false)
   const [pedidos, setPedidos] = useState<PedidoMobile[]>([])
   const [filter, setFilter] = useState<'todos' | 'ativos' | 'entregues'>('ativos')
-  const [supervisorId, setSupervisorId] = useState('fake-supervisor-id') // Será substituído pelo ID real
+  const [supervisorId, setSupervisorId] = useState('')
+  const [supervisorNome, setSupervisorNome] = useState('Supervisor')
+  const [supervisorEmail, setSupervisorEmail] = useState('')
   
   // Dialog Novo Pedido
   const [novoPedidoVisible, setNovoPedidoVisible] = useState(false)
@@ -41,27 +44,58 @@ export default function PedidosScreen() {
   const [justificativaAutorizacao, setJustificativaAutorizacao] = useState('')
 
   useEffect(() => {
-    loadPedidos()
-    
-    // Configurar realtime para atualizações de status
-    const subscription = subscribePedidosRealtime(supervisorId, (pedidosAtualizados) => {
-      console.log('📡 Pedidos atualizados via realtime:', pedidosAtualizados.length)
-      setPedidos(pedidosAtualizados)
-    })
+    const init = async () => {
+      // Carregar dados do usuário do AsyncStorage
+      const storedUserId = await AsyncStorage.getItem('userId')
+      const storedUserName = await AsyncStorage.getItem('userName')
+      const storedUserEmail = await AsyncStorage.getItem('userEmail')
+      
+      if (storedUserId) setSupervisorId(storedUserId)
+      if (storedUserName) setSupervisorNome(storedUserName)
+      if (storedUserEmail) setSupervisorEmail(storedUserEmail)
+      
+      if (!storedUserId) {
+        console.log('⚠️ Nenhum ID de supervisor encontrado')
+        setLoading(false)
+        return
+      }
+      
+      // Carregar pedidos
+      loadPedidos(storedUserId)
+      
+      // Configurar realtime para atualizações de status
+      const subscription = subscribePedidosRealtime(storedUserId, (pedidosAtualizados) => {
+        console.log('📡 Pedidos atualizados via realtime:', pedidosAtualizados.length)
+        setPedidos(pedidosAtualizados)
+      })
 
-    return () => {
-      subscription.unsubscribe()
+      return () => {
+        subscription.unsubscribe()
+      }
     }
+    
+    init()
   }, [])
 
   useEffect(() => {
     // Aplicar filtro quando mudar
-    loadPedidos()
-  }, [filter])
+    if (supervisorId) {
+      loadPedidos(supervisorId)
+    }
+  }, [filter, supervisorId])
 
-  const loadPedidos = async () => {
+  const loadPedidos = async (id?: string) => {
     try {
-      const pedidosData = await fetchMeusPedidos(supervisorId)
+      const idToUse = id || supervisorId
+      
+      if (!idToUse) {
+        console.log('⚠️ Nenhum ID de supervisor para carregar pedidos')
+        setLoading(false)
+        setRefreshing(false)
+        return
+      }
+      
+      const pedidosData = await fetchMeusPedidos(idToUse)
       
       // Aplicar filtro
       let pedidosFiltrados = pedidosData
@@ -209,10 +243,16 @@ export default function PedidosScreen() {
 
     setLoading(true)
     try {
+      if (!supervisorId || !supervisorNome || !supervisorEmail) {
+        Alert.alert('Erro', 'Dados do supervisor não encontrados. Faça login novamente.')
+        setLoading(false)
+        return
+      }
+      
       const novoPedido = await criarPedido({
         supervisor_id: supervisorId,
-        supervisor_nome: 'Supervisor Teste', // Será substituído pelo nome real
-        supervisor_email: 'supervisor@teste.com', // Será substituído pelo email real
+        supervisor_nome: supervisorNome,
+        supervisor_email: supervisorEmail,
         itens: itensPedido,
         urgencia: urgencia,
         observacoes: observacoes || undefined,

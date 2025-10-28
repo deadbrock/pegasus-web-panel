@@ -18,7 +18,7 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [userName, setUserName] = useState('Supervisor')
-  const [supervisorId, setSupervisorId] = useState('fake-supervisor-id')
+  const [supervisorId, setSupervisorId] = useState('')
   const [stats, setStats] = useState<Stats>({
     pedidos_ativos: 0,
     pedidos_pendentes: 0,
@@ -39,8 +39,16 @@ export default function DashboardScreen() {
       if (storedName) setUserName(storedName)
       if (storedUserId) setSupervisorId(storedUserId)
       
+      // Só carregar pedidos se tiver um ID válido
+      if (!storedUserId) {
+        console.log('⚠️ Nenhum ID de supervisor encontrado')
+        setLoading(false)
+        setRefreshing(false)
+        return
+      }
+      
       // Carregar pedidos do supervisor
-      const pedidos = await fetchMeusPedidos(storedUserId || 'fake-supervisor-id')
+      const pedidos = await fetchMeusPedidos(storedUserId)
       
       // Calcular estatísticas
       const ativos = pedidos.filter(p => 
