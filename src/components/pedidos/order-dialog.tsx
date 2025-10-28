@@ -35,7 +35,8 @@ const paymentOptions = [
   'Cartão',
   'Dinheiro',
   'Boleto',
-  'Transferência'
+  'Transferência',
+  'Material de Consumo'
 ]
 
 // Mock data para produtos e motoristas
