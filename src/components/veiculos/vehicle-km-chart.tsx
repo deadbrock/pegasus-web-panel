@@ -2,16 +2,28 @@
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
-const data = [
-  { placa: 'BRA-2023', kmMensal: 2850, kmTotal: 15680 },
-  { placa: 'BRA-2024', kmMensal: 3200, kmTotal: 45200 },
-  { placa: 'BRA-2025', kmMensal: 2100, kmTotal: 28900 },
-  { placa: 'BRA-2022', kmMensal: 4100, kmTotal: 67800 },
-  { placa: 'BRA-2026', kmMensal: 1800, kmTotal: 8500 },
-  { placa: 'BRA-2021', kmMensal: 0, kmTotal: 89200 }
-]
+interface KmData {
+  placa: string
+  kmTotal: number
+  kmMensal: number
+}
 
-export function VehicleKmChart() {
+interface VehicleKmChartProps {
+  data?: KmData[]
+}
+
+export function VehicleKmChart({ data }: VehicleKmChartProps) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="h-80 flex items-center justify-center text-gray-500">
+        <div className="text-center">
+          <p className="text-lg font-medium">Nenhum dado de quilometragem</p>
+          <p className="text-sm mt-2">Os dados aparecerão aqui quando houver veículos</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="h-80">
       <ResponsiveContainer width="100%" height="100%">
@@ -29,8 +41,8 @@ export function VehicleKmChart() {
           <YAxis />
           <Tooltip 
             formatter={(value: number, name: string) => {
-              if (name === 'kmMensal') return [`${value.toLocaleString()} km`, 'KM Este Mês']
-              return [`${value.toLocaleString()} km`, 'KM Total']
+              if (name === 'kmTotal') return [`${value.toLocaleString()} km`, 'KM Total']
+              return [`${value.toLocaleString()} km`, 'KM Este Mês']
             }}
             contentStyle={{
               backgroundColor: '#fff',
@@ -39,9 +51,9 @@ export function VehicleKmChart() {
             }}
           />
           <Bar 
-            dataKey="kmMensal" 
+            dataKey="kmTotal" 
             fill="#3b82f6" 
-            name="KM Este Mês"
+            name="KM Total"
             radius={[4, 4, 0, 0]}
           />
         </BarChart>

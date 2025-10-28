@@ -4,55 +4,54 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Calendar, Wrench, AlertTriangle, CheckCircle, Truck } from 'lucide-react'
+import { VehicleRecord } from '@/services/vehiclesService'
 
-const vehicleMaintenanceData = [
-  {
-    id: 1,
-    placa: 'BRA-2023',
-    modelo: 'Volkswagen Delivery',
-    status: 'Em Dia',
-    proximaManutencao: '2024-03-15',
-    diasRestantes: 45,
-    manutencoesPendentes: 0,
-    manutencoesConcluidas: 8,
-    custosAnuais: 3200
-  },
-  {
-    id: 2,
-    placa: 'BRA-2024',
-    modelo: 'Ford Cargo',
-    status: 'Atrasada',
-    proximaManutencao: '2024-01-10',
-    diasRestantes: -5,
-    manutencoesPendentes: 2,
-    manutencoesConcluidas: 12,
-    custosAnuais: 5800
-  },
-  {
-    id: 3,
-    placa: 'BRA-2025',
-    modelo: 'Mercedes Sprinter',
-    status: 'Próximo do Vencimento',
-    proximaManutencao: '2024-01-20',
-    diasRestantes: 5,
-    manutencoesPendentes: 1,
-    manutencoesConcluidas: 6,
-    custosAnuais: 2900
-  },
-  {
-    id: 4,
-    placa: 'BRA-2022',
-    modelo: 'Iveco Daily',
-    status: 'Em Dia',
-    proximaManutencao: '2024-02-25',
-    diasRestantes: 40,
-    manutencoesPendentes: 0,
-    manutencoesConcluidas: 15,
-    custosAnuais: 4100
+interface VehicleMaintenanceOverviewProps {
+  vehicles?: VehicleRecord[]
+}
+
+export function VehicleMaintenanceOverview({ vehicles }: VehicleMaintenanceOverviewProps) {
+  if (!vehicles || vehicles.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-12 text-gray-500">
+        <div className="text-center">
+          <Truck className="w-16 h-16 mx-auto mb-4 opacity-50" />
+          <p className="text-lg font-medium">Nenhum veículo encontrado</p>
+          <p className="text-sm mt-2">Cadastre veículos para ver o overview de manutenções</p>
+        </div>
+      </div>
+    )
   }
-]
 
-export function VehicleMaintenanceOverview() {
+  // Processar dados de manutenção
+  const vehicleMaintenanceData = vehicles
+    .filter(v => v.placa && v.modelo)
+    .map(v => {
+      const hoje = new Date()
+      let diasRestantes = 0
+      let status: 'Em Dia' | 'Próximo do Vencimento' | 'Atrasada' = 'Em Dia'
+      
+      if (v.proxima_manutencao) {
+        const dataManutencao = new Date(v.proxima_manutencao)
+        diasRestantes = Math.ceil((dataManutencao.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24))
+        
+        if (diasRestantes < 0) status = 'Atrasada'
+        else if (diasRestantes <= 7) status = 'Próximo do Vencimento'
+      }
+      
+      return {
+        id: v.id,
+        placa: v.placa || 'N/A',
+        modelo: v.modelo || 'N/A',
+        status,
+        proximaManutencao: v.proxima_manutencao,
+        diasRestantes,
+        manutencoesPendentes: diasRestantes < 0 ? 1 : 0,
+        manutencoesConcluidas: 0, // TODO: calcular quando houver histórico
+        custosAnuais: 0 // TODO: calcular quando houver histórico de custos
+      }
+    })
+    .slice(0, 4) // Top 4 veículos
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline', color: string }> = {
       'Em Dia': { variant: 'default', color: 'bg-green-500' },

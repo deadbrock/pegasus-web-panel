@@ -25,6 +25,7 @@ import { VehicleKmChart } from '@/components/veiculos/vehicle-km-chart'
 import { VehicleMaintenanceOverview } from '@/components/veiculos/vehicle-maintenance-overview'
 import { useEffect, useState } from 'react'
 import { fetchVehicles, createVehicle, updateVehicle, VehicleRecord } from '@/services/vehiclesService'
+import { calcularEstatisticasVeiculos, calcularKmPorVeiculo, calcularPerformanceFrota, buscarProximasManutencoes } from '@/services/vehiclesStatsService'
 import { useToast } from '@/hooks/use-toast'
 import { exportRelatorioFrota, exportHistoricoKm, exportCustosManutencaoTemplate, exportEficienciaCombustivelTemplate, exportAgendaManutencoesTemplate } from '@/components/veiculos/reports'
 
@@ -33,11 +34,31 @@ export default function VeiculosPage() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [selectedVehicle, setSelectedVehicle] = useState<VehicleRecord | null>(null)
   const [vehicles, setVehicles] = useState<VehicleRecord[]>([])
-  const { toast } = useToast()
+  const [stats, setStats] = useState<any>(null)
+  const [kmData, setKmData] = useState<any[]>([])
+  const [performance, setPerformance] = useState<any>(null)
+  const [proximasManutencoes, setProximasManutencoes] = useState<any[]>([])
+  const { toast} = useToast()
 
   const load = async () => {
     const rows = await fetchVehicles()
     setVehicles(rows)
+    
+    // Calcular estatísticas
+    const statistics = calcularEstatisticasVeiculos(rows)
+    setStats(statistics)
+    
+    // Calcular KM por veículo
+    const km = calcularKmPorVeiculo(rows)
+    setKmData(km)
+    
+    // Calcular performance
+    const perf = calcularPerformanceFrota(rows)
+    setPerformance(perf)
+    
+    // Buscar próximas manutenções
+    const manutencoes = buscarProximasManutencoes(rows)
+    setProximasManutencoes(manutencoes)
   }
 
   useEffect(() => {
@@ -108,33 +129,33 @@ export default function VeiculosPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
           title="Frota Total"
-          value="27"
-          change="+2"
-          changeType="positive"
+          value={stats?.total?.toString() || '0'}
+          change={stats?.total > 0 ? `+${stats.total}` : '0'}
+          changeType="neutral"
           icon={Truck}
           description="Veículos cadastrados"
         />
         <MetricCard
           title="Veículos Ativos"
-          value="24"
-          change="+1"
+          value={stats?.ativos?.toString() || '0'}
+          change={stats?.total > 0 ? `${((stats.ativos / stats.total) * 100).toFixed(0)}%` : '0%'}
           changeType="positive"
           icon={TrendingUp}
           description="Em operação"
         />
         <MetricCard
           title="Em Manutenção"
-          value="3"
-          change="-1"
-          changeType="positive"
+          value={stats?.emManutencao?.toString() || '0'}
+          change={stats?.emManutencao > 0 ? `${stats.emManutencao} veículos` : 'Nenhum'}
+          changeType={stats?.emManutencao > 0 ? 'negative' : 'neutral'}
           icon={Wrench}
           description="Indisponíveis"
         />
         <MetricCard
           title="KM Total da Frota"
-          value="1.246.580"
-          change="+15.2%"
-          changeType="positive"
+          value={stats?.kmTotal?.toLocaleString('pt-BR') || '0'}
+          change={stats?.kmTotal > 0 ? 'KM acumulado' : '0 KM'}
+          changeType="neutral"
           icon={MapPin}
           description="Quilometragem acumulada"
         />
@@ -159,7 +180,7 @@ export default function VeiculosPage() {
                 <CardTitle>Status da Frota</CardTitle>
               </CardHeader>
               <CardContent>
-                <VehicleStatusChart />
+                <VehicleStatusChart data={stats?.porStatus} />
               </CardContent>
             </Card>
 
@@ -172,39 +193,52 @@ export default function VeiculosPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                    <div>
-                      <p className="font-medium">BRA-2023</p>
-                      <p className="text-sm text-gray-600">Revisão - Amanhã</p>
-                    </div>
-                    <Wrench className="w-5 h-5 text-yellow-600" />
+                {proximasManutencoes.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p className="text-sm">Nenhuma manutenção agendada</p>
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                    <div>
-                      <p className="font-medium">BRA-2024</p>
-                      <p className="text-sm text-gray-600">Troca de Óleo - Atrasada</p>
-                    </div>
-                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                ) : (
+                  <div className="space-y-4">
+                    {proximasManutencoes.map((manutencao, idx) => {
+                      const config = {
+                        atrasada: { bg: 'bg-red-50', icon: AlertTriangle, color: 'text-red-600', label: 'Atrasada' },
+                        urgente: { bg: 'bg-yellow-50', icon: Wrench, color: 'text-yellow-600', label: 'Urgente' },
+                        proxima: { bg: 'bg-blue-50', icon: Truck, color: 'text-blue-600', label: 'Próxima' }
+                      }
+                      const cfg = config[manutencao.status as keyof typeof config] || config.proxima
+                      const Icon = cfg.icon
+                      
+                      return (
+                        <div key={idx} className={`flex items-center justify-between p-3 ${cfg.bg} rounded-lg`}>
+                          <div>
+                            <p className="font-medium">{manutencao.placa}</p>
+                            <p className="text-sm text-gray-600">
+                              {manutencao.modelo} - {manutencao.diasRestantes < 0 
+                                ? `${Math.abs(manutencao.diasRestantes)} dias atrasada` 
+                                : manutencao.diasRestantes === 0 
+                                ? 'Hoje'
+                                : manutencao.diasRestantes === 1
+                                ? 'Amanhã'
+                                : `Em ${manutencao.diasRestantes} dias`}
+                            </p>
+                          </div>
+                          <Icon className={`w-5 h-5 ${cfg.color}`} />
+                        </div>
+                      )
+                    })}
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                    <div>
-                      <p className="font-medium">BRA-2025</p>
-                      <p className="text-sm text-gray-600">Pneus - Em 3 dias</p>
-                    </div>
-                    <Truck className="w-5 h-5 text-blue-600" />
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
 
             {/* Vehicle Usage */}
             <Card className="lg:col-span-2">
               <CardHeader>
-                <CardTitle>Quilometragem por Veículo - Últimos 6 meses</CardTitle>
+                <CardTitle>Quilometragem por Veículo - Top 6</CardTitle>
               </CardHeader>
               <CardContent>
-                <VehicleKmChart />
+                <VehicleKmChart data={kmData} />
               </CardContent>
             </Card>
           </div>
@@ -241,7 +275,7 @@ export default function VeiculosPage() {
               <CardTitle>Overview de Manutenções por Veículo</CardTitle>
             </CardHeader>
             <CardContent>
-              <VehicleMaintenanceOverview />
+              <VehicleMaintenanceOverview vehicles={vehicles} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -249,32 +283,36 @@ export default function VeiculosPage() {
         {/* Analytics Tab */}
         <TabsContent value="analytics" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Fuel Efficiency */}
+            {/* Fleet Summary */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Fuel className="w-5 h-5" />
-                  Eficiência de Combustível
+                  <Truck className="w-5 h-5" />
+                  Resumo da Frota
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Média da Frota</span>
-                    <span className="font-semibold">12.5 km/l</span>
+                    <span className="text-sm text-gray-600">Total de Veículos</span>
+                    <span className="font-semibold">{stats?.total || 0}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Melhor Performance</span>
-                    <span className="font-semibold text-green-600">16.2 km/l</span>
+                    <span className="text-sm text-gray-600">Veículos Ativos</span>
+                    <span className="font-semibold text-green-600">{stats?.ativos || 0}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Pior Performance</span>
-                    <span className="font-semibold text-red-600">8.1 km/l</span>
+                    <span className="text-sm text-gray-600">Em Manutenção</span>
+                    <span className="font-semibold text-orange-600">{stats?.emManutencao || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Inativos</span>
+                    <span className="font-semibold text-gray-600">{stats?.inativos || 0}</span>
                   </div>
                   <div className="pt-2 border-t">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Economia Mensal</span>
-                      <span className="font-semibold">R$ 2.450</span>
+                      <span className="text-sm text-gray-600">KM Total</span>
+                      <span className="font-semibold">{stats?.kmTotal?.toLocaleString('pt-BR') || 0} km</span>
                     </div>
                   </div>
                 </div>
@@ -287,44 +325,36 @@ export default function VeiculosPage() {
                 <CardTitle>Idade da Frota</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">0-2 anos</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-20 bg-gray-200 rounded-full h-2">
-                        <div className="bg-green-600 h-2 rounded-full w-[60%]"></div>
-                      </div>
-                      <span className="font-semibold">6</span>
-                    </div>
+                {stats?.total === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <p className="text-sm">Nenhum veículo cadastrado</p>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">3-5 anos</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-20 bg-gray-200 rounded-full h-2">
-                        <div className="bg-blue-600 h-2 rounded-full w-[80%]"></div>
-                      </div>
-                      <span className="font-semibold">12</span>
-                    </div>
+                ) : (
+                  <div className="space-y-4">
+                    {Object.entries(stats?.porIdade || {}).map(([faixa, qtd]: [string, any]) => {
+                      const percentage = stats.total > 0 ? (qtd / stats.total) * 100 : 0
+                      const colors = {
+                        '0-2 anos': 'bg-green-600',
+                        '3-5 anos': 'bg-blue-600',
+                        '6-10 anos': 'bg-orange-600',
+                        '+10 anos': 'bg-red-600'
+                      }
+                      const color = colors[faixa as keyof typeof colors] || 'bg-gray-600'
+                      
+                      return (
+                        <div key={faixa} className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">{faixa}</span>
+                          <div className="flex items-center gap-2">
+                            <div className="w-20 bg-gray-200 rounded-full h-2">
+                              <div className={`${color} h-2 rounded-full`} style={{ width: `${percentage}%` }}></div>
+                            </div>
+                            <span className="font-semibold w-8 text-right">{qtd}</span>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">6-10 anos</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-20 bg-gray-200 rounded-full h-2">
-                        <div className="bg-orange-600 h-2 rounded-full w-[40%]"></div>
-                      </div>
-                      <span className="font-semibold">7</span>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">+10 anos</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-20 bg-gray-200 rounded-full h-2">
-                        <div className="bg-red-600 h-2 rounded-full w-[15%]"></div>
-                      </div>
-                      <span className="font-semibold">2</span>
-                    </div>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -366,35 +396,41 @@ export default function VeiculosPage() {
                 <CardTitle>Métricas de Performance</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Disponibilidade da Frota</span>
-                      <span>89%</span>
+                {stats?.total === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <p className="text-sm">Nenhum veículo cadastrado</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span>Disponibilidade da Frota</span>
+                        <span>{performance?.disponibilidade || 0}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className="bg-green-600 h-2 rounded-full" style={{ width: `${performance?.disponibilidade || 0}%` }}></div>
+                      </div>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-green-600 h-2 rounded-full w-[89%]"></div>
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span>Eficiência Operacional</span>
+                        <span>{performance?.eficienciaOperacional || 0}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${performance?.eficienciaOperacional || 0}%` }}></div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span>Manutenções em Dia</span>
+                        <span>{performance?.manutencoesEmDia || 0}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className="bg-orange-600 h-2 rounded-full" style={{ width: `${performance?.manutencoesEmDia || 0}%` }}></div>
+                      </div>
                     </div>
                   </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Eficiência Operacional</span>
-                      <span>92%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-blue-600 h-2 rounded-full w-[92%]"></div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Manutenções em Dia</span>
-                      <span>78%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-orange-600 h-2 rounded-full w-[78%]"></div>
-                    </div>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </div>
