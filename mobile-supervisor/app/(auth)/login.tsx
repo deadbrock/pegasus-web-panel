@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { View, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native'
 import { TextInput, Button, Text } from 'react-native-paper'
 import { router } from 'expo-router'
+import { supabase } from '../../services/supabase'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('')
@@ -17,16 +19,45 @@ export default function LoginScreen() {
 
     setLoading(true)
     
-    // LOGIN FAKE PARA TESTE
-    setTimeout(() => {
-      if (email === 'teste@teste.com' && password === '123456') {
-        Alert.alert('Sucesso!', 'Login realizado')
-        router.replace('/(tabs)/dashboard')
-      } else {
-        Alert.alert('Erro', 'Use: teste@teste.com / 123456')
+    try {
+      // Autenticação real com Supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password
+      })
+
+      if (error) {
+        throw error
       }
+
+      if (data.user) {
+        // Salvar dados do usuário no AsyncStorage
+        await AsyncStorage.setItem('userId', data.user.id)
+        await AsyncStorage.setItem('userEmail', data.user.email || '')
+        await AsyncStorage.setItem('userName', data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'Supervisor')
+        
+        console.log('✅ Login bem-sucedido:', data.user.email)
+        
+        // Ir para dashboard
+        router.replace('/(tabs)/dashboard')
+      }
+    } catch (error: any) {
+      console.error('❌ Erro no login:', error)
+      
+      let mensagemErro = 'Não foi possível fazer login. Verifique suas credenciais.'
+      
+      if (error.message?.includes('Invalid login credentials')) {
+        mensagemErro = 'Email ou senha inválidos'
+      } else if (error.message?.includes('Email not confirmed')) {
+        mensagemErro = 'Email não confirmado. Verifique sua caixa de entrada.'
+      } else if (error.message) {
+        mensagemErro = error.message
+      }
+      
+      Alert.alert('Erro no Login', mensagemErro)
+    } finally {
       setLoading(false)
-    }, 1000)
+    }
   }
 
   return (

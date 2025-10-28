@@ -129,6 +129,7 @@ export default function PedidosScreen() {
     setObservacoes('')
     setSearchQuery('')
     setJustificativaAutorizacao('')
+    setItensPedido([]) // Limpar itens ao abrir novo pedido
     setNovoPedidoVisible(true)
     
     // Carregar produtos do estoque
@@ -161,15 +162,48 @@ export default function PedidosScreen() {
   const handleSelecionarProduto = (produto: Produto) => {
     setProdutoSelecionado(produto)
     setUnidade(produto.unidade || 'UN')
+    setQuantidade('') // Resetar quantidade para novo produto
   }
 
-  const handleSalvarPedido = async () => {
+  const handleAdicionarItem = () => {
     if (!produtoSelecionado) {
-      Alert.alert('Erro', 'Selecione um produto da lista')
+      Alert.alert('Erro', 'Selecione um produto')
       return
     }
     if (!quantidade || Number(quantidade) <= 0) {
       Alert.alert('Erro', 'Quantidade inválida')
+      return
+    }
+
+    const novoItem: ItemPedido = {
+      produto_id: produtoSelecionado.id,
+      produto_codigo: produtoSelecionado.codigo || produtoSelecionado.id,
+      produto_nome: produtoSelecionado.nome,
+      quantidade: Number(quantidade),
+      unidade: unidade,
+      observacoes: null
+    }
+
+    setItensPedido([...itensPedido, novoItem])
+    
+    // Resetar seleção para adicionar próximo produto
+    setProdutoSelecionado(null)
+    setQuantidade('')
+    setUnidade('UN')
+    setSearchQuery('')
+    
+    Alert.alert('✅ Produto Adicionado', `${novoItem.quantidade} ${novoItem.unidade} de ${novoItem.produto_nome} adicionado ao pedido`)
+  }
+
+  const handleRemoverItem = (index: number) => {
+    const novoArray = itensPedido.filter((_, i) => i !== index)
+    setItensPedido(novoArray)
+  }
+
+  const handleSalvarPedido = async () => {
+    // Validar se tem itens no pedido
+    if (itensPedido.length === 0) {
+      Alert.alert('Erro', 'Adicione pelo menos um produto ao pedido')
       return
     }
 
@@ -179,10 +213,7 @@ export default function PedidosScreen() {
         supervisor_id: supervisorId,
         supervisor_nome: 'Supervisor Teste', // Será substituído pelo nome real
         supervisor_email: 'supervisor@teste.com', // Será substituído pelo email real
-        produto_id: produtoSelecionado.id,
-        produto_nome: produtoSelecionado.nome,
-        quantidade: Number(quantidade),
-        unidade: unidade,
+        itens: itensPedido,
         urgencia: urgencia,
         observacoes: observacoes || undefined,
         requer_autorizacao: requerAutorizacao,
@@ -192,16 +223,19 @@ export default function PedidosScreen() {
       if (novoPedido) {
         setNovoPedidoVisible(false)
         
+        const totalItens = itensPedido.length
+        const resumoItens = itensPedido.map(item => `${item.quantidade} ${item.unidade} de ${item.produto_nome}`).join('\n')
+        
         if (requerAutorizacao) {
           Alert.alert(
             '✅ Autorização Solicitada!',
-            `Seu pedido de ${quantidade} ${unidade} de ${produtoSelecionado.nome} foi enviado para aprovação.\n\nVocê será notificado quando for aprovado.`,
+            `Seu pedido com ${totalItens} produto(s) foi enviado para aprovação:\n\n${resumoItens}\n\nVocê será notificado quando for aprovado.`,
             [{ text: 'OK' }]
           )
         } else {
           Alert.alert(
             '✅ Pedido Criado!',
-            `Pedido #${novoPedido.numero_pedido} foi enviado com sucesso!\n\nStatus atual: ${novoPedido.status}`,
+            `Pedido #${novoPedido.numero_pedido} criado com sucesso!\n\nProdutos:\n${resumoItens}\n\nStatus: ${novoPedido.status}`,
             [{ text: 'OK' }]
           )
         }
@@ -536,25 +570,32 @@ export default function PedidosScreen() {
               </View>
             )}
 
+            {/* Itens já Adicionados */}
+            {itensPedido.length > 0 && (
+              <View style={styles.itensAdicionadosContainer}>
+                <Text style={styles.itensAdicionadosLabel}>
+                  Produtos no Pedido ({itensPedido.length}):
+                </Text>
+                {itensPedido.map((item, index) => (
+                  <View key={index} style={styles.itemAdicionado}>
+                    <MaterialCommunityIcons name="package-variant" size={18} color="#3b82f6" />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.itemNome}>{item.produto_nome}</Text>
+                      <Text style={styles.itemQuantidade}>
+                        {item.quantidade} {item.unidade}
+                      </Text>
+                    </View>
+                    <TouchableOpacity onPress={() => handleRemoverItem(index)}>
+                      <MaterialCommunityIcons name="close-circle" size={24} color="#ef4444" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+
             {/* Formulário (só aparece depois de selecionar produto) */}
             {produtoSelecionado && (
               <View style={{ gap: 12, marginTop: 16 }}>
-                {/* Aviso de Autorização */}
-                {requerAutorizacao && (
-                  <View style={styles.avisoAutorizacao}>
-                    <MaterialCommunityIcons name="alert-circle" size={20} color="#f59e0b" />
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.avisoAutorizacaoTitulo}>Pedido Requer Autorização</Text>
-                      <Text style={styles.avisoAutorizacaoTexto}>
-                        Este pedido será enviado para aprovação do painel web.
-                      </Text>
-                      <Text style={styles.avisoAutorizacaoJustificativa}>
-                        Justificativa: {justificativaAutorizacao}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <TextInput
                     label="Quantidade"
@@ -573,6 +614,36 @@ export default function PedidosScreen() {
                     style={{ flex: 1 }}
                   />
                 </View>
+
+                <Button 
+                  mode="contained" 
+                  onPress={handleAdicionarItem}
+                  icon="plus"
+                  style={{ marginTop: 8 }}
+                >
+                  Adicionar ao Pedido
+                </Button>
+              </View>
+            )}
+
+            {/* Configurações Gerais do Pedido (só aparece se tiver itens) */}
+            {itensPedido.length > 0 && !produtoSelecionado && (
+              <View style={{ gap: 12, marginTop: 16 }}>
+                {/* Aviso de Autorização */}
+                {requerAutorizacao && (
+                  <View style={styles.avisoAutorizacao}>
+                    <MaterialCommunityIcons name="alert-circle" size={20} color="#f59e0b" />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.avisoAutorizacaoTitulo}>Pedido Requer Autorização</Text>
+                      <Text style={styles.avisoAutorizacaoTexto}>
+                        Este pedido será enviado para aprovação do painel web.
+                      </Text>
+                      <Text style={styles.avisoAutorizacaoJustificativa}>
+                        Justificativa: {justificativaAutorizacao}
+                      </Text>
+                    </View>
+                  </View>
+                )}
 
                 <View>
                   <Text style={{ fontSize: 12, color: '#6b7280', marginBottom: 8 }}>Urgência:</Text>
@@ -605,8 +676,10 @@ export default function PedidosScreen() {
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setNovoPedidoVisible(false)}>Cancelar</Button>
-            {produtoSelecionado && (
-              <Button onPress={handleSalvarPedido} mode="contained">Enviar Pedido</Button>
+            {itensPedido.length > 0 && !produtoSelecionado && (
+              <Button onPress={handleSalvarPedido} mode="contained" icon="send">
+                Enviar Pedido
+              </Button>
             )}
           </Dialog.Actions>
         </Dialog>
@@ -817,6 +890,41 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#78350f',
     fontWeight: '500',
+  },
+  itensAdicionadosContainer: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: '#f0f9ff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  itensAdicionadosLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1e40af',
+    marginBottom: 12,
+  },
+  itemAdicionado: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 10,
+    backgroundColor: 'white',
+    borderRadius: 6,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  itemNome: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1f2937',
+  },
+  itemQuantidade: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 2,
   },
 })
 
