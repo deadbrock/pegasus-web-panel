@@ -192,68 +192,71 @@ export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
             {orders.map((order) => (
               <Card key={order.id} className="hover:shadow-md transition-shadow cursor-pointer">
                 <CardContent className="p-4">
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {/* Header */}
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-sm font-medium">{order.id}</span>
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <span className="font-mono text-xs font-semibold text-gray-900">{order.id}</span>
                       {getPriorityBadge(order.prioridade)}
                     </div>
 
                     {/* Cliente */}
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm font-medium truncate">{order.cliente}</span>
-                    </div>
+                    {order.cliente && (
+                      <div className="flex items-start gap-2">
+                        <User className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                        <span className="text-sm font-medium text-gray-900 line-clamp-2">{order.cliente}</span>
+                      </div>
+                    )}
 
                     {/* Endereço */}
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-gray-500" />
-                      <span className="text-xs text-gray-600 truncate">{order.endereco}</span>
-                    </div>
+                    {order.endereco && (
+                      <div className="flex items-start gap-2">
+                        <MapPin className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                        <span className="text-xs text-gray-600 line-clamp-1">{order.endereco}</span>
+                      </div>
+                    )}
 
                     {/* Valor e Itens */}
-                    <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                       <div className="flex items-center gap-1">
-                        <DollarSign className="w-4 h-4 text-green-500" />
-                        <span className="font-medium">{formatCurrency(order.valor)}</span>
+                        <DollarSign className="w-4 h-4 text-green-600" />
+                        <span className="text-sm font-semibold text-green-700">{formatCurrency(order.valor)}</span>
                       </div>
-                      <span className="text-gray-600">{order.itens} itens</span>
+                      {order.itens > 0 && (
+                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                          {order.itens} {order.itens === 1 ? 'item' : 'itens'}
+                        </span>
+                      )}
                     </div>
 
                     {/* Motorista (se houver) */}
                     {(order as any).motorista && (
-                      <div className="flex items-center gap-2">
-                        <Truck className="w-4 h-4 text-blue-500" />
-                        <span className="text-xs text-blue-600">{(order as any).motorista}</span>
+                      <div className="flex items-center gap-2 bg-blue-50 p-2 rounded">
+                        <Truck className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                        <span className="text-xs text-blue-700 font-medium truncate">{(order as any).motorista}</span>
                       </div>
                     )}
 
                     {/* Dias de atraso (se houver) */}
                     {(order as any).diasAtraso && (
-                      <div className="flex items-center gap-2 text-red-600">
-                        <AlertTriangle className="w-4 h-4" />
-                        <span className="text-xs font-medium">
-                          {(order as any).diasAtraso} dias de atraso
+                      <div className="flex items-center gap-2 bg-red-50 p-2 rounded">
+                        <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
+                        <span className="text-xs font-semibold text-red-700">
+                          {(order as any).diasAtraso} {(order as any).diasAtraso === 1 ? 'dia' : 'dias'} de atraso
                         </span>
                       </div>
                     )}
 
                     {/* Actions */}
-                    <div className="flex gap-2 pt-2 border-t">
+                    <div className="pt-3 border-t border-gray-100">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1"
+                        className="w-full"
                         onClick={() => onEdit(order)}
                       >
-                        <Edit className="w-3 h-3 mr-1" />
+                        <Edit className="w-3 h-3 mr-2" />
                         Editar
                       </Button>
-                      <div className="flex gap-2">
-                        {statuses.filter(s => s !== status).map(s => (
-                          <Button key={s} variant="ghost" size="sm" onClick={() => handleMove(order.id, s)}>{s}</Button>
-                        ))}
-                      </div>
                     </div>
                   </div>
                 </CardContent>
