@@ -5,51 +5,20 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Calendar, FileText, AlertTriangle, CheckCircle, Upload } from 'lucide-react'
 
-// Mock data - substituir por dados do Supabase
-const documentsData = [
-  {
-    id: 1,
-    motorista: 'João Silva',
-    cnh: { status: 'Vencendo', vencimento: '2024-01-30', dias: 15 },
-    exameMedico: { status: 'Em Dia', vencimento: '2024-06-15', dias: 150 },
-    certidaoAntecedentes: { status: 'Em Dia', vencimento: '2024-08-20', dias: 216 },
-    cursoDefensiva: { status: 'Pendente', vencimento: '2024-02-01', dias: 17 }
-  },
-  {
-    id: 2,
-    motorista: 'Maria Santos',
-    cnh: { status: 'Vencendo', vencimento: '2024-02-10', dias: 26 },
-    exameMedico: { status: 'Em Dia', vencimento: '2024-07-30', dias: 196 },
-    certidaoAntecedentes: { status: 'Em Dia', vencimento: '2024-09-15', dias: 242 },
-    cursoDefensiva: { status: 'Em Dia', vencimento: '2024-05-10', dias: 115 }
-  },
-  {
-    id: 3,
-    motorista: 'Pedro Costa',
-    cnh: { status: 'Em Dia', vencimento: '2025-08-20', dias: 587 },
-    exameMedico: { status: 'Vencendo', vencimento: '2024-01-25', dias: 10 },
-    certidaoAntecedentes: { status: 'Em Dia', vencimento: '2024-12-01', dias: 320 },
-    cursoDefensiva: { status: 'Em Dia', vencimento: '2024-04-15', dias: 90 }
-  },
-  {
-    id: 4,
-    motorista: 'Ana Oliveira',
-    cnh: { status: 'Em Dia', vencimento: '2024-11-30', dias: 319 },
-    exameMedico: { status: 'Em Dia', vencimento: '2024-10-15', dias: 273 },
-    certidaoAntecedentes: { status: 'Vencida', vencimento: '2024-01-10', dias: -5 },
-    cursoDefensiva: { status: 'Em Dia', vencimento: '2024-03-20', dias: 64 }
-  },
-  {
-    id: 5,
-    motorista: 'Carlos Lima',
-    cnh: { status: 'Em Dia', vencimento: '2026-03-18', dias: 798 },
-    exameMedico: { status: 'Em Dia', vencimento: '2024-09-30', dias: 258 },
-    certidaoAntecedentes: { status: 'Em Dia', vencimento: '2024-11-15', dias: 304 },
-    cursoDefensiva: { status: 'Em Dia', vencimento: '2024-06-30', dias: 166 }
-  }
-]
+type DocumentosStatusType = {
+  vencidos: number
+  vencendo: number
+  pendentes: number
+  emDia: number
+}
 
-export function DriverDocumentsStatus() {
+type DriverDocumentsStatusProps = {
+  statusSummary?: DocumentosStatusType
+}
+
+export function DriverDocumentsStatus({ statusSummary }: DriverDocumentsStatusProps) {
+  const documentsData: any[] = [] // Pode ser expandido para exibir tabela completa de documentos
+  const summary = statusSummary || { vencidos: 0, vencendo: 0, pendentes: 0, emDia: 0 }
   const getStatusBadge = (status: string, dias: number) => {
     if (status === 'Vencida' || dias < 0) {
       return <Badge variant="destructive">Vencida</Badge>
@@ -97,28 +66,28 @@ export function DriverDocumentsStatus() {
             <AlertTriangle className="w-5 h-5 text-red-600" />
             <span className="font-medium text-red-800">Documentos Vencidos</span>
           </div>
-          <p className="text-2xl font-bold text-red-600 mt-2">1</p>
+          <p className="text-2xl font-bold text-red-600 mt-2">{summary.vencidos}</p>
         </div>
         <div className="bg-orange-50 p-4 rounded-lg">
           <div className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-orange-600" />
             <span className="font-medium text-orange-800">Vencendo (30 dias)</span>
           </div>
-          <p className="text-2xl font-bold text-orange-600 mt-2">3</p>
+          <p className="text-2xl font-bold text-orange-600 mt-2">{summary.vencendo}</p>
         </div>
         <div className="bg-gray-50 p-4 rounded-lg">
           <div className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-gray-600" />
             <span className="font-medium text-gray-800">Pendentes</span>
           </div>
-          <p className="text-2xl font-bold text-gray-600 mt-2">1</p>
+          <p className="text-2xl font-bold text-gray-600 mt-2">{summary.pendentes}</p>
         </div>
         <div className="bg-green-50 p-4 rounded-lg">
           <div className="flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-green-600" />
             <span className="font-medium text-green-800">Em Dia</span>
           </div>
-          <p className="text-2xl font-bold text-green-600 mt-2">15</p>
+          <p className="text-2xl font-bold text-green-600 mt-2">{summary.emDia}</p>
         </div>
       </div>
 
@@ -136,7 +105,18 @@ export function DriverDocumentsStatus() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {documentsData.map((driver) => (
+            {documentsData.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-24 text-center text-gray-500">
+                  <div className="flex flex-col items-center justify-center">
+                    <FileText className="w-12 h-12 mb-2 text-gray-400" />
+                    <p>Nenhum documento para exibir</p>
+                    <p className="text-sm mt-1">Os documentos dos motoristas aparecerão aqui</p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              documentsData.map((driver) => (
               <TableRow key={driver.id}>
                 <TableCell>
                   <div className="font-medium">{driver.motorista}</div>
@@ -196,7 +176,8 @@ export function DriverDocumentsStatus() {
                   </Button>
                 </TableCell>
               </TableRow>
-            ))}
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

@@ -5,82 +5,39 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Users, Award, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 
-const driverPerformanceData = [
-  {
-    id: 1,
-    nome: 'Carlos Lima',
-    pontuacao: 96,
-    tendencia: 'up',
-    variacao: '+3%',
-    entregas: 28,
-    pontualidade: 98,
-    seguranca: 95,
-    eficiencia: 94,
-    satisfacao: 97
-  },
-  {
-    id: 2,
-    nome: 'Ana Oliveira',
-    pontuacao: 94,
-    tendencia: 'up',
-    variacao: '+1%',
-    entregas: 24,
-    pontualidade: 96,
-    seguranca: 93,
-    eficiencia: 92,
-    satisfacao: 95
-  },
-  {
-    id: 3,
-    nome: 'João Silva',
-    pontuacao: 92,
-    tendencia: 'down',
-    variacao: '-2%',
-    entregas: 26,
-    pontualidade: 89,
-    seguranca: 97,
-    eficiencia: 90,
-    satisfacao: 92
-  },
-  {
-    id: 4,
-    nome: 'Maria Santos',
-    pontuacao: 89,
-    tendencia: 'stable',
-    variacao: '0%',
-    entregas: 22,
-    pontualidade: 92,
-    seguranca: 88,
-    eficiencia: 87,
-    satisfacao: 89
-  },
-  {
-    id: 5,
-    nome: 'Pedro Costa',
-    pontuacao: 85,
-    tendencia: 'up',
-    variacao: '+4%',
-    entregas: 18,
-    pontualidade: 85,
-    seguranca: 82,
-    eficiencia: 89,
-    satisfacao: 84
-  },
-  {
-    id: 6,
-    nome: 'Roberto Silva',
-    pontuacao: 78,
-    tendencia: 'down',
-    variacao: '-5%',
-    entregas: 12,
-    pontualidade: 76,
-    seguranca: 81,
-    eficiencia: 75,
-    satisfacao: 80
-  }
-]
+type DriverPerformance = {
+  id: string | number
+  nome: string
+  pontuacao: number
+  tendencia?: 'up' | 'down' | 'stable'
+  variacao?: string
+  entregas?: number
+  pontualidade?: number
+  seguranca?: number
+  eficiencia?: number
+  satisfacao?: number
+}
 
-export function DriverPerformanceOverview() {
+type DriverPerformanceOverviewProps = {
+  data?: DriverPerformance[]
+}
+
+export function DriverPerformanceOverview({ data }: DriverPerformanceOverviewProps) {
+  const driverPerformanceData = data || []
+  
+  if (driverPerformanceData.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64 text-gray-500">
+        <div className="text-center">
+          <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+          <p className="text-lg font-medium">Nenhum dado de performance disponível</p>
+          <p className="text-sm mt-2">Os dados de performance dos motoristas aparecerão aqui</p>
+        </div>
+      </div>
+    )
+  }
+  
+
   const getPerformanceBadge = (pontuacao: number) => {
     if (pontuacao >= 95) return <Badge variant="default" className="bg-green-600">Excelente</Badge>
     if (pontuacao >= 90) return <Badge variant="default" className="bg-blue-600">Muito Bom</Badge>
@@ -146,19 +103,19 @@ export function DriverPerformanceOverview() {
             <div className="space-y-2 pt-2 border-t">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Pontualidade</span>
-                <span className="font-medium">{driver.pontualidade}%</span>
+                <span className="font-medium">{driver.pontualidade || 0}%</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Segurança</span>
-                <span className="font-medium">{driver.seguranca}%</span>
+                <span className="font-medium">{driver.seguranca || 0}%</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Eficiência</span>
-                <span className="font-medium">{driver.eficiencia}%</span>
+                <span className="font-medium">{driver.eficiencia || 0}%</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Satisfação</span>
-                <span className="font-medium">{driver.satisfacao}%</span>
+                <span className="font-medium">{driver.satisfacao || 0}%</span>
               </div>
             </div>
 
@@ -166,29 +123,29 @@ export function DriverPerformanceOverview() {
             <div className="flex justify-between pt-2 border-t">
               <div className="text-center">
                 <div className={`w-3 h-3 rounded-full mx-auto ${
-                  driver.pontualidade >= 90 ? 'bg-green-500' : 
-                  driver.pontualidade >= 80 ? 'bg-yellow-500' : 'bg-red-500'
+                  (driver.pontualidade || 0) >= 90 ? 'bg-green-500' : 
+                  (driver.pontualidade || 0) >= 80 ? 'bg-yellow-500' : 'bg-red-500'
                 }`}></div>
                 <p className="text-xs text-gray-600 mt-1">Pontual</p>
               </div>
               <div className="text-center">
                 <div className={`w-3 h-3 rounded-full mx-auto ${
-                  driver.seguranca >= 90 ? 'bg-green-500' : 
-                  driver.seguranca >= 80 ? 'bg-yellow-500' : 'bg-red-500'
+                  (driver.seguranca || 0) >= 90 ? 'bg-green-500' : 
+                  (driver.seguranca || 0) >= 80 ? 'bg-yellow-500' : 'bg-red-500'
                 }`}></div>
                 <p className="text-xs text-gray-600 mt-1">Seguro</p>
               </div>
               <div className="text-center">
                 <div className={`w-3 h-3 rounded-full mx-auto ${
-                  driver.eficiencia >= 90 ? 'bg-green-500' : 
-                  driver.eficiencia >= 80 ? 'bg-yellow-500' : 'bg-red-500'
+                  (driver.eficiencia || 0) >= 90 ? 'bg-green-500' : 
+                  (driver.eficiencia || 0) >= 80 ? 'bg-yellow-500' : 'bg-red-500'
                 }`}></div>
                 <p className="text-xs text-gray-600 mt-1">Eficiente</p>
               </div>
               <div className="text-center">
                 <div className={`w-3 h-3 rounded-full mx-auto ${
-                  driver.satisfacao >= 90 ? 'bg-green-500' : 
-                  driver.satisfacao >= 80 ? 'bg-yellow-500' : 'bg-red-500'
+                  (driver.satisfacao || 0) >= 90 ? 'bg-green-500' : 
+                  (driver.satisfacao || 0) >= 80 ? 'bg-yellow-500' : 'bg-red-500'
                 }`}></div>
                 <p className="text-xs text-gray-600 mt-1">Satisfação</p>
               </div>

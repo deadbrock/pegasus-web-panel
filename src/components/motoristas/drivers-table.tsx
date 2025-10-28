@@ -6,93 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Edit, Eye, Phone, Calendar, CreditCard, AlertTriangle, Users } from 'lucide-react'
 import { DriverRecord } from '@/services/driversService'
 
-// Mock data - usado quando não há dados do Supabase
-const driversData = [
-  {
-    id: 1,
-    nome: 'João Silva',
-    cpf: '123.456.789-00',
-    telefone: '(11) 98765-4321',
-    email: 'joao.silva@email.com',
-    cnh: '12345678901',
-    categoria: 'D',
-    validadeCnh: '2024-12-15',
-    status: 'Ativo',
-    ultimaViagem: '2024-01-14',
-    totalViagens: 156,
-    pontuacao: 92
-  },
-  {
-    id: 2,
-    nome: 'Maria Santos',
-    cpf: '234.567.890-11',
-    telefone: '(11) 98765-4322',
-    email: 'maria.santos@email.com',
-    cnh: '23456789012',
-    categoria: 'D',
-    validadeCnh: '2024-02-10',
-    status: 'Ativo',
-    ultimaViagem: '2024-01-15',
-    totalViagens: 203,
-    pontuacao: 96
-  },
-  {
-    id: 3,
-    nome: 'Pedro Costa',
-    cpf: '345.678.901-22',
-    telefone: '(11) 98765-4323',
-    email: 'pedro.costa@email.com',
-    cnh: '34567890123',
-    categoria: 'C',
-    validadeCnh: '2025-08-20',
-    status: 'Ativo',
-    ultimaViagem: '2024-01-12',
-    totalViagens: 89,
-    pontuacao: 85
-  },
-  {
-    id: 4,
-    nome: 'Ana Oliveira',
-    cpf: '456.789.012-33',
-    telefone: '(11) 98765-4324',
-    email: 'ana.oliveira@email.com',
-    cnh: '45678901234',
-    categoria: 'D',
-    validadeCnh: '2024-11-30',
-    status: 'Ativo',
-    ultimaViagem: '2024-01-13',
-    totalViagens: 134,
-    pontuacao: 89
-  },
-  {
-    id: 5,
-    nome: 'Carlos Lima',
-    cpf: '567.890.123-44',
-    telefone: '(11) 98765-4325',
-    email: 'carlos.lima@email.com',
-    cnh: '56789012345',
-    categoria: 'E',
-    validadeCnh: '2026-03-18',
-    status: 'Ativo',
-    ultimaViagem: '2024-01-15',
-    totalViagens: 278,
-    pontuacao: 94
-  },
-  {
-    id: 6,
-    nome: 'Roberto Silva',
-    cpf: '678.901.234-55',
-    telefone: '(11) 98765-4326',
-    email: 'roberto.silva@email.com',
-    cnh: '67890123456',
-    categoria: 'C',
-    validadeCnh: '2024-01-25',
-    status: 'CNH Vencida',
-    ultimaViagem: '2023-12-20',
-    totalViagens: 45,
-    pontuacao: 78
-  }
-]
+// Dados removidos - agora usa apenas dados reais do Supabase
 
 interface DriversTableProps {
   onEdit: (driver: any) => void
@@ -143,6 +57,20 @@ export function DriversTable({ onEdit, onView, data }: DriversTableProps) {
     return 'text-red-600'
   }
 
+  const drivers = data || []
+  
+  if (drivers.length === 0) {
+    return (
+      <div className="rounded-md border p-8">
+        <div className="flex flex-col items-center justify-center text-gray-500">
+          <Users className="w-16 h-16 mb-4 text-gray-400" />
+          <p className="text-lg font-medium">Nenhum motorista cadastrado</p>
+          <p className="text-sm mt-2">Clique em "Novo Motorista" para adicionar</p>
+        </div>
+      </div>
+    )
+  }
+  
   return (
     <div className="rounded-md border">
       <Table>
@@ -160,7 +88,7 @@ export function DriversTable({ onEdit, onView, data }: DriversTableProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {(data && data.length ? data : driversData).map((driver: any) => (
+          {drivers.map((driver: any) => (
             <TableRow key={driver.id}>
               <TableCell>
                 <div className="flex items-center gap-2">

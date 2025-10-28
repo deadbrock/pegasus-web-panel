@@ -2,14 +2,25 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
 
-const data = [
-  { name: 'Ativo', value: 29, color: '#10b981' },
-  { name: 'CNH Vencendo', value: 4, color: '#f59e0b' },
-  { name: 'Inativo', value: 1, color: '#6b7280' },
-  { name: 'Férias', value: 0, color: '#3b82f6' }
-]
+type DriverStatusChartProps = {
+  statusData?: { name: string; value: number; color: string }[]
+}
 
-export function DriverStatusChart() {
+export function DriverStatusChart({ statusData }: DriverStatusChartProps) {
+  const data = (statusData || []).filter(item => item.value > 0)
+  
+  if (data.length === 0) {
+    return (
+      <div className="h-80 flex items-center justify-center text-gray-500">
+        <div className="text-center">
+          <p className="text-lg font-medium">Nenhum motorista cadastrado</p>
+          <p className="text-sm mt-2">Adicione motoristas para visualizar o gráfico</p>
+        </div>
+      </div>
+    )
+  }
+  
+
   return (
     <div className="h-80">
       <ResponsiveContainer width="100%" height="100%">

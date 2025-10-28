@@ -16,7 +16,8 @@ import {
   Calendar,
   Award,
   TrendingUp,
-  MapPin
+  MapPin,
+  CheckCircle
 } from 'lucide-react'
 import { MetricCard } from '@/components/dashboard/metric-card'
 import { DriversTable } from '@/components/motoristas/drivers-table'
@@ -30,17 +31,32 @@ import { exportListaMotoristas, exportCNHVencendo, exportDocumentosPendentesTemp
 import { DriverDocumentsStatus } from '@/components/motoristas/driver-documents-status'
 import { DriversImportExport } from '@/components/motoristas/drivers-import-export'
 import { DriverDetailsDialog } from '@/components/motoristas/driver-details-dialog'
+import { calcularEstatisticasMotoristas, buscarAlertasDocumentos, buscarMelhoresPerformances, type DriverStats } from '@/services/driversStatsService'
 
 export default function MotoristasPage() {
   const [isDriverDialogOpen, setIsDriverDialogOpen] = useState(false)
   const [selectedDriver, setSelectedDriver] = useState<DriverRecord | null>(null)
   const [drivers, setDrivers] = useState<DriverRecord[]>([])
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+  const [stats, setStats] = useState<DriverStats | null>(null)
+  const [alertas, setAlertas] = useState<any[]>([])
+  const [melhoresPerformances, setMelhoresPerformances] = useState<any[]>([])
   const { toast } = useToast()
 
   const load = async () => {
     const rows = await fetchDrivers()
     setDrivers(rows)
+    
+    // Calcular estatísticas
+    const estatisticas = calcularEstatisticasMotoristas(rows)
+    setStats(estatisticas)
+    
+    // Buscar alertas e performances
+    const alertasDoc = buscarAlertasDocumentos(rows)
+    setAlertas(alertasDoc.slice(0, 3)) // Top 3 alertas
+    
+    const melhores = buscarMelhoresPerformances(rows)
+    setMelhoresPerformances(melhores)
   }
 
   useEffect(() => {
@@ -110,32 +126,32 @@ export default function MotoristasPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
           title="Total de Motoristas"
-          value="34"
-          change="+3"
+          value={stats?.total.toString() || '0'}
+          change={stats && stats.total > 0 ? `${stats.total} cadastrados` : '-'}
           changeType="positive"
           icon={Users}
           description="Cadastrados"
         />
         <MetricCard
           title="Motoristas Ativos"
-          value="29"
-          change="+2"
+          value={stats?.ativos.toString() || '0'}
+          change={stats && stats.ativos > 0 ? `${Math.round((stats.ativos / stats.total) * 100)}% da frota` : '-'}
           changeType="positive"
           icon={UserCheck}
           description="Aptos para dirigir"
         />
         <MetricCard
           title="CNH Vencendo"
-          value="4"
-          change="+1"
-          changeType="negative"
+          value={stats?.cnhVencendo.toString() || '0'}
+          change={stats && stats.cnhVencidas > 0 ? `${stats.cnhVencidas} vencidas` : 'Nenhuma vencida'}
+          changeType={stats && stats.cnhVencendo > 0 ? 'negative' : 'positive'}
           icon={AlertTriangle}
           description="Próximas ao vencimento"
         />
         <MetricCard
           title="Performance Média"
-          value="87%"
-          change="+5.2%"
+          value={stats ? `${stats.performance.satisfacao}%` : '-'}
+          change={stats ? `${stats.performance.pontualidade}% pontualidade` : '-'}
           changeType="positive"
           icon={Award}
           description="Pontuação geral"
@@ -161,7 +177,7 @@ export default function MotoristasPage() {
                 <CardTitle>Status dos Motoristas</CardTitle>
               </CardHeader>
               <CardContent>
-                <DriverStatusChart />
+                <DriverStatusChart statusData={stats?.porStatus} />
               </CardContent>
             </Card>
 
@@ -171,7 +187,7 @@ export default function MotoristasPage() {
                 <CardTitle>Categorias de CNH</CardTitle>
               </CardHeader>
               <CardContent>
-                <DriverLicenseChart />
+                <DriverLicenseChart data={stats?.porCategoria} />
               </CardContent>
             </Card>
 
@@ -184,29 +200,33 @@ export default function MotoristasPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                    <div>
-                      <p className="font-medium">João Silva</p>
-                      <p className="text-sm text-gray-600">CNH vence em 15 dias</p>
-                    </div>
-                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                {alertas.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-gray-500">
+                    <CheckCircle className="w-12 h-12 mb-2 text-green-500" />
+                    <p>Nenhum alerta de documentos!</p>
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                    <div>
-                      <p className="font-medium">Maria Santos</p>
-                      <p className="text-sm text-gray-600">CNH vence em 45 dias</p>
-                    </div>
-                    <Calendar className="w-5 h-5 text-yellow-600" />
+                ) : (
+                  <div className="space-y-4">
+                    {alertas.map((alerta, index) => (
+                      <div 
+                        key={index}
+                        className={`flex items-center justify-between p-3 rounded-lg ${
+                          alerta.severidade === 'critico' ? 'bg-red-50' :
+                          alerta.severidade === 'alerta' ? 'bg-yellow-50' : 'bg-orange-50'
+                        }`}
+                      >
+                        <div>
+                          <p className="font-medium">{alerta.motorista}</p>
+                          <p className="text-sm text-gray-600">{alerta.mensagem}</p>
+                        </div>
+                        <AlertTriangle className={`w-5 h-5 ${
+                          alerta.severidade === 'critico' ? 'text-red-600' :
+                          alerta.severidade === 'alerta' ? 'text-yellow-600' : 'text-orange-600'
+                        }`} />
+                      </div>
+                    ))}
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
-                    <div>
-                      <p className="font-medium">Pedro Costa</p>
-                      <p className="text-sm text-gray-600">Exame médico vence em 30 dias</p>
-                    </div>
-                    <AlertTriangle className="w-5 h-5 text-orange-600" />
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
 
@@ -219,29 +239,33 @@ export default function MotoristasPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                    <div>
-                      <p className="font-medium">Carlos Lima</p>
-                      <p className="text-sm text-gray-600">Pontuação: 96%</p>
-                    </div>
-                    <Award className="w-5 h-5 text-green-600" />
+                {melhoresPerformances.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-gray-500">
+                    <Award className="w-12 h-12 mb-2 text-gray-400" />
+                    <p>Nenhum dado de performance</p>
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                    <div>
-                      <p className="font-medium">Ana Oliveira</p>
-                      <p className="text-sm text-gray-600">Pontuação: 94%</p>
-                    </div>
-                    <Award className="w-5 h-5 text-blue-600" />
+                ) : (
+                  <div className="space-y-4">
+                    {melhoresPerformances.map((motorista, index) => (
+                      <div 
+                        key={index}
+                        className={`flex items-center justify-between p-3 rounded-lg ${
+                          index === 0 ? 'bg-green-50' : 
+                          index === 1 ? 'bg-blue-50' : 'bg-purple-50'
+                        }`}
+                      >
+                        <div>
+                          <p className="font-medium">{motorista.nome}</p>
+                          <p className="text-sm text-gray-600">Pontuação: {motorista.pontuacao}%</p>
+                        </div>
+                        <Award className={`w-5 h-5 ${
+                          index === 0 ? 'text-green-600' : 
+                          index === 1 ? 'text-blue-600' : 'text-purple-600'
+                        }`} />
+                      </div>
+                    ))}
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                    <div>
-                      <p className="font-medium">Roberto Silva</p>
-                      <p className="text-sm text-gray-600">Pontuação: 91%</p>
-                    </div>
-                    <Award className="w-5 h-5 text-purple-600" />
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -278,7 +302,7 @@ export default function MotoristasPage() {
               <CardTitle>Status dos Documentos</CardTitle>
             </CardHeader>
             <CardContent>
-              <DriverDocumentsStatus />
+              <DriverDocumentsStatus statusSummary={stats?.documentosStatus} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -290,7 +314,7 @@ export default function MotoristasPage() {
               <CardTitle>Performance dos Motoristas</CardTitle>
             </CardHeader>
             <CardContent>
-              <DriverPerformanceOverview />
+              <DriverPerformanceOverview data={[]} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -335,37 +359,49 @@ export default function MotoristasPage() {
                   <div>
                     <div className="flex justify-between text-sm mb-1">
                       <span>Pontualidade</span>
-                      <span>91%</span>
+                      <span>{stats?.performance.pontualidade || 0}%</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-green-600 h-2 rounded-full w-[91%]"></div>
+                      <div 
+                        className="bg-green-600 h-2 rounded-full" 
+                        style={{ width: `${stats?.performance.pontualidade || 0}%` }}
+                      ></div>
                     </div>
                   </div>
                   <div>
                     <div className="flex justify-between text-sm mb-1">
                       <span>Segurança</span>
-                      <span>95%</span>
+                      <span>{stats?.performance.seguranca || 0}%</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-blue-600 h-2 rounded-full w-[95%]"></div>
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full" 
+                        style={{ width: `${stats?.performance.seguranca || 0}%` }}
+                      ></div>
                     </div>
                   </div>
                   <div>
                     <div className="flex justify-between text-sm mb-1">
                       <span>Eficiência</span>
-                      <span>88%</span>
+                      <span>{stats?.performance.eficiencia || 0}%</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-orange-600 h-2 rounded-full w-[88%]"></div>
+                      <div 
+                        className="bg-orange-600 h-2 rounded-full" 
+                        style={{ width: `${stats?.performance.eficiencia || 0}%` }}
+                      ></div>
                     </div>
                   </div>
                   <div>
                     <div className="flex justify-between text-sm mb-1">
                       <span>Satisfação do Cliente</span>
-                      <span>93%</span>
+                      <span>{stats?.performance.satisfacao || 0}%</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-purple-600 h-2 rounded-full w-[93%]"></div>
+                      <div 
+                        className="bg-purple-600 h-2 rounded-full" 
+                        style={{ width: `${stats?.performance.satisfacao || 0}%` }}
+                      ></div>
                     </div>
                   </div>
                 </div>
