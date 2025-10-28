@@ -24,6 +24,7 @@ import { OrdersTable } from '@/components/pedidos/orders-table'
 import { OrdersImportExport } from '@/components/pedidos/orders-import-export'
 import { exportRelatorioPedidos, exportProdutosMaisPedidos } from '@/components/pedidos/orders-reports'
 import { fetchOrders, subscribeOrders, fetchOrdersQuery, type OrderStatus } from '@/services/ordersService'
+import { fetchPedidosMobile, subscribePedidosMobile, calcularEstatisticasPedidos, type PedidoMobile } from '@/services/pedidosMobileService'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar as CalendarComp } from '@/components/ui/calendar'
 import { OrderDialog } from '@/components/pedidos/order-dialog'
@@ -36,15 +37,76 @@ export default function PedidosPage() {
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [orders, setOrders] = useState<any[]>([])
+  const [pedidosMobile, setPedidosMobile] = useState<PedidoMobile[]>([])
+  const [stats, setStats] = useState<any>(null)
+  const [timelineData, setTimelineData] = useState<any[]>([])
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<OrderStatus | undefined>(undefined)
   const [range, setRange] = useState<{ from?: Date; to?: Date }>({ from: new Date(new Date().getFullYear(), new Date().getMonth(), 1), to: new Date() })
+  
   useEffect(() => {
-    const load = async () => setOrders(await fetchOrders())
-    load()
-    const unsub = subscribeOrders(load)
-    return () => unsub()
+    const loadPedidos = async () => {
+      // Buscar pedidos do web panel (ordersService)
+      const webOrders = await fetchOrders()
+      
+      // Buscar pedidos do mobile (supervisores)
+      const mobilePedidos = await fetchPedidosMobile()
+      
+      setPedidosMobile(mobilePedidos)
+      
+      // Combinar todos os pedidos
+      const allOrders = [...webOrders, ...mobilePedidos]
+      setOrders(allOrders)
+      
+      // Calcular estatísticas
+      const statistics = calcularEstatisticasPedidos(mobilePedidos)
+      setStats(statistics)
+      
+      // Calcular dados da timeline (últimos 30 dias)
+      const timeline = calcularTimelineData(mobilePedidos)
+      setTimelineData(timeline)
+    }
+    
+    loadPedidos()
+    
+    // Subscribe para mudanças em tempo real
+    const unsubWeb = subscribeOrders(loadPedidos)
+    const unsubMobile = subscribePedidosMobile(loadPedidos)
+    
+    return () => {
+      unsubWeb()
+      unsubMobile()
+    }
   }, [])
+
+  // Função auxiliar para calcular dados da timeline
+  const calcularTimelineData = (pedidos: PedidoMobile[]) => {
+    const hoje = new Date()
+    const timeline: any[] = []
+    
+    for (let i = 29; i >= 0; i--) {
+      const data = new Date(hoje)
+      data.setDate(data.getDate() - i)
+      const dataStr = data.toISOString().split('T')[0]
+      
+      const pedidosDoDia = pedidos.filter(p => {
+        const pedidoData = new Date(p.data_solicitacao).toISOString().split('T')[0]
+        return pedidoData === dataStr
+      })
+      
+      const entreguesDoDia = pedidosDoDia.filter(p => p.status === 'Entregue').length
+      const canceladosDoDia = pedidosDoDia.filter(p => p.status === 'Cancelado' || p.status === 'Rejeitado').length
+      
+      timeline.push({
+        dia: `${String(data.getDate()).padStart(2, '0')}/${String(data.getMonth() + 1).padStart(2, '0')}`,
+        pedidos: pedidosDoDia.length,
+        entregues: entreguesDoDia,
+        cancelados: canceladosDoDia
+      })
+    }
+    
+    return timeline
+  }
 
   const handleNewOrder = () => {
     setSelectedOrder(null)
@@ -89,35 +151,35 @@ export default function PedidosPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
           title="Total de Pedidos"
-          value="156"
-          change="+12"
+          value={stats?.total?.toString() || '0'}
+          change={stats?.total > 0 ? `+${stats.total}` : '0'}
           changeType="positive"
           icon={Package}
-          description="Este mês"
+          description="Todos os pedidos"
         />
         <MetricCard
           title="Pedidos Entregues"
-          value="128"
-          change="+8.2%"
+          value={stats?.entregues?.toString() || '0'}
+          change={stats?.taxaEntrega || '0'}
           changeType="positive"
           icon={CheckCircle}
-          description="Taxa: 82%"
+          description={`Taxa: ${stats?.taxaEntrega || '0'}%`}
         />
         <MetricCard
           title="Em Andamento"
-          value="23"
-          change="+4"
-          changeType="positive"
+          value={stats?.emAndamento?.toString() || '0'}
+          change={stats?.emAndamento > 0 ? `+${stats.emAndamento}` : '0'}
+          changeType="neutral"
           icon={Clock}
-          description="Em rota/separação"
+          description="Em processamento"
         />
         <MetricCard
-          title="Receita Total"
-          value="R$ 89.420"
-          change="+15.3%"
-          changeType="positive"
-          icon={DollarSign}
-          description="Este mês"
+          title="Pendentes"
+          value={stats?.pendentes?.toString() || '0'}
+          change={stats?.requeremAutorizacao > 0 ? `${stats.requeremAutorizacao} requer autorização` : '0'}
+          changeType={stats?.requeremAutorizacao > 0 ? 'negative' : 'neutral'}
+          icon={AlertCircle}
+          description="Aguardando ação"
         />
       </div>
 
@@ -141,7 +203,7 @@ export default function PedidosPage() {
                 <CardTitle>Status dos Pedidos</CardTitle>
               </CardHeader>
               <CardContent>
-                <OrderStatusChart />
+                <OrderStatusChart data={stats?.porStatus} />
               </CardContent>
             </Card>
 
@@ -154,38 +216,41 @@ export default function PedidosPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                    <div>
-                      <p className="font-medium">#P-001234</p>
-                      <p className="text-sm text-gray-600">João Silva - R$ 245,90</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-blue-600" />
-                      <span className="text-sm font-medium text-blue-600">Em Separação</span>
-                    </div>
+                {pedidosMobile.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Package className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p className="text-sm">Nenhum pedido recente</p>
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                    <div>
-                      <p className="font-medium">#P-001235</p>
-                      <p className="text-sm text-gray-600">Maria Santos - R$ 189,50</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Truck className="w-4 h-4 text-yellow-600" />
-                      <span className="text-sm font-medium text-yellow-600">Em Rota</span>
-                    </div>
+                ) : (
+                  <div className="space-y-4">
+                    {pedidosMobile.slice(0, 3).map((pedido) => {
+                      const statusConfig = {
+                        'Pendente': { bg: 'bg-gray-50', icon: Clock, color: 'text-gray-600' },
+                        'Aprovado': { bg: 'bg-indigo-50', icon: CheckCircle, color: 'text-indigo-600' },
+                        'Em Separação': { bg: 'bg-blue-50', icon: Package, color: 'text-blue-600' },
+                        'Saiu para Entrega': { bg: 'bg-yellow-50', icon: Truck, color: 'text-yellow-600' },
+                        'Entregue': { bg: 'bg-green-50', icon: CheckCircle, color: 'text-green-600' },
+                        'Cancelado': { bg: 'bg-red-50', icon: AlertCircle, color: 'text-red-600' },
+                        'Rejeitado': { bg: 'bg-red-50', icon: AlertCircle, color: 'text-red-600' },
+                      }
+                      const config = statusConfig[pedido.status as keyof typeof statusConfig] || statusConfig['Pendente']
+                      const IconComponent = config.icon
+                      
+                      return (
+                        <div key={pedido.id} className={`flex items-center justify-between p-3 ${config.bg} rounded-lg`}>
+                          <div>
+                            <p className="font-medium">{pedido.numero_pedido}</p>
+                            <p className="text-sm text-gray-600">{pedido.supervisor_nome} - {pedido.produto_nome}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <IconComponent className={`w-4 h-4 ${config.color}`} />
+                            <span className={`text-sm font-medium ${config.color}`}>{pedido.status}</span>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                    <div>
-                      <p className="font-medium">#P-001236</p>
-                      <p className="text-sm text-gray-600">Pedro Costa - R$ 320,75</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                      <span className="text-sm font-medium text-green-600">Entregue</span>
-                    </div>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
 
@@ -195,7 +260,7 @@ export default function PedidosPage() {
                 <CardTitle>Evolução de Pedidos - Últimos 30 dias</CardTitle>
               </CardHeader>
               <CardContent>
-                <OrderTimelineChart />
+                <OrderTimelineChart data={timelineData} />
               </CardContent>
             </Card>
           </div>
@@ -275,74 +340,78 @@ export default function PedidosPage() {
                 <div className="space-y-4">
                   <div>
                     <div className="flex justify-between text-sm mb-1">
-                      <span>Taxa de Entrega no Prazo</span>
-                      <span>89%</span>
+                      <span>Taxa de Entrega</span>
+                      <span>{stats?.taxaEntrega || '0'}%</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-green-600 h-2 rounded-full w-[89%]"></div>
+                      <div className="bg-green-600 h-2 rounded-full" style={{ width: `${stats?.taxaEntrega || 0}%` }}></div>
                     </div>
                   </div>
                   <div>
                     <div className="flex justify-between text-sm mb-1">
-                      <span>Tempo Médio de Processamento</span>
-                      <span>2.4h</span>
+                      <span>Pedidos Entregues</span>
+                      <span>{stats?.entregues || 0} de {stats?.total || 0}</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-blue-600 h-2 rounded-full w-[75%]"></div>
+                      <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${stats?.taxaEntrega || 0}%` }}></div>
                     </div>
                   </div>
                   <div>
                     <div className="flex justify-between text-sm mb-1">
-                      <span>Satisfação do Cliente</span>
-                      <span>94%</span>
+                      <span>Em Andamento</span>
+                      <span>{stats?.emAndamento || 0} pedidos</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-purple-600 h-2 rounded-full w-[94%]"></div>
+                      <div className="bg-purple-600 h-2 rounded-full" style={{ width: `${stats?.total > 0 ? (stats.emAndamento / stats.total * 100).toFixed(0) : 0}%` }}></div>
                     </div>
                   </div>
                   <div>
                     <div className="flex justify-between text-sm mb-1">
-                      <span>Taxa de Devolução</span>
-                      <span>3%</span>
+                      <span>Cancelados/Rejeitados</span>
+                      <span>{stats?.cancelados || 0} pedidos</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-red-600 h-2 rounded-full w-[3%]"></div>
+                      <div className="bg-red-600 h-2 rounded-full" style={{ width: `${stats?.total > 0 ? (stats.cancelados / stats.total * 100).toFixed(0) : 0}%` }}></div>
                     </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Financial Summary */}
+            {/* Status Summary */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="w-5 h-5" />
-                  Resumo Financeiro
+                  <Package className="w-5 h-5" />
+                  Resumo por Status
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Faturamento Mensal</span>
-                    <span className="font-semibold text-green-600">R$ 89.420</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Ticket Médio</span>
-                    <span className="font-semibold">R$ 573,20</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Pedidos Pagos</span>
-                    <span className="font-semibold text-green-600">R$ 76.420</span>
-                  </div>
-                  <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Pendentes</span>
-                    <span className="font-semibold text-orange-600">R$ 13.000</span>
+                    <span className="font-semibold text-gray-600">{stats?.porStatus?.Pendente || 0} pedidos</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Aprovados</span>
+                    <span className="font-semibold text-indigo-600">{stats?.porStatus?.Aprovado || 0} pedidos</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Em Separação</span>
+                    <span className="font-semibold text-blue-600">{stats?.porStatus?.['Em Separação'] || 0} pedidos</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Saiu para Entrega</span>
+                    <span className="font-semibold text-yellow-600">{stats?.porStatus?.['Saiu para Entrega'] || 0} pedidos</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Entregues</span>
+                    <span className="font-semibold text-green-600">{stats?.porStatus?.Entregue || 0} pedidos</span>
                   </div>
                   <div className="pt-2 border-t">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Crescimento vs Mês Anterior</span>
-                      <span className="font-semibold text-green-600">+15.3%</span>
+                      <span className="text-sm text-gray-600">Requerem Autorização</span>
+                      <span className="font-semibold text-orange-600">{stats?.requeremAutorizacao || 0} pedidos</span>
                     </div>
                   </div>
                 </div>
@@ -388,27 +457,39 @@ export default function PedidosPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex items-center gap-3 p-3 bg-red-50 rounded-lg">
-                    <AlertCircle className="w-5 h-5 text-red-600" />
-                    <div>
-                      <p className="font-medium text-red-800">5 pedidos atrasados</p>
-                      <p className="text-sm text-red-600">Ação necessária</p>
+                  {stats?.requeremAutorizacao > 0 && (
+                    <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg">
+                      <AlertCircle className="w-5 h-5 text-orange-600" />
+                      <div>
+                        <p className="font-medium text-orange-800">{stats.requeremAutorizacao} {stats.requeremAutorizacao === 1 ? 'pedido requer' : 'pedidos requerem'} autorização</p>
+                        <p className="text-sm text-orange-600">Ação necessária</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
-                    <Calendar className="w-5 h-5 text-yellow-600" />
-                    <div>
-                      <p className="font-medium text-yellow-800">12 entregas para hoje</p>
-                      <p className="text-sm text-yellow-600">Acompanhar progresso</p>
+                  )}
+                  {stats?.pendentes > 0 && (
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                      <Clock className="w-5 h-5 text-gray-600" />
+                      <div>
+                        <p className="font-medium text-gray-800">{stats.pendentes} {stats.pendentes === 1 ? 'pedido pendente' : 'pedidos pendentes'}</p>
+                        <p className="text-sm text-gray-600">Aguardando processamento</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                    <Package className="w-5 h-5 text-blue-600" />
-                    <div>
-                      <p className="font-medium text-blue-800">8 produtos em baixo estoque</p>
-                      <p className="text-sm text-blue-600">Revisar inventário</p>
+                  )}
+                  {stats?.emAndamento > 0 && (
+                    <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                      <Truck className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <p className="font-medium text-blue-800">{stats.emAndamento} {stats.emAndamento === 1 ? 'pedido em andamento' : 'pedidos em andamento'}</p>
+                        <p className="text-sm text-blue-600">Acompanhar progresso</p>
+                      </div>
                     </div>
-                  </div>
+                  )}
+                  {(!stats || (stats.requeremAutorizacao === 0 && stats.pendentes === 0 && stats.emAndamento === 0)) && (
+                    <div className="text-center py-8 text-gray-500">
+                      <CheckCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p className="text-sm">Nenhum alerta no momento</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

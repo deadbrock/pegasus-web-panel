@@ -2,25 +2,29 @@
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
 
-const data = [
-  { dia: '01/01', pedidos: 12, entregues: 10, cancelados: 1 },
-  { dia: '02/01', pedidos: 15, entregues: 14, cancelados: 0 },
-  { dia: '03/01', pedidos: 8, entregues: 8, cancelados: 0 },
-  { dia: '04/01', pedidos: 18, entregues: 16, cancelados: 2 },
-  { dia: '05/01', pedidos: 22, entregues: 20, cancelados: 1 },
-  { dia: '06/01', pedidos: 25, entregues: 23, cancelados: 1 },
-  { dia: '07/01', pedidos: 14, entregues: 13, cancelados: 0 },
-  { dia: '08/01', pedidos: 16, entregues: 15, cancelados: 1 },
-  { dia: '09/01', pedidos: 19, entregues: 18, cancelados: 0 },
-  { dia: '10/01', pedidos: 21, entregues: 19, cancelados: 1 },
-  { dia: '11/01', pedidos: 17, entregues: 16, cancelados: 0 },
-  { dia: '12/01', pedidos: 23, entregues: 21, cancelados: 1 },
-  { dia: '13/01', pedidos: 26, entregues: 24, cancelados: 2 },
-  { dia: '14/01', pedidos: 20, entregues: 19, cancelados: 0 },
-  { dia: '15/01', pedidos: 24, entregues: 22, cancelados: 1 }
-]
+interface TimelineData {
+  dia: string
+  pedidos: number
+  entregues: number
+  cancelados: number
+}
 
-export function OrderTimelineChart() {
+interface OrderTimelineChartProps {
+  data?: TimelineData[]
+}
+
+export function OrderTimelineChart({ data }: OrderTimelineChartProps) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="h-80 flex items-center justify-center text-gray-500">
+        <div className="text-center">
+          <p className="text-lg font-medium">Nenhum dado disponível</p>
+          <p className="text-sm mt-2">Os dados aparecerão aqui quando houver pedidos</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="h-80">
       <ResponsiveContainer width="100%" height="100%">

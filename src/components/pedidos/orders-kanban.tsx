@@ -13,85 +13,6 @@ interface OrdersKanbanProps {
   data?: any[]
 }
 
-const kanbanData = {
-  'Pendente': [
-    {
-      id: 'P-001238',
-      cliente: 'Roberto Lima',
-      endereco: 'Salvador/BA',
-      valor: 478.20,
-      itens: 12,
-      prioridade: 'Alta'
-    },
-    {
-      id: 'P-001240',
-      cliente: 'Lucia Costa',
-      endereco: 'Fortaleza/CE',
-      valor: 234.50,
-      itens: 6,
-      prioridade: 'Normal'
-    }
-  ],
-  'Em Separação': [
-    {
-      id: 'P-001234',
-      cliente: 'João Silva',
-      endereco: 'São Paulo/SP',
-      valor: 245.90,
-      itens: 5,
-      prioridade: 'Normal'
-    },
-    {
-      id: 'P-001241',
-      cliente: 'Marina Souza',
-      endereco: 'Curitiba/PR',
-      valor: 189.30,
-      itens: 8,
-      prioridade: 'Baixa'
-    },
-    {
-      id: 'P-001242',
-      cliente: 'Felipe Santos',
-      endereco: 'Porto Alegre/RS',
-      valor: 345.80,
-      itens: 10,
-      prioridade: 'Alta'
-    }
-  ],
-  'Em Rota': [
-    {
-      id: 'P-001235',
-      cliente: 'Maria Santos',
-      endereco: 'São Paulo/SP',
-      valor: 189.50,
-      itens: 3,
-      motorista: 'Carlos Lima',
-      prioridade: 'Normal'
-    },
-    {
-      id: 'P-001243',
-      cliente: 'André Lima',
-      endereco: 'Rio de Janeiro/RJ',
-      valor: 567.20,
-      itens: 15,
-      motorista: 'Ana Oliveira',
-      prioridade: 'Alta'
-    }
-  ],
-  'Atrasado': [
-    {
-      id: 'P-001237',
-      cliente: 'Ana Souza',
-      endereco: 'Belo Horizonte/MG',
-      valor: 156.30,
-      itens: 4,
-      motorista: 'João Silva',
-      diasAtraso: 2,
-      prioridade: 'Crítica'
-    }
-  ]
-}
-
 export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
   const { toast } = useToast()
   const grouped = (data || []).reduce((acc: Record<string, any[]>, o) => {
@@ -123,14 +44,19 @@ export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
     switch (status) {
       case 'Pendente':
         return <Clock className="w-5 h-5 text-gray-600" />
+      case 'Aprovado':
+        return <CheckCircle className="w-5 h-5 text-indigo-600" />
       case 'Em Separação':
         return <Package className="w-5 h-5 text-blue-600" />
-      case 'Em Rota':
+      case 'Saiu para Entrega':
         return <Truck className="w-5 h-5 text-yellow-600" />
-      case 'Atrasado':
+      case 'Entregue':
+        return <CheckCircle className="w-5 h-5 text-green-600" />
+      case 'Cancelado':
+      case 'Rejeitado':
         return <AlertTriangle className="w-5 h-5 text-red-600" />
       default:
-        return <CheckCircle className="w-5 h-5 text-green-600" />
+        return <Clock className="w-5 h-5 text-gray-600" />
     }
   }
 
@@ -138,14 +64,19 @@ export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
     switch (status) {
       case 'Pendente':
         return 'border-t-gray-500'
+      case 'Aprovado':
+        return 'border-t-indigo-500'
       case 'Em Separação':
         return 'border-t-blue-500'
-      case 'Em Rota':
+      case 'Saiu para Entrega':
         return 'border-t-yellow-500'
-      case 'Atrasado':
+      case 'Entregue':
+        return 'border-t-green-500'
+      case 'Cancelado':
+      case 'Rejeitado':
         return 'border-t-red-500'
       default:
-        return 'border-t-green-500'
+        return 'border-t-gray-500'
     }
   }
 
@@ -171,7 +102,7 @@ export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
     }).format(value)
   }
 
-  const statuses = ['Pendente','Em Separação','Em Rota','Atrasado','Entregue']
+  const statuses = ['Pendente', 'Aprovado', 'Em Separação', 'Saiu para Entrega', 'Entregue', 'Cancelado', 'Rejeitado']
 
   const handleMove = async (orderId: any, newStatus: string) => {
     const ok = await updateOrder(String(orderId), { status: newStatus as any })

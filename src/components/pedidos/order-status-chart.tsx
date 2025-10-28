@@ -2,16 +2,42 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
 
-const data = [
-  { name: 'Entregue', value: 128, color: '#10b981' },
-  { name: 'Em Rota', value: 15, color: '#f59e0b' },
-  { name: 'Em Separação', value: 8, color: '#3b82f6' },
-  { name: 'Pendente', value: 5, color: '#6b7280' },
-  { name: 'Atrasado', value: 3, color: '#ef4444' },
-  { name: 'Cancelado', value: 2, color: '#9ca3af' }
-]
+interface OrderStatusChartProps {
+  data?: {
+    Pendente: number
+    Aprovado: number
+    'Em Separação': number
+    'Saiu para Entrega': number
+    Entregue: number
+    Cancelado: number
+    Rejeitado: number
+  }
+}
 
-export function OrderStatusChart() {
+export function OrderStatusChart({ data: statusData }: OrderStatusChartProps) {
+  const data = statusData
+    ? [
+        { name: 'Entregue', value: statusData['Entregue'], color: '#10b981' },
+        { name: 'Saiu para Entrega', value: statusData['Saiu para Entrega'], color: '#f59e0b' },
+        { name: 'Em Separação', value: statusData['Em Separação'], color: '#3b82f6' },
+        { name: 'Aprovado', value: statusData['Aprovado'], color: '#6366f1' },
+        { name: 'Pendente', value: statusData['Pendente'], color: '#6b7280' },
+        { name: 'Cancelado', value: statusData['Cancelado'], color: '#ef4444' },
+        { name: 'Rejeitado', value: statusData['Rejeitado'], color: '#9ca3af' }
+      ].filter(item => item.value > 0)
+    : []
+
+  if (data.length === 0) {
+    return (
+      <div className="h-80 flex items-center justify-center text-gray-500">
+        <div className="text-center">
+          <p className="text-lg font-medium">Nenhum pedido encontrado</p>
+          <p className="text-sm mt-2">Os dados aparecerão aqui quando houver pedidos</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="h-80">
       <ResponsiveContainer width="100%" height="100%">
