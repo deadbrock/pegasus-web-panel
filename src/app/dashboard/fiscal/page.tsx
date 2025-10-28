@@ -13,6 +13,13 @@ import {
   DialogTitle,
   DialogFooter
 } from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
@@ -48,9 +55,12 @@ export default function FiscalPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [isNovaNotaDialogOpen, setIsNovaNotaDialogOpen] = useState(false)
   const [isVisualizarDialogOpen, setIsVisualizarDialogOpen] = useState(false)
+  const [isTipoImportDialogOpen, setIsTipoImportDialogOpen] = useState(false)
   const [notaSelecionada, setNotaSelecionada] = useState<NotaFiscalRecord | null>(null)
   const [isImporting, setIsImporting] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [xmlPendente, setXmlPendente] = useState<string | null>(null)
+  const [tipoOperacaoImport, setTipoOperacaoImport] = useState<'entrada' | 'saida'>('entrada')
   
   const [notas, setNotas] = useState<NotaFiscalRecord[]>([])
   const [stats, setStats] = useState<NotaFiscalStats | null>(null)
@@ -102,19 +112,43 @@ export default function FiscalPage() {
       return
     }
 
-    setIsImporting(true)
-
     try {
       // Ler conteúdo do arquivo
       const xmlContent = await file.text()
       
-      // Importar nota fiscal
-      const result = await importarNotaFiscalXML(xmlContent)
+      // Armazenar XML e abrir diálogo para escolher tipo
+      setXmlPendente(xmlContent)
+      setTipoOperacaoImport('entrada')
+      setIsTipoImportDialogOpen(true)
+      
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao processar arquivo',
+        description: error.message || 'Erro ao ler arquivo XML',
+        variant: 'destructive'
+      })
+    } finally {
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
+  const handleConfirmarImportacao = async () => {
+    if (!xmlPendente) return
+
+    setIsImporting(true)
+    setIsTipoImportDialogOpen(false)
+
+    try {
+      // Importar nota fiscal com tipo escolhido
+      const result = await importarNotaFiscalXML(xmlPendente, tipoOperacaoImport)
       
       if (result.success) {
         toast({
           title: 'XML Importado com sucesso!',
-          description: `Nota Fiscal ${result.nota?.numero} foi importada`
+          description: `Nota Fiscal ${result.nota?.numero} foi importada como ${tipoOperacaoImport}`
         })
         
         // Recarregar lista
@@ -129,16 +163,12 @@ export default function FiscalPage() {
     } catch (error: any) {
       toast({
         title: 'Erro ao processar arquivo',
-        description: error.message || 'Erro ao ler arquivo XML',
+        description: error.message || 'Erro ao importar XML',
         variant: 'destructive'
       })
     } finally {
       setIsImporting(false)
-      
-      // Reset input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
+      setXmlPendente(null)
     }
   }
 
@@ -693,6 +723,100 @@ export default function FiscalPage() {
           <DialogFooter>
             <Button onClick={() => setIsVisualizarDialogOpen(false)}>
               Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de Seleção de Tipo de Operação */}
+      <Dialog open={isTipoImportDialogOpen} onOpenChange={setIsTipoImportDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Tipo de Operação da Nota Fiscal</DialogTitle>
+            <DialogDescription>
+              Selecione se esta nota fiscal é de ENTRADA (compra/recebimento) ou SAÍDA (venda/envio)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <div>
+              <Label htmlFor="tipo_operacao">Tipo de Operação *</Label>
+              <Select 
+                value={tipoOperacaoImport} 
+                onValueChange={(value) => setTipoOperacaoImport(value as 'entrada' | 'saida')}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="entrada">
+                    <div className="flex items-center space-x-2">
+                      <TrendingUp className="w-4 h-4 text-green-600" />
+                      <span>ENTRADA - Compra/Recebimento de Materiais</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="saida">
+                    <div className="flex items-center space-x-2">
+                      <TrendingUp className="w-4 h-4 text-red-600 rotate-180" />
+                      <span>SAÍDA - Venda/Envio de Materiais</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className={`p-4 rounded-lg border-2 ${
+              tipoOperacaoImport === 'entrada' 
+                ? 'bg-green-50 border-green-200' 
+                : 'bg-red-50 border-red-200'
+            }`}>
+              <div className="flex items-start space-x-3">
+                <AlertTriangle className={`w-5 h-5 mt-0.5 ${
+                  tipoOperacaoImport === 'entrada' ? 'text-green-600' : 'text-red-600'
+                }`} />
+                <div>
+                  <p className={`font-semibold ${
+                    tipoOperacaoImport === 'entrada' ? 'text-green-900' : 'text-red-900'
+                  }`}>
+                    {tipoOperacaoImport === 'entrada' ? 'Nota de Entrada' : 'Nota de Saída'}
+                  </p>
+                  <p className={`text-sm mt-1 ${
+                    tipoOperacaoImport === 'entrada' ? 'text-green-700' : 'text-red-700'
+                  }`}>
+                    {tipoOperacaoImport === 'entrada' 
+                      ? 'Os produtos desta nota serão ADICIONADOS ao estoque automaticamente ao processar.'
+                      : 'Os produtos desta nota serão REMOVIDOS do estoque automaticamente ao processar.'
+                    }
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsTipoImportDialogOpen(false)
+                setXmlPendente(null)
+              }}
+              disabled={isImporting}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleConfirmarImportacao}
+              disabled={isImporting}
+            >
+              {isImporting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Importando...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Confirmar Importação
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

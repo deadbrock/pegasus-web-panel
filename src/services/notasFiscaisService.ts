@@ -175,7 +175,7 @@ export async function deleteNotaFiscal(id: string): Promise<boolean> {
 /**
  * Importa nota fiscal de XML
  */
-export async function importarNotaFiscalXML(xmlContent: string): Promise<{ success: boolean; nota?: NotaFiscalRecord; error?: string }> {
+export async function importarNotaFiscalXML(xmlContent: string, tipoOperacaoOverride?: 'entrada' | 'saida'): Promise<{ success: boolean; nota?: NotaFiscalRecord; error?: string }> {
   try {
     // Validar XML
     if (!isValidNFeXML(xmlContent)) {
@@ -185,18 +185,23 @@ export async function importarNotaFiscalXML(xmlContent: string): Promise<{ succe
     // Parse XML
     const nfeData: NFeData = parseNFeXML(xmlContent)
 
-    // Verificar se já existe nota com mesma chave de acesso
-    const { data: existing } = await supabase
+    // Verificar se já existe nota com mesma chave de acesso (usando maybeSingle para evitar erro 406)
+    const { data: existing, error: checkError } = await supabase
       .from('notas_fiscais')
       .select('id')
       .eq('chave_acesso', nfeData.chave_acesso)
-      .single()
+      .maybeSingle()
+
+    if (checkError) {
+      console.error('Erro ao verificar nota existente:', checkError)
+      return { success: false, error: 'Erro ao verificar duplicidade de nota fiscal' }
+    }
 
     if (existing) {
       return { success: false, error: 'Nota fiscal já importada anteriormente' }
     }
 
-    // Criar nota fiscal
+    // Criar nota fiscal (usar tipo manual se fornecido, senão usar do XML)
     const notaFiscal: Partial<NotaFiscalRecord> = {
       numero: nfeData.numero,
       serie: nfeData.serie,
@@ -211,7 +216,7 @@ export async function importarNotaFiscalXML(xmlContent: string): Promise<{ succe
       valor_ipi: nfeData.valor_ipi,
       valor_pis: nfeData.valor_pis,
       valor_cofins: nfeData.valor_cofins,
-      tipo_operacao: nfeData.tipo_operacao,
+      tipo_operacao: tipoOperacaoOverride || nfeData.tipo_operacao, // Prioriza tipo manual
       observacoes: nfeData.info_complementar,
       status: 'Pendente'
     }
