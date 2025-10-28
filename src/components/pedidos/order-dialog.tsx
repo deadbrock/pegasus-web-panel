@@ -92,7 +92,9 @@ export function OrderDialog({ open, onClose, order }: OrderDialogProps) {
         veiculo: order.veiculo || '',
         formaPagamento: order.formaPagamento || '',
         observacoes: order.observacoes || '',
-        itens: order.itens || [{ produto: '', quantidade: 1, valorUnitario: 0, valorTotal: 0 }]
+        itens: Array.isArray(order.itens) && order.itens.length > 0 
+          ? order.itens 
+          : [{ produto: '', quantidade: 1, valorUnitario: 0, valorTotal: 0 }]
       })
     } else {
       // Reset form for new order

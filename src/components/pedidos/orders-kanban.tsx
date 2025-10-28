@@ -97,13 +97,22 @@ export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
   const grouped = (data || []).reduce((acc: Record<string, any[]>, o) => {
     const key = o.status || 'Pendente'
     acc[key] = acc[key] || []
+    
+    // Calcular total de itens de forma segura
+    let totalItens = 0
+    if (Array.isArray(o.itens)) {
+      totalItens = o.itens.length
+    } else if (typeof o.itens === 'number') {
+      totalItens = o.itens
+    }
+    
     acc[key].push({
       id: o.numero || o.id,
-      cliente: o.cliente,
-      endereco: o.cidade ? `${o.cidade}/${o.estado || ''}` : o.endereco,
+      cliente: o.cliente || 'Cliente não informado',
+      endereco: o.cidade ? `${o.cidade}/${o.estado || ''}` : (o.endereco || 'Endereço não informado'),
       valor: o.valor_total ?? o.valorTotal ?? 0,
-      itens: o.itens?.length || o.itens || 0,
-      prioridade: 'Normal',
+      itens: totalItens,
+      prioridade: o.prioridade || 'Normal',
       motorista: o.motorista,
       diasAtraso: o.diasAtraso,
     })
