@@ -19,6 +19,12 @@ import {
   formatarEnderecoCompleto,
   type Contrato 
 } from '../../services/contratos-service'
+import {
+  verificarPeriodoPedidos,
+  configurarNotificacoes,
+  verificarEEnviarNotificacao,
+  type StatusPeriodo
+} from '../../services/periodo-pedidos-service'
 
 export default function PedidosScreen() {
   const [loading, setLoading] = useState(true)
@@ -57,8 +63,21 @@ export default function PedidosScreen() {
   const [detalhesDialogVisible, setDetalhesDialogVisible] = useState(false)
   const [pedidoSelecionado, setPedidoSelecionado] = useState<PedidoMobile | null>(null)
 
+  // Status do Período de Pedidos (DIA 15-23)
+  const [statusPeriodo, setStatusPeriodo] = useState<StatusPeriodo | null>(null)
+
   useEffect(() => {
     const init = async () => {
+      // Configurar notificações
+      await configurarNotificacoes()
+      
+      // Verificar período de pedidos
+      const status = verificarPeriodoPedidos()
+      setStatusPeriodo(status)
+      
+      // Verificar se deve enviar notificação
+      await verificarEEnviarNotificacao()
+
       // Carregar dados do usuário do AsyncStorage
       const storedUserId = await AsyncStorage.getItem('userId')
       const storedUserName = await AsyncStorage.getItem('userName')
@@ -526,6 +545,55 @@ export default function PedidosScreen() {
           Entregues
         </Chip>
       </View>
+
+      {/* Banner do Período de Pedidos */}
+      {statusPeriodo && (
+        <Card 
+          style={[
+            styles.periodoBanner,
+            {
+              backgroundColor: statusPeriodo.dentrooPeriodo
+                ? (statusPeriodo.alertaProximo ? '#fef3c7' : '#dcfce7')
+                : '#fee2e2',
+              borderLeftColor: statusPeriodo.dentrooPeriodo
+                ? (statusPeriodo.alertaProximo ? '#f59e0b' : '#16a34a')
+                : '#ef4444'
+            }
+          ]}
+        >
+          <Card.Content style={styles.periodoBannerContent}>
+            <MaterialCommunityIcons
+              name={statusPeriodo.dentrooPeriodo
+                ? (statusPeriodo.alertaProximo ? 'clock-alert' : 'check-circle')
+                : 'lock'}
+              size={24}
+              color={statusPeriodo.dentrooPeriodo
+                ? (statusPeriodo.alertaProximo ? '#f59e0b' : '#16a34a')
+                : '#ef4444'}
+            />
+            <View style={styles.periodoBannerTextos}>
+              <Text style={[
+                styles.periodoBannerMensagem,
+                {
+                  color: statusPeriodo.dentrooPeriodo
+                    ? (statusPeriodo.alertaProximo ? '#92400e' : '#166534')
+                    : '#991b1b'
+                }
+              ]}>
+                {statusPeriodo.mensagem}
+              </Text>
+              {statusPeriodo.dentrooPeriodo && (
+                <Text style={[
+                  styles.periodoBannerInfo,
+                  { color: statusPeriodo.alertaProximo ? '#92400e' : '#166534' }
+                ]}>
+                  Período: dia 15 a 23 de cada mês
+                </Text>
+              )}
+            </View>
+          </Card.Content>
+        </Card>
+      )}
 
       {/* Lista de Pedidos */}
       <ScrollView
@@ -1283,6 +1351,31 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#fbbf24',
+  },
+  // ✨ Estilos do Banner de Período
+  periodoBanner: {
+    margin: 12,
+    marginBottom: 8,
+    borderLeftWidth: 4,
+    elevation: 1,
+  },
+  periodoBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  periodoBannerTextos: {
+    flex: 1,
+  },
+  periodoBannerMensagem: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  periodoBannerInfo: {
+    fontSize: 11,
+    fontWeight: '500',
+    opacity: 0.8,
   },
 })
 

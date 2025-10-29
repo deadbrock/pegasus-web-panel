@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { validarPeriodoOuErro, registrarVerificacaoPeriodo } from './periodo-pedidos-service'
 
 export type ItemPedido = {
   id?: string
@@ -118,6 +119,19 @@ export async function criarPedido(pedido: {
   autorizacao_justificativa?: string
 }): Promise<PedidoMobile | null> {
   try {
+    // ==========================================
+    // VALIDAR PERÍODO DE PEDIDOS (DIA 15-23)
+    // ==========================================
+    const validacaoPeriodo = validarPeriodoOuErro()
+    if (!validacaoPeriodo.ok) {
+      // Registrar tentativa bloqueada para auditoria
+      await registrarVerificacaoPeriodo(pedido.supervisor_id, true, true)
+      throw new Error(validacaoPeriodo.erro)
+    }
+    
+    // Registrar criação permitida para auditoria
+    await registrarVerificacaoPeriodo(pedido.supervisor_id, true, false)
+
     // Gerar número do pedido
     const { count } = await supabase
       .from('pedidos_supervisores')
