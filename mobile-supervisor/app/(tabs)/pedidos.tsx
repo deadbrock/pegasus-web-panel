@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView, RefreshControl, Alert, FlatList, Touchabl
 import { Card, Title, Paragraph, Text, Chip, FAB, ActivityIndicator, Badge, Dialog, Portal, TextInput, Button, Searchbar } from 'react-native-paper'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { PedidoCardModern } from '../../components/PedidoCardModern'
 import { fetchProdutosDisponiveis, type Produto } from '../../services/produtos-service'
 import { 
   verificarPodeFazerPedido, 
@@ -438,83 +439,14 @@ export default function PedidosScreen() {
           </View>
         ) : (
           pedidos.map((pedido) => (
-            <Card key={pedido.id} style={styles.pedidoCard}>
-              <Card.Content>
-                {/* Header do Pedido */}
-                <View style={styles.pedidoHeader}>
-                  <View style={styles.pedidoTitleRow}>
-                    <MaterialCommunityIcons 
-                      name="package-variant" 
-                      size={20} 
-                      color="#3b82f6" 
-                    />
-                    <Text style={styles.pedidoNumero}>{pedido.numero_pedido}</Text>
-                  </View>
-                  <Chip
-                    icon={getStatusIcon(pedido.status)}
-                    style={{ backgroundColor: getStatusColor(pedido.status) + '20' }}
-                    textStyle={{ color: getStatusColor(pedido.status) }}
-                  >
-                    {pedido.status}
-                  </Chip>
-                </View>
-
-                {/* Quantidade e Urgência */}
-                <View style={styles.routeContainer}>
-                  <View style={styles.routePoint}>
-                    <MaterialCommunityIcons name="package-variant-closed" size={16} color="#3b82f6" />
-                    <Text style={styles.routeText}>
-                      {pedido.itens?.length || 0} {pedido.itens?.length === 1 ? 'item' : 'itens'}
-                    </Text>
-                  </View>
-                  <Chip
-                    icon={getUrgenciaIcon(pedido.urgencia)}
-                    style={{ backgroundColor: getUrgenciaColor(pedido.urgencia) + '20' }}
-                    textStyle={{ color: getUrgenciaColor(pedido.urgencia), fontSize: 11 }}
-                  >
-                    {pedido.urgencia}
-                  </Chip>
-                </View>
-                
-                {/* Lista de Itens */}
-                {pedido.itens && pedido.itens.length > 0 && (
-                  <View style={styles.itensContainer}>
-                    {pedido.itens.map((item, index) => (
-                      <View key={item.id || index} style={styles.itemPedido}>
-                        <MaterialCommunityIcons name="package" size={14} color="#6b7280" />
-                        <Text style={styles.itemPedidoTexto}>
-                          {item.quantidade} {item.unidade} de {item.produto_nome}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-
-                {/* Autorização (se tiver) */}
-                {pedido.requer_autorizacao && (
-                  <View style={styles.autorizacaoContainer}>
-                    <MaterialCommunityIcons 
-                      name={pedido.autorizacao_status === 'Aprovada' ? 'check-decagram' : 'alert-circle'} 
-                      size={14} 
-                      color={pedido.autorizacao_status === 'Aprovada' ? '#10b981' : '#f59e0b'} 
-                    />
-                    <Text style={styles.autorizacaoText}>
-                      Autorização: {pedido.autorizacao_status || 'Pendente'}
-                    </Text>
-                  </View>
-                )}
-
-                {/* Data */}
-                <View style={styles.bottomRow}>
-                  <View style={styles.infoRow}>
-                    <MaterialCommunityIcons name="calendar" size={14} color="#6b7280" />
-                    <Text style={styles.smallText}>
-                      {new Date(pedido.data_solicitacao).toLocaleDateString('pt-BR')}
-                    </Text>
-                  </View>
-                </View>
-              </Card.Content>
-            </Card>
+            <PedidoCardModern
+              key={pedido.id}
+              pedido={pedido}
+              getStatusColor={getStatusColor}
+              getStatusIcon={getStatusIcon}
+              getUrgenciaColor={getUrgenciaColor}
+              getUrgenciaIcon={getUrgenciaIcon}
+            />
           ))
         )}
       </ScrollView>

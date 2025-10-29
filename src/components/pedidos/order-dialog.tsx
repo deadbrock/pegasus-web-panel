@@ -200,7 +200,7 @@ export function OrderDialog({ open, onClose, order }: OrderDialogProps) {
   }
 
   const getValorTotal = () => {
-    return formData.itens.reduce((total, item) => total + item.valorTotal, 0)
+    return formData.itens.reduce((total, item) => total + (item.valorTotal || 0), 0)
   }
 
   const formatPhone = (value: string) => {
@@ -454,7 +454,7 @@ export function OrderDialog({ open, onClose, order }: OrderDialogProps) {
                     type="number"
                     step="0.01"
                     min="0"
-                    value={item.valorUnitario}
+                    value={item.valorUnitario || 0}
                     onChange={(e) => handleItemChange(index, 'valorUnitario', parseFloat(e.target.value) || 0)}
                   />
                 </div>
@@ -462,7 +462,7 @@ export function OrderDialog({ open, onClose, order }: OrderDialogProps) {
                 <div className="space-y-2">
                   <Label>Valor Total</Label>
                   <Input
-                    value={item.valorTotal.toFixed(2)}
+                    value={(item.valorTotal || 0).toFixed(2)}
                     disabled
                   />
                 </div>
