@@ -205,7 +205,11 @@ export function MobileOrderViewDialog({ open, onClose, order }: MobileOrderViewD
                 Data de Solicitação
               </h3>
               <p className="text-gray-700">
-                {format(new Date(order.data_solicitacao), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
+                {order.data_solicitacao 
+                  ? format(new Date(order.data_solicitacao), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })
+                  : order.created_at 
+                    ? format(new Date(order.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })
+                    : 'Data não disponível'}
               </p>
             </div>
             <div className="bg-gray-50 rounded-lg p-4">
@@ -214,7 +218,11 @@ export function MobileOrderViewDialog({ open, onClose, order }: MobileOrderViewD
                 Última Atualização
               </h3>
               <p className="text-gray-700">
-                {format(new Date(order.data_atualizacao), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
+                {order.data_atualizacao 
+                  ? format(new Date(order.data_atualizacao), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })
+                  : order.updated_at 
+                    ? format(new Date(order.updated_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })
+                    : 'Data não disponível'}
               </p>
             </div>
           </div>

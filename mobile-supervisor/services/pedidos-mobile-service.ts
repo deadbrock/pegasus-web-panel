@@ -127,6 +127,7 @@ export async function criarPedido(pedido: {
     const numeroPedido = `PED-${ano}-${String((count || 0) + 1).padStart(4, '0')}`
 
     // 1. Criar o pedido principal
+    const dataAtual = new Date().toISOString()
     const { data: pedidoCriado, error: pedidoError } = await supabase
       .from('pedidos_supervisores')
       .insert({
@@ -142,7 +143,9 @@ export async function criarPedido(pedido: {
         requer_autorizacao: pedido.requer_autorizacao,
         autorizacao_status: pedido.requer_autorizacao ? 'Pendente' : null,
         autorizacao_justificativa: pedido.autorizacao_justificativa,
-        status: 'Pendente'
+        status: 'Pendente',
+        data_solicitacao: dataAtual,
+        data_atualizacao: dataAtual
       })
       .select()
       .single()
