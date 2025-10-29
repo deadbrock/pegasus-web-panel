@@ -42,26 +42,54 @@ export type VerificacaoMensal = {
 
 /**
  * Verifica se o supervisor pode fazer pedido no mês atual
- * Retorna se pode fazer e se precisa de autorização
+ * 
+ * REGRA:
+ * - Primeiro pedido do mês: NÃO precisa autorização
+ * - Segundo pedido do mesmo mês: PRECISA autorização
+ * - Quando o mês vira: Contador reseta
  */
 export async function verificarPodeFazerPedido(supervisorId: string): Promise<VerificacaoMensal> {
   try {
-    const { data, error } = await supabase
-      .rpc('pode_fazer_pedido_no_mes', {
-        p_supervisor_id: supervisorId
-      })
-      .single()
+    // Pegar mês e ano atuais
+    const agora = new Date()
+    const mesAtual = agora.getMonth() + 1 // 0-11 -> 1-12
+    const anoAtual = agora.getFullYear()
 
-    if (error) throw error
+    // Buscar pedidos do supervisor no mês/ano atual
+    const { data: pedidos, error } = await supabase
+      .from('pedidos_supervisores')
+      .select('id, numero_pedido, created_at')
+      .eq('supervisor_id', supervisorId)
+      .gte('created_at', `${anoAtual}-${String(mesAtual).padStart(2, '0')}-01`) // Início do mês
+      .lt('created_at', `${anoAtual}-${String(mesAtual + 1).padStart(2, '0')}-01`) // Início do próximo mês
+      
+    if (error) {
+      console.error('Erro ao buscar pedidos do mês:', error)
+      // Em caso de erro, permitir sem autorização
+      return {
+        pode_fazer: true,
+        total_pedidos_mes: 0,
+        requer_autorizacao: false
+      }
+    }
 
-    return data || {
+    const totalPedidosMes = pedidos?.length || 0
+
+    // LÓGICA:
+    // - 0 pedidos: pode fazer sem autorização (primeiro do mês)
+    // - 1+ pedidos: pode fazer mas precisa de autorização (segundo ou mais)
+    const requerAutorizacao = totalPedidosMes >= 1
+
+    console.log(`📊 Pedidos do supervisor no mês ${mesAtual}/${anoAtual}: ${totalPedidosMes}`)
+    console.log(`${requerAutorizacao ? '⚠️ Requer autorização (2º pedido ou mais)' : '✅ Não requer autorização (1º pedido do mês)'}`)
+
+    return {
       pode_fazer: true,
-      total_pedidos_mes: 0,
-      requer_autorizacao: false
+      total_pedidos_mes: totalPedidosMes,
+      requer_autorizacao: requerAutorizacao
     }
   } catch (error) {
     console.error('Erro ao verificar pedidos do mês:', error)
-    // Em caso de erro, permitir mas avisar
     return {
       pode_fazer: true,
       total_pedidos_mes: 0,
