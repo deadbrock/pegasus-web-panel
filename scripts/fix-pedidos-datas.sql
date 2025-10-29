@@ -86,5 +86,9 @@ SELECT
 FROM public.pedidos_supervisores
 WHERE data_atualizacao IS NULL;
 
-RAISE NOTICE 'FIX concluído com sucesso!';
+-- Mensagem de sucesso
+DO $$ 
+BEGIN
+    RAISE NOTICE 'FIX concluído com sucesso!';
+END $$;
 
