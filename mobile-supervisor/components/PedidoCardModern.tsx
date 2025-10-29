@@ -25,147 +25,127 @@ export function PedidoCardModern({
   onDetalhesPress,
   onCancelarPress,
 }: PedidoCardModernProps) {
+  const totalItens = pedido.itens?.length || 0
+  const primeiroItem = pedido.itens && pedido.itens.length > 0 ? pedido.itens[0] : null
+
   return (
     <View style={styles.pedidoCardModern}>
-      {/* Header com Gradiente */}
-      <View style={[styles.pedidoHeaderModern, { backgroundColor: getStatusColor(pedido.status) + '15' }]}>
-        <View style={styles.headerTopRow}>
-          <View style={styles.numeroContainer}>
-            <MaterialCommunityIcons 
-              name="file-document-outline" 
-              size={18} 
-              color={getStatusColor(pedido.status)} 
-            />
-            <Text style={[styles.pedidoNumeroModern, { color: getStatusColor(pedido.status) }]}>
-              {pedido.numero_pedido}
-            </Text>
-          </View>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(pedido.status) }]}>
-            <MaterialCommunityIcons 
-              name={getStatusIcon(pedido.status) as any} 
-              size={12} 
-              color="white" 
-            />
-            <Text style={styles.statusText}>{pedido.status}</Text>
-          </View>
+      {/* Header Compacto */}
+      <View style={styles.headerCompacto}>
+        <View style={styles.headerLeft}>
+          <MaterialCommunityIcons 
+            name="file-document" 
+            size={20} 
+            color={getStatusColor(pedido.status)} 
+          />
+          <Text style={[styles.numeroCompacto, { color: getStatusColor(pedido.status) }]}>
+            {pedido.numero_pedido}
+          </Text>
         </View>
         
-        <Text style={styles.dataTexto}>
-          {format(new Date(pedido.data_solicitacao), "dd 'de' MMM 'às' HH:mm", { locale: ptBR })}
-        </Text>
+        <View style={[styles.statusBadgeCompacto, { backgroundColor: getStatusColor(pedido.status) }]}>
+          <MaterialCommunityIcons 
+            name={getStatusIcon(pedido.status) as any} 
+            size={14} 
+            color="white" 
+          />
+          <Text style={styles.statusTextCompacto}>{pedido.status}</Text>
+        </View>
       </View>
 
-      {/* Corpo do Card */}
-      <View style={styles.pedidoBodyModern}>
-        {/* Resumo Rápido */}
-        <View style={styles.resumoRow}>
-          <View style={styles.resumoItem}>
-            <MaterialCommunityIcons name="package-variant" size={20} color="#3b82f6" />
-            <Text style={styles.resumoLabel}>Itens</Text>
-            <Text style={styles.resumoValue}>{pedido.itens?.length || 0}</Text>
+      {/* Info Principal - Destaque */}
+      <View style={styles.infoDestaque}>
+        <View style={styles.infoDestaqueLeft}>
+          <View style={styles.iconeBadge}>
+            <MaterialCommunityIcons name="cube-outline" size={18} color="#3b82f6" />
           </View>
-          
-          <View style={styles.divider} />
-          
-          <View style={styles.resumoItem}>
-            <MaterialCommunityIcons 
-              name={getUrgenciaIcon(pedido.urgencia) as any} 
-              size={20} 
-              color={getUrgenciaColor(pedido.urgencia)} 
-            />
-            <Text style={styles.resumoLabel}>Urgência</Text>
-            <Text style={[styles.resumoValue, { color: getUrgenciaColor(pedido.urgencia) }]}>
-              {pedido.urgencia}
+          <View style={styles.infoDestaqueTextos}>
+            <Text style={styles.labelDestaque}>
+              {totalItens} {totalItens === 1 ? 'ITEM' : 'ITENS'}
             </Text>
-          </View>
-        </View>
-
-        {/* Lista de Produtos */}
-        {pedido.itens && pedido.itens.length > 0 && (
-          <View style={styles.produtosSection}>
-            <Text style={styles.produtosSectionTitle}>Produtos Solicitados</Text>
-            {pedido.itens.slice(0, 3).map((item, index) => (
-              <View key={item.id || index} style={styles.produtoItem}>
-                <View style={styles.produtoIconContainer}>
-                  <MaterialCommunityIcons name="cube-outline" size={16} color="#3b82f6" />
-                </View>
-                <View style={styles.produtoInfo}>
-                  <Text style={styles.produtoNome} numberOfLines={1}>
-                    {item.produto_nome}
-                  </Text>
-                  <Text style={styles.produtoCodigo}>
-                    {item.produto_codigo} • {item.quantidade} {item.unidade}
-                  </Text>
-                </View>
-                <View style={styles.produtoQuantidadeBadge}>
-                  <Text style={styles.produtoQuantidadeText}>{item.quantidade}</Text>
-                </View>
-              </View>
-            ))}
-            {pedido.itens.length > 3 && (
-              <Text style={styles.maisItensTexto}>
-                +{pedido.itens.length - 3} {pedido.itens.length - 3 === 1 ? 'item' : 'itens'} adicional(is)
+            {primeiroItem && (
+              <Text style={styles.primeiroItemNome} numberOfLines={1}>
+                {primeiroItem.produto_nome}
               </Text>
             )}
           </View>
-        )}
-
-        {/* Badges e Alertas */}
-        <View style={styles.badgesRow}>
-          {pedido.requer_autorizacao && (
-            <View style={[
-              styles.alertBadge, 
-              { backgroundColor: pedido.autorizacao_status === 'Aprovada' ? '#dcfce7' : '#fef3c7' }
-            ]}>
-              <MaterialCommunityIcons 
-                name={pedido.autorizacao_status === 'Aprovada' ? 'check-circle' : 'alert-circle'}
-                size={14} 
-                color={pedido.autorizacao_status === 'Aprovada' ? '#16a34a' : '#f59e0b'} 
-              />
-              <Text style={[
-                styles.alertBadgeText,
-                { color: pedido.autorizacao_status === 'Aprovada' ? '#16a34a' : '#f59e0b' }
-              ]}>
-                {pedido.autorizacao_status === 'Aprovada' ? 'Autorizado' : 'Aguardando Autorização'}
-              </Text>
-            </View>
-          )}
-          
-          {pedido.observacoes && (
-            <View style={styles.alertBadge2}>
-              <MaterialCommunityIcons name="note-text-outline" size={14} color="#6366f1" />
-              <Text style={styles.alertBadgeText2}>Com observações</Text>
-            </View>
-          )}
         </View>
-
-        {/* Observações Preview */}
-        {pedido.observacoes && (
-          <View style={styles.observacoesPreview}>
-            <MaterialCommunityIcons name="comment-quote-outline" size={14} color="#64748b" />
-            <Text style={styles.observacoesPreviewText} numberOfLines={2}>
-              {pedido.observacoes}
-            </Text>
-          </View>
-        )}
+        
+        <View style={[styles.urgenciaBadge, { borderColor: getUrgenciaColor(pedido.urgencia) }]}>
+          <MaterialCommunityIcons 
+            name={getUrgenciaIcon(pedido.urgencia) as any} 
+            size={14} 
+            color={getUrgenciaColor(pedido.urgencia)} 
+          />
+          <Text style={[styles.urgenciaTexto, { color: getUrgenciaColor(pedido.urgencia) }]}>
+            {pedido.urgencia}
+          </Text>
+        </View>
       </View>
 
-      {/* Footer com Ações */}
-      <View style={styles.pedidoFooterModern}>
-        <TouchableOpacity style={styles.footerButton} onPress={onDetalhesPress}>
-          <MaterialCommunityIcons name="eye-outline" size={18} color="#3b82f6" />
-          <Text style={styles.footerButtonText}>Detalhes</Text>
-        </TouchableOpacity>
+      {/* Lista Resumida de Produtos */}
+      {totalItens > 0 && (
+        <View style={styles.listaProdutosResumida}>
+          {pedido.itens!.slice(0, 2).map((item, index) => (
+            <View key={item.id || index} style={styles.produtoLinha}>
+              <View style={styles.produtoLinhaInfo}>
+                <Text style={styles.produtoLinhaCodigo}>{item.produto_codigo}</Text>
+                <View style={styles.produtoLinhaDot} />
+                <Text style={styles.produtoLinhaQuantidade}>
+                  {item.quantidade} {item.unidade}
+                </Text>
+              </View>
+            </View>
+          ))}
+          {totalItens > 2 && (
+            <Text style={styles.maisItensCompacto}>
+              +{totalItens - 2} {totalItens - 2 === 1 ? 'produto' : 'produtos'}
+            </Text>
+          )}
+        </View>
+      )}
+
+      {/* Status de Autorização - Destaque */}
+      {pedido.requer_autorizacao && (
+        <View style={[
+          styles.autorizacaoDestaque,
+          { 
+            backgroundColor: pedido.autorizacao_status === 'Aprovada' ? '#dcfce7' : '#fef3c7',
+            borderLeftColor: pedido.autorizacao_status === 'Aprovada' ? '#16a34a' : '#f59e0b'
+          }
+        ]}>
+          <MaterialCommunityIcons 
+            name={pedido.autorizacao_status === 'Aprovada' ? 'check-decagram' : 'clock-alert-outline'}
+            size={18} 
+            color={pedido.autorizacao_status === 'Aprovada' ? '#16a34a' : '#f59e0b'} 
+          />
+          <Text style={[
+            styles.autorizacaoTexto,
+            { color: pedido.autorizacao_status === 'Aprovada' ? '#16a34a' : '#f59e0b' }
+          ]}>
+            {pedido.autorizacao_status === 'Aprovada' ? '✓ Autorizado' : '⏱ Aguardando Autorização'}
+          </Text>
+        </View>
+      )}
+
+      {/* Footer Compacto */}
+      <View style={styles.footerCompacto}>
+        <Text style={styles.dataCompacta}>
+          {format(new Date(pedido.data_solicitacao), "dd/MM 'às' HH:mm", { locale: ptBR })}
+        </Text>
         
-        {pedido.status === 'Pendente' && (
-          <>
-            <View style={styles.footerDivider} />
-            <TouchableOpacity style={styles.footerButton} onPress={onCancelarPress}>
-              <MaterialCommunityIcons name="close-circle-outline" size={18} color="#ef4444" />
-              <Text style={[styles.footerButtonText, { color: '#ef4444' }]}>Cancelar</Text>
+        <View style={styles.footerAcoes}>
+          <TouchableOpacity style={styles.botaoDetalhes} onPress={onDetalhesPress}>
+            <MaterialCommunityIcons name="eye" size={16} color="#3b82f6" />
+            <Text style={styles.botaoDetalhesTexto}>Ver Detalhes</Text>
+          </TouchableOpacity>
+          
+          {pedido.status === 'Pendente' && (
+            <TouchableOpacity style={styles.botaoCancelar} onPress={onCancelarPress}>
+              <MaterialCommunityIcons name="close-circle" size={16} color="#ef4444" />
             </TouchableOpacity>
-          </>
-        )}
+          )}
+        </View>
       </View>
     </View>
   )
