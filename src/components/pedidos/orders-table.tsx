@@ -117,11 +117,14 @@ export function OrdersTable({ onEdit, data }: OrdersTableProps) {
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline', color: string }> = {
       'Pendente': { variant: 'secondary', color: 'bg-gray-500' },
+      'Aprovado': { variant: 'default', color: 'bg-indigo-500' },
       'Em Separação': { variant: 'default', color: 'bg-blue-500' },
+      'Saiu para Entrega': { variant: 'default', color: 'bg-yellow-500' },
       'Em Rota': { variant: 'default', color: 'bg-yellow-500' },
       'Entregue': { variant: 'default', color: 'bg-green-500' },
       'Atrasado': { variant: 'destructive', color: 'bg-red-500' },
-      'Cancelado': { variant: 'outline', color: 'bg-gray-500' }
+      'Cancelado': { variant: 'outline', color: 'bg-gray-500' },
+      'Rejeitado': { variant: 'destructive', color: 'bg-red-500' }
     }
     
     return (
@@ -139,7 +142,8 @@ export function OrdersTable({ onEdit, data }: OrdersTableProps) {
       'PIX': 'bg-green-100 text-green-800',
       'Cartão': 'bg-blue-100 text-blue-800',
       'Dinheiro': 'bg-yellow-100 text-yellow-800',
-      'Boleto': 'bg-purple-100 text-purple-800'
+      'Boleto': 'bg-purple-100 text-purple-800',
+      'Material de Consumo': 'bg-amber-100 text-amber-800'
     }
 
     return (
@@ -185,17 +189,18 @@ export function OrdersTable({ onEdit, data }: OrdersTableProps) {
         </TableHeader>
         <TableBody>
           {(data || ordersData).map((order) => {
-            const numero = order.numero
-            const cliente = order.cliente
-            const telefone = order.telefone
-            const endereco = order.endereco
-            const dataPedido = order.dataPedido || order.data_pedido
+            // Suportar tanto pedidos web quanto mobile
+            const numero = order.numero_pedido || order.numero || order.id
+            const cliente = order.contrato_nome || order.cliente || order.supervisor_nome || 'Não atribuído'
+            const telefone = order.telefone || order.supervisor_email || ''
+            const endereco = order.contrato_endereco || (order.cidade ? `${order.cidade}/${order.estado || ''}` : (order.endereco || 'Endereço não informado'))
+            const dataPedido = order.data_solicitacao || order.dataPedido || order.data_pedido
             const dataEntrega = order.dataEntrega || order.data_entrega
             const status = order.status
             const motorista = order.motorista
             const veiculo = order.veiculo
-            const valorTotal = order.valorTotal ?? order.valor_total
-            const formaPagamento = order.formaPagamento || order.forma_pagamento
+            const valorTotal = order.valorTotal ?? order.valor_total ?? 0
+            const formaPagamento = order.formaPagamento || order.forma_pagamento || 'Material de Consumo'
             return (
             <TableRow key={order.id}>
               <TableCell>
