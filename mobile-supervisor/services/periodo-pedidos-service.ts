@@ -9,7 +9,19 @@
 
 import { supabase } from './supabase'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import * as Notifications from 'expo-notifications'
+import { Platform } from 'react-native'
+
+// Importar notificações apenas se não estiver no Expo Go
+let Notifications: any = null
+try {
+  // expo-notifications não funciona no Expo Go (SDK 53+)
+  // Funciona apenas em development builds ou production builds
+  if (Platform.OS === 'web' || !__DEV__) {
+    Notifications = require('expo-notifications')
+  }
+} catch (error) {
+  console.log('⚠️ Notificações não disponíveis no Expo Go. Use development build para notificações.')
+}
 
 // Configurações do período
 export const PERIODO_CONFIG = {
@@ -137,6 +149,12 @@ export async function verificarEEnviarNotificacao(): Promise<void> {
  * Envia uma notificação local
  */
 async function enviarNotificacao(titulo: string, corpo: string): Promise<void> {
+  // Verificar se notificações estão disponíveis
+  if (!Notifications) {
+    console.log('ℹ️ Notificações não disponíveis (Expo Go). Banner visual funcionará normalmente.')
+    return
+  }
+
   try {
     await Notifications.scheduleNotificationAsync({
       content: {
@@ -158,6 +176,12 @@ async function enviarNotificacao(titulo: string, corpo: string): Promise<void> {
  * Configura as notificações do app
  */
 export async function configurarNotificacoes(): Promise<boolean> {
+  // Verificar se notificações estão disponíveis
+  if (!Notifications) {
+    console.log('ℹ️ Notificações não disponíveis (Expo Go). Funcionalidade de período funcionará sem notificações.')
+    return false
+  }
+
   try {
     // Configurar comportamento das notificações
     Notifications.setNotificationHandler({
