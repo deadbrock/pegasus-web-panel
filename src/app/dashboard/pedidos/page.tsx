@@ -240,7 +240,9 @@ export default function PedidosPage() {
                         <div key={pedido.id} className={`flex items-center justify-between p-3 ${config.bg} rounded-lg`}>
                           <div>
                             <p className="font-medium">{pedido.numero_pedido}</p>
-                            <p className="text-sm text-gray-600">{pedido.supervisor_nome} - {pedido.produto_nome}</p>
+                            <p className="text-sm text-gray-600">
+                              {pedido.supervisor_nome} - {pedido.itens?.length || 0} {pedido.itens?.length === 1 ? 'item' : 'itens'}
+                            </p>
                           </div>
                           <div className="flex items-center gap-2">
                             <IconComponent className={`w-4 h-4 ${config.color}`} />

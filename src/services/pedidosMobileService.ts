@@ -1,15 +1,22 @@
 import { supabase } from '@/lib/supabase'
 
+export type ItemPedidoMobile = {
+  id?: string
+  pedido_id?: string
+  produto_id?: string | null
+  produto_codigo: string
+  produto_nome: string
+  quantidade: number
+  unidade: string
+  observacoes?: string | null
+}
+
 export type PedidoMobile = {
   id: string
   numero_pedido: string
   supervisor_id: string
   supervisor_nome: string
   supervisor_email: string
-  produto_id: string
-  produto_nome: string
-  quantidade: number
-  unidade: string
   urgencia: 'Baixa' | 'Média' | 'Alta' | 'Urgente'
   observacoes?: string
   status: 'Pendente' | 'Aprovado' | 'Em Separação' | 'Saiu para Entrega' | 'Entregue' | 'Cancelado' | 'Rejeitado'
@@ -20,15 +27,28 @@ export type PedidoMobile = {
   data_solicitacao: string
   data_atualizacao: string
   forma_pagamento?: string
+  itens?: ItemPedidoMobile[]
 }
 
 /**
- * Busca todos os pedidos do mobile (supervisores)
+ * Busca todos os pedidos do mobile (supervisores) com seus itens
  */
 export async function fetchPedidosMobile(): Promise<PedidoMobile[]> {
   const { data, error } = await supabase
     .from('pedidos_supervisores')
-    .select('*')
+    .select(`
+      *,
+      itens:itens_pedido_supervisor(
+        id,
+        pedido_id,
+        produto_id,
+        produto_codigo,
+        produto_nome,
+        quantidade,
+        unidade,
+        observacoes
+      )
+    `)
     .order('data_solicitacao', { ascending: false })
 
   if (error) {

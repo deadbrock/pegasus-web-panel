@@ -67,13 +67,25 @@ export async function verificarPodeFazerPedido(supervisorId: string): Promise<Ve
 }
 
 /**
- * Busca todos os pedidos do supervisor
+ * Busca todos os pedidos do supervisor com seus itens
  */
 export async function fetchMeusPedidos(supervisorId: string): Promise<PedidoMobile[]> {
   try {
     const { data, error } = await supabase
       .from('pedidos_supervisores')
-      .select('*')
+      .select(`
+        *,
+        itens:itens_pedido_supervisor(
+          id,
+          pedido_id,
+          produto_id,
+          produto_codigo,
+          produto_nome,
+          quantidade,
+          unidade,
+          observacoes
+        )
+      `)
       .eq('supervisor_id', supervisorId)
       .order('created_at', { ascending: false })
 
