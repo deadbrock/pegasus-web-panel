@@ -125,38 +125,17 @@ FROM pg_policies
 WHERE tablename = 'pedidos_supervisores'
   AND cmd IN ('UPDATE', 'ALL');
 
--- Testar atualização
+-- Contagem de pedidos para confirmar estrutura pronta
 SELECT 
     '=' as divisor,
-    'Teste de atualização:' as info;
+    'Status dos pedidos:' as info;
 
--- Pegar o ID de um pedido para testar
-DO $$ 
-DECLARE
-    test_id UUID;
-BEGIN
-    SELECT id INTO test_id
-    FROM public.pedidos_supervisores
-    LIMIT 1;
-
-    IF test_id IS NOT NULL THEN
-        -- Simular uma aprovação
-        UPDATE public.pedidos_supervisores
-        SET 
-            status = 'Aprovado',
-            autorizacao_status = 'Aprovada',
-            autorizado_por = 'Admin (Teste)',
-            data_atualizacao = NOW()
-        WHERE id = test_id;
-        
-        RAISE NOTICE 'Teste de atualização bem-sucedido no pedido: %', test_id;
-        
-        -- Reverter para não afetar dados reais
-        ROLLBACK;
-    ELSE
-        RAISE NOTICE 'Nenhum pedido encontrado para testar';
-    END IF;
-END $$;
+SELECT 
+    status,
+    COUNT(*) as total
+FROM public.pedidos_supervisores
+GROUP BY status
+ORDER BY status;
 
 -- Mensagem final
 DO $$ 
