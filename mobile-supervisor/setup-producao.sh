@@ -13,7 +13,7 @@ echo "[1/3] Criando arquivo .env..."
 cat > .env << 'EOF'
 # Configuracao do Supabase para producao
 EXPO_PUBLIC_SUPABASE_URL=https://moswhtqcgjcpsideykzw.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vc3dodHFjZ2pjcHNpZGVreXp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjgwODU0OTksImV4cCI6MjA0MzY2MTQ5OX0.PYlbZ_YfqWoX0D2xW9L-nQfJv1wfwJnX7cU_jGn7pxE
+EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vc3dodHFjZ2pjcHNpZGV5a3p3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0MzczMjIsImV4cCI6MjA2NjAxMzMyMn0.qqljvTvAzrheLJMOKpTtVHOWvmTQzm-UA5pp319nh28
 EOF
 
 echo "[OK] Arquivo .env criado!"
