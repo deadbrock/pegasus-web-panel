@@ -28,15 +28,16 @@ export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
     }
     
     acc[key].push({
-      id: o.numero || o.id,
-      cliente: o.cliente || 'Cliente não informado',
-      endereco: o.cidade ? `${o.cidade}/${o.estado || ''}` : (o.endereco || 'Endereço não informado'),
+      id: o.numero_pedido || o.numero || o.id,
+      cliente: o.contrato_nome || o.cliente || o.supervisor_nome || 'Não atribuído',
+      endereco: o.contrato_endereco || (o.cidade ? `${o.cidade}/${o.estado || ''}` : (o.endereco || 'Endereço não informado')),
       valor: o.valor_total ?? o.valorTotal ?? 0,
       itens: totalItens,
-      prioridade: o.prioridade || 'Normal',
+      prioridade: o.urgencia || o.prioridade || 'Normal',
       motorista: o.motorista,
       diasAtraso: o.diasAtraso,
       formaPagamento: o.forma_pagamento || o.formaPagamento || '',
+      originalOrder: o, // Manter referência ao pedido original
     })
     return acc
   }, {} as Record<string, any[]>)
@@ -83,14 +84,16 @@ export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
   const getPriorityBadge = (prioridade: string) => {
     const variants: Record<string, { color: string, text: string }> = {
       'Crítica': { color: 'bg-red-100 text-red-800', text: 'Crítica' },
+      'Urgente': { color: 'bg-red-100 text-red-800', text: 'Urgente' },
       'Alta': { color: 'bg-orange-100 text-orange-800', text: 'Alta' },
       'Normal': { color: 'bg-blue-100 text-blue-800', text: 'Normal' },
+      'Média': { color: 'bg-blue-100 text-blue-800', text: 'Média' },
       'Baixa': { color: 'bg-gray-100 text-gray-800', text: 'Baixa' }
     }
 
     return (
-      <Badge variant="outline" className={variants[prioridade]?.color}>
-        {variants[prioridade]?.text}
+      <Badge variant="outline" className={variants[prioridade]?.color || variants['Normal'].color}>
+        {variants[prioridade]?.text || prioridade}
       </Badge>
     )
   }
@@ -688,10 +691,10 @@ export function OrdersKanban({ onEdit, data }: OrdersKanbanProps) {
                         variant="outline"
                         size="sm"
                         className="w-full"
-                        onClick={() => onEdit(order)}
+                        onClick={() => onEdit((order as any).originalOrder || order)}
                       >
                         <Edit className="w-3 h-3 mr-2" />
-                        Editar
+                        Ver Detalhes
                       </Button>
                       <div className="flex gap-2">
                         <Button
