@@ -17,6 +17,9 @@ export type PedidoMobile = {
   supervisor_id: string
   supervisor_nome: string
   supervisor_email: string
+  contrato_id?: string
+  contrato_nome?: string
+  contrato_endereco?: string
   urgencia: 'Baixa' | 'Média' | 'Alta' | 'Urgente'
   observacoes?: string
   status: 'Pendente' | 'Aprovado' | 'Em Separação' | 'Saiu para Entrega' | 'Entregue' | 'Cancelado' | 'Rejeitado'
@@ -105,6 +108,9 @@ export async function criarPedido(pedido: {
   supervisor_id: string
   supervisor_nome: string
   supervisor_email: string
+  contrato_id?: string
+  contrato_nome?: string
+  contrato_endereco?: string
   itens: ItemPedido[]
   urgencia: string
   observacoes?: string
@@ -128,6 +134,9 @@ export async function criarPedido(pedido: {
         supervisor_id: pedido.supervisor_id,
         supervisor_nome: pedido.supervisor_nome,
         supervisor_email: pedido.supervisor_email,
+        contrato_id: pedido.contrato_id || null,
+        contrato_nome: pedido.contrato_nome || null,
+        contrato_endereco: pedido.contrato_endereco || null,
         urgencia: pedido.urgencia,
         observacoes: pedido.observacoes,
         requer_autorizacao: pedido.requer_autorizacao,

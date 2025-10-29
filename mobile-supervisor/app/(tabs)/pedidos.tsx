@@ -14,6 +14,11 @@ import {
   type PedidoMobile,
   type ItemPedido
 } from '../../services/pedidos-mobile-service'
+import { 
+  fetchContratosAtivos, 
+  formatarEnderecoCompleto,
+  type Contrato 
+} from '../../services/contratos-service'
 
 export default function PedidosScreen() {
   const [loading, setLoading] = useState(true)
@@ -26,6 +31,9 @@ export default function PedidosScreen() {
   
   // Dialog Novo Pedido
   const [novoPedidoVisible, setNovoPedidoVisible] = useState(false)
+  const [contratoSelecionado, setContratoSelecionado] = useState<Contrato | null>(null)
+  const [contratos, setContratos] = useState<Contrato[]>([])
+  const [loadingContratos, setLoadingContratos] = useState(false)
   const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(null)
   const [quantidade, setQuantidade] = useState('')
   const [unidade, setUnidade] = useState('UN')
@@ -162,6 +170,7 @@ export default function PedidosScreen() {
     }
     
     // Abrir dialog normalmente
+    setContratoSelecionado(null)
     setProdutoSelecionado(null)
     setQuantidade('')
     setUnidade('UN')
@@ -171,6 +180,28 @@ export default function PedidosScreen() {
     setJustificativaAutorizacao('')
     setItensPedido([]) // Limpar itens ao abrir novo pedido
     setNovoPedidoVisible(true)
+    
+    // Carregar contratos ativos
+    setLoadingContratos(true)
+    try {
+      const contratosData = await fetchContratosAtivos(supervisorId)
+      setContratos(contratosData)
+      
+      if (contratosData.length === 0) {
+        Alert.alert(
+          '⚠️ Nenhum Contrato Cadastrado',
+          'Você precisa cadastrar pelo menos um contrato/cliente antes de fazer um pedido.\n\nVá para a aba "Contratos" e cadastre um cliente.',
+          [
+            { text: 'OK', onPress: () => setNovoPedidoVisible(false) }
+          ]
+        )
+      }
+    } catch (error) {
+      console.error('Erro ao carregar contratos:', error)
+      Alert.alert('Aviso', 'Não foi possível carregar a lista de contratos')
+    } finally {
+      setLoadingContratos(false)
+    }
     
     // Carregar produtos do estoque
     setLoadingProdutos(true)
@@ -241,6 +272,12 @@ export default function PedidosScreen() {
   }
 
   const handleSalvarPedido = async () => {
+    // Validar se selecionou contrato
+    if (!contratoSelecionado) {
+      Alert.alert('Erro', 'Selecione um contrato/cliente para este pedido')
+      return
+    }
+
     // Validar se tem itens no pedido
     if (itensPedido.length === 0) {
       Alert.alert('Erro', 'Adicione pelo menos um produto ao pedido')
@@ -259,6 +296,9 @@ export default function PedidosScreen() {
         supervisor_id: supervisorId,
         supervisor_nome: supervisorNome,
         supervisor_email: supervisorEmail,
+        contrato_id: contratoSelecionado.id,
+        contrato_nome: contratoSelecionado.nome_contrato,
+        contrato_endereco: formatarEnderecoCompleto(contratoSelecionado),
         itens: itensPedido,
         urgencia: urgencia,
         observacoes: observacoes || undefined,
@@ -552,6 +592,68 @@ export default function PedidosScreen() {
             {requerAutorizacao ? '🔐 Pedido com Autorização' : 'Novo Pedido de Material'}
           </Dialog.Title>
           <Dialog.Content>
+            {/* ✨ SELEÇÃO DE CONTRATO */}
+            <View style={{ marginBottom: 20 }}>
+              <Text style={styles.sectionLabel}>Cliente/Contrato de Destino: *</Text>
+              
+              {loadingContratos ? (
+                <View style={styles.loadingProdutos}>
+                  <ActivityIndicator size="small" color="#3b82f6" />
+                  <Text style={{ marginLeft: 8, color: '#6b7280' }}>Carregando contratos...</Text>
+                </View>
+              ) : contratos.length === 0 ? (
+                <View style={styles.avisoSemContratos}>
+                  <MaterialCommunityIcons name="alert-circle" size={24} color="#f59e0b" />
+                  <Text style={{ color: '#b45309', marginLeft: 8, flex: 1 }}>
+                    Você não possui contratos cadastrados. Vá para a aba "Contratos" para cadastrar um cliente.
+                  </Text>
+                </View>
+              ) : contratoSelecionado ? (
+                <View style={styles.contratoSelecionadoContainer}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.contratoSelecionadoNome}>
+                      📄 {contratoSelecionado.nome_contrato}
+                    </Text>
+                    <Text style={styles.contratoSelecionadoEndereco}>
+                      📍 {formatarEnderecoCompleto(contratoSelecionado)}
+                    </Text>
+                    {contratoSelecionado.encarregado_nome && (
+                      <Text style={styles.contratoSelecionadoEncarregado}>
+                        👤 {contratoSelecionado.encarregado_nome}
+                      </Text>
+                    )}
+                  </View>
+                  <TouchableOpacity onPress={() => setContratoSelecionado(null)}>
+                    <MaterialCommunityIcons name="pencil" size={24} color="#3b82f6" />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.contratosListContainer}>
+                  <FlatList
+                    data={contratos}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item }) => (
+                      <TouchableOpacity onPress={() => setContratoSelecionado(item)}>
+                        <View style={styles.contratoItem}>
+                          <MaterialCommunityIcons name="file-document-outline" size={24} color="#3b82f6" />
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.contratoItemNome}>{item.nome_contrato}</Text>
+                            <Text style={styles.contratoItemEndereco}>
+                              {item.endereco_cidade && item.endereco_estado
+                                ? `${item.endereco_cidade}/${item.endereco_estado}`
+                                : formatarEnderecoCompleto(item)}
+                            </Text>
+                          </View>
+                          <MaterialCommunityIcons name="chevron-right" size={24} color="#9ca3af" />
+                        </View>
+                      </TouchableOpacity>
+                    )}
+                    style={{ maxHeight: 150 }}
+                  />
+                </View>
+              )}
+            </View>
+
             {/* Produto Selecionado */}
             {produtoSelecionado ? (
               <View style={styles.produtoSelecionadoContainer}>
@@ -1119,6 +1221,68 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#4b5563',
     flex: 1,
+  },
+  // ✨ Estilos de Contrato
+  contratosListContainer: {
+    maxHeight: 200,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    backgroundColor: '#fafafa',
+  },
+  contratoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    backgroundColor: 'white',
+  },
+  contratoItemNome: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  contratoItemEndereco: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  contratoSelecionadoContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 12,
+    backgroundColor: '#f0fdf4',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#86efac',
+    gap: 12,
+  },
+  contratoSelecionadoNome: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#166534',
+    marginBottom: 6,
+  },
+  contratoSelecionadoEndereco: {
+    fontSize: 13,
+    color: '#15803d',
+    marginBottom: 4,
+  },
+  contratoSelecionadoEncarregado: {
+    fontSize: 12,
+    color: '#16a34a',
+    fontStyle: 'italic',
+  },
+  avisoSemContratos: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#fffbeb',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#fbbf24',
   },
 })
 
