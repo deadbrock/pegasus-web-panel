@@ -1,12 +1,14 @@
 'use client'
 
+import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {  X, Package, User, Calendar, AlertCircle, CheckCircle, Clock, Truck, MapPin, Building2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { PedidoMobile } from '@/services/pedidosMobileService'
+import { PedidoMobile, aprovarAutorizacaoPedido, updatePedidoMobileStatus } from '@/services/pedidosMobileService'
+import { useToast } from '@/hooks/use-toast'
 
 interface MobileOrderViewDialogProps {
   open: boolean
@@ -32,11 +34,113 @@ const urgenciaConfig = {
 }
 
 export function MobileOrderViewDialog({ open, onClose, order }: MobileOrderViewDialogProps) {
+  const { toast } = useToast()
+  const [loading, setLoading] = useState(false)
+  
   if (!order) return null
 
   const statusInfo = statusConfig[order.status] || statusConfig['Pendente']
   const urgenciaInfo = urgenciaConfig[order.urgencia] || urgenciaConfig['Média']
   const StatusIcon = statusInfo.icon
+
+  const handleAprovar = async () => {
+    setLoading(true)
+    try {
+      const success = await aprovarAutorizacaoPedido(order.id, true, 'Admin')
+      
+      if (success) {
+        toast({
+          title: '✅ Pedido Aprovado!',
+          description: `O pedido ${order.numero_pedido} foi aprovado com sucesso.`
+        })
+        onClose()
+        // Recarregar a página para atualizar a lista
+        window.location.reload()
+      } else {
+        toast({
+          title: '❌ Erro',
+          description: 'Não foi possível aprovar o pedido. Tente novamente.',
+          variant: 'destructive'
+        })
+      }
+    } catch (error) {
+      console.error('Erro ao aprovar pedido:', error)
+      toast({
+        title: '❌ Erro',
+        description: 'Ocorreu um erro ao aprovar o pedido.',
+        variant: 'destructive'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRejeitar = async () => {
+    const motivo = prompt('Informe o motivo da rejeição:')
+    if (!motivo) return
+
+    setLoading(true)
+    try {
+      const success = await aprovarAutorizacaoPedido(order.id, false, `Admin - Motivo: ${motivo}`)
+      
+      if (success) {
+        toast({
+          title: '❌ Pedido Rejeitado',
+          description: `O pedido ${order.numero_pedido} foi rejeitado.`
+        })
+        onClose()
+        // Recarregar a página para atualizar a lista
+        window.location.reload()
+      } else {
+        toast({
+          title: '❌ Erro',
+          description: 'Não foi possível rejeitar o pedido. Tente novamente.',
+          variant: 'destructive'
+        })
+      }
+    } catch (error) {
+      console.error('Erro ao rejeitar pedido:', error)
+      toast({
+        title: '❌ Erro',
+        description: 'Ocorreu um erro ao rejeitar o pedido.',
+        variant: 'destructive'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleIniciarSeparacao = async () => {
+    setLoading(true)
+    try {
+      const success = await updatePedidoMobileStatus(order.id, 'Em Separação')
+      
+      if (success) {
+        toast({
+          title: '📦 Separação Iniciada!',
+          description: `O pedido ${order.numero_pedido} está em separação.`
+        })
+        onClose()
+        // Recarregar a página para atualizar a lista
+        window.location.reload()
+      } else {
+        toast({
+          title: '❌ Erro',
+          description: 'Não foi possível iniciar a separação. Tente novamente.',
+          variant: 'destructive'
+        })
+      }
+    } catch (error) {
+      console.error('Erro ao iniciar separação:', error)
+      toast({
+        title: '❌ Erro',
+        description: 'Ocorreu um erro ao iniciar a separação.',
+        variant: 'destructive'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -229,22 +333,35 @@ export function MobileOrderViewDialog({ open, onClose, order }: MobileOrderViewD
 
           {/* Botões de Ação */}
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button variant="outline" onClick={onClose}>
+            <Button variant="outline" onClick={onClose} disabled={loading}>
               Fechar
             </Button>
             {order.status === 'Pendente' && (
               <>
-                <Button variant="outline" className="text-red-600 border-red-600 hover:bg-red-50">
-                  Rejeitar
+                <Button 
+                  variant="outline" 
+                  className="text-red-600 border-red-600 hover:bg-red-50"
+                  onClick={handleRejeitar}
+                  disabled={loading}
+                >
+                  {loading ? 'Processando...' : 'Rejeitar'}
                 </Button>
-                <Button className="bg-green-600 hover:bg-green-700">
-                  Aprovar
+                <Button 
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={handleAprovar}
+                  disabled={loading}
+                >
+                  {loading ? 'Processando...' : 'Aprovar'}
                 </Button>
               </>
             )}
             {order.status === 'Aprovado' && (
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                Iniciar Separação
+              <Button 
+                className="bg-blue-600 hover:bg-blue-700"
+                onClick={handleIniciarSeparacao}
+                disabled={loading}
+              >
+                {loading ? 'Processando...' : 'Iniciar Separação'}
               </Button>
             )}
           </div>

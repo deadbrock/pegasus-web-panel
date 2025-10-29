@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Edit, Eye, Package, MapPin, Calendar, DollarSign, User, Truck, Check, X as XIcon } from 'lucide-react'
 import { approveOrder, rejectOrder } from '@/services/ordersService'
+import { aprovarAutorizacaoPedido } from '@/services/pedidosMobileService'
 import { useToast } from '@/hooks/use-toast'
 
 // Mock data - substituir por dados do Supabase
@@ -275,8 +276,24 @@ export function OrdersTable({ onEdit, data }: OrdersTableProps) {
                         variant="ghost"
                         size="sm"
                         onClick={async () => {
-                          const ok = await approveOrder(String(order.id))
-                          toast({ title: ok ? 'Pedido aprovado' : 'Falha ao aprovar', description: numero })
+                          // Verificar se é pedido mobile (tem supervisor_id) ou web
+                          if (order.supervisor_id) {
+                            // Pedido mobile
+                            const ok = await aprovarAutorizacaoPedido(String(order.id), true, 'Admin')
+                            toast({ 
+                              title: ok ? '✅ Pedido aprovado' : '❌ Falha ao aprovar', 
+                              description: numero 
+                            })
+                            if (ok) setTimeout(() => window.location.reload(), 1000)
+                          } else {
+                            // Pedido web
+                            const ok = await approveOrder(String(order.id))
+                            toast({ 
+                              title: ok ? '✅ Pedido aprovado' : '❌ Falha ao aprovar', 
+                              description: numero 
+                            })
+                            if (ok) setTimeout(() => window.location.reload(), 1000)
+                          }
                         }}
                         title="Aprovar pedido"
                       >
@@ -287,8 +304,25 @@ export function OrdersTable({ onEdit, data }: OrdersTableProps) {
                         size="sm"
                         onClick={async () => {
                           const reason = prompt('Motivo da rejeição do pedido?') || 'Sem motivo informado'
-                          const ok = await rejectOrder(String(order.id), reason)
-                          toast({ title: ok ? 'Pedido rejeitado' : 'Falha ao rejeitar', description: `${numero} • ${reason}` })
+                          
+                          // Verificar se é pedido mobile (tem supervisor_id) ou web
+                          if (order.supervisor_id) {
+                            // Pedido mobile
+                            const ok = await aprovarAutorizacaoPedido(String(order.id), false, `Admin - Motivo: ${reason}`)
+                            toast({ 
+                              title: ok ? '❌ Pedido rejeitado' : '❌ Falha ao rejeitar', 
+                              description: `${numero} • ${reason}` 
+                            })
+                            if (ok) setTimeout(() => window.location.reload(), 1000)
+                          } else {
+                            // Pedido web
+                            const ok = await rejectOrder(String(order.id), reason)
+                            toast({ 
+                              title: ok ? '❌ Pedido rejeitado' : '❌ Falha ao rejeitar', 
+                              description: `${numero} • ${reason}` 
+                            })
+                            if (ok) setTimeout(() => window.location.reload(), 1000)
+                          }
                         }}
                         title="Rejeitar pedido"
                       >
