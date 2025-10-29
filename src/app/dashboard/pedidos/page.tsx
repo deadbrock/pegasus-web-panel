@@ -28,6 +28,7 @@ import { fetchPedidosMobile, subscribePedidosMobile, calcularEstatisticasPedidos
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar as CalendarComp } from '@/components/ui/calendar'
 import { OrderDialog } from '@/components/pedidos/order-dialog'
+import { MobileOrderViewDialog } from '@/components/pedidos/mobile-order-view-dialog'
 import { OrderStatusChart } from '@/components/pedidos/order-status-chart'
 import { OrderTimelineChart } from '@/components/pedidos/order-timeline-chart'
 import { OrderDeliveryMap } from '@/components/pedidos/order-delivery-map'
@@ -35,7 +36,8 @@ import { OrdersKanban } from '@/components/pedidos/orders-kanban'
 
 export default function PedidosPage() {
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false)
-  const [selectedOrder, setSelectedOrder] = useState(null)
+  const [isMobileOrderDialogOpen, setIsMobileOrderDialogOpen] = useState(false)
+  const [selectedOrder, setSelectedOrder] = useState<any>(null)
   const [orders, setOrders] = useState<any[]>([])
   const [pedidosMobile, setPedidosMobile] = useState<PedidoMobile[]>([])
   const [stats, setStats] = useState<any>(null)
@@ -115,7 +117,12 @@ export default function PedidosPage() {
 
   const handleEditOrder = (order: any) => {
     setSelectedOrder(order)
-    setIsOrderDialogOpen(true)
+    // Verificar se é pedido mobile (tem supervisor_id) ou pedido web
+    if (order.supervisor_id) {
+      setIsMobileOrderDialogOpen(true)
+    } else {
+      setIsOrderDialogOpen(true)
+    }
   }
 
   const handleExportRelatorio = async () => {
@@ -499,11 +506,24 @@ export default function PedidosPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Order Dialog */}
+      {/* Order Dialog (Web Panel) */}
       <OrderDialog
         open={isOrderDialogOpen}
-        onClose={() => setIsOrderDialogOpen(false)}
+        onClose={() => {
+          setIsOrderDialogOpen(false)
+          setSelectedOrder(null)
+        }}
         order={selectedOrder}
+      />
+
+      {/* Mobile Order View Dialog (App Mobile) */}
+      <MobileOrderViewDialog
+        open={isMobileOrderDialogOpen}
+        onClose={() => {
+          setIsMobileOrderDialogOpen(false)
+          setSelectedOrder(null)
+        }}
+        order={selectedOrder as PedidoMobile}
       />
     </div>
   )

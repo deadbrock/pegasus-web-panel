@@ -459,17 +459,13 @@ export default function PedidosScreen() {
                   </Chip>
                 </View>
 
-                {/* Produto */}
-                <View style={styles.infoRow}>
-                  <MaterialCommunityIcons name="package-variant" size={16} color="#6b7280" />
-                  <Text style={styles.infoText}>{pedido.produto_nome}</Text>
-                </View>
-
                 {/* Quantidade e Urgência */}
                 <View style={styles.routeContainer}>
                   <View style={styles.routePoint}>
                     <MaterialCommunityIcons name="package-variant-closed" size={16} color="#3b82f6" />
-                    <Text style={styles.routeText}>{pedido.quantidade} {pedido.unidade}</Text>
+                    <Text style={styles.routeText}>
+                      {pedido.itens?.length || 0} {pedido.itens?.length === 1 ? 'item' : 'itens'}
+                    </Text>
                   </View>
                   <Chip
                     icon={getUrgenciaIcon(pedido.urgencia)}
@@ -479,6 +475,20 @@ export default function PedidosScreen() {
                     {pedido.urgencia}
                   </Chip>
                 </View>
+                
+                {/* Lista de Itens */}
+                {pedido.itens && pedido.itens.length > 0 && (
+                  <View style={styles.itensContainer}>
+                    {pedido.itens.map((item, index) => (
+                      <View key={item.id || index} style={styles.itemPedido}>
+                        <MaterialCommunityIcons name="package" size={14} color="#6b7280" />
+                        <Text style={styles.itemPedidoTexto}>
+                          {item.quantidade} {item.unidade} de {item.produto_nome}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
 
                 {/* Autorização (se tiver) */}
                 {pedido.requer_autorizacao && (
@@ -965,6 +975,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6b7280',
     marginTop: 2,
+  },
+  itensContainer: {
+    marginTop: 12,
+    padding: 10,
+    backgroundColor: '#f9fafb',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  itemPedido: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 4,
+  },
+  itemPedidoTexto: {
+    fontSize: 13,
+    color: '#4b5563',
+    flex: 1,
   },
 })
 
