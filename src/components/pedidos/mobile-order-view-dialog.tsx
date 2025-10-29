@@ -3,7 +3,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import {  X, Package, User, Calendar, AlertCircle, CheckCircle, Clock, Truck } from 'lucide-react'
+import {  X, Package, User, Calendar, AlertCircle, CheckCircle, Clock, Truck, MapPin, Building2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { PedidoMobile } from '@/services/pedidosMobileService'
@@ -87,6 +87,31 @@ export function MobileOrderViewDialog({ open, onClose, order }: MobileOrderViewD
               </div>
             </div>
           </div>
+
+          {/* Informações do Contrato/Cliente */}
+          {order.contrato_nome && (
+            <div className="bg-green-50 rounded-lg p-4 border-l-4 border-green-500">
+              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-green-600" />
+                Cliente/Contrato de Destino
+              </h3>
+              <div className="space-y-2">
+                <div>
+                  <p className="text-sm text-gray-600">Cliente/Obra</p>
+                  <p className="font-semibold text-lg text-green-900">{order.contrato_nome}</p>
+                </div>
+                {order.contrato_endereco && (
+                  <div>
+                    <p className="text-sm text-gray-600 flex items-center gap-1">
+                      <MapPin className="w-4 h-4" />
+                      Endereço de Entrega
+                    </p>
+                    <p className="font-medium text-gray-800">{order.contrato_endereco}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Itens do Pedido */}
           <div className="bg-white rounded-lg border">

@@ -17,6 +17,9 @@ export type PedidoMobile = {
   supervisor_id: string
   supervisor_nome: string
   supervisor_email: string
+  contrato_id?: string
+  contrato_nome?: string
+  contrato_endereco?: string
   urgencia: 'Baixa' | 'Média' | 'Alta' | 'Urgente'
   observacoes?: string
   status: 'Pendente' | 'Aprovado' | 'Em Separação' | 'Saiu para Entrega' | 'Entregue' | 'Cancelado' | 'Rejeitado'
