@@ -30,6 +30,15 @@ export const PERIODO_CONFIG = {
   DIAS_ALERTA: 2, // Avisar 2 dias antes do fim (dia 21)
 }
 
+// =====================================================
+// MODO DE TESTE - Para simular diferentes datas
+// =====================================================
+// Descomente a linha abaixo para testar com uma data específica
+// export const DATA_TESTE_OVERRIDE: Date | null = new Date(2024, 9, 18) // 18 de outubro de 2024
+// export const DATA_TESTE_OVERRIDE: Date | null = new Date(2024, 9, 10) // 10 de outubro (BLOQUEADO)
+// export const DATA_TESTE_OVERRIDE: Date | null = new Date(2024, 9, 21) // 21 de outubro (ALERTA)
+export const DATA_TESTE_OVERRIDE: Date | null = null // null = usar data real do sistema
+
 /**
  * Resultado da verificação do período
  */
@@ -47,10 +56,16 @@ export type StatusPeriodo = {
  * Verifica se está no período permitido para fazer pedidos
  */
 export function verificarPeriodoPedidos(): StatusPeriodo {
-  const agora = new Date()
+  // Usar data de teste se configurada, senão usar data real
+  const agora = DATA_TESTE_OVERRIDE || new Date()
   const diaAtual = agora.getDate()
   const mesAtual = agora.getMonth() + 1 // 0-11 -> 1-12
   const anoAtual = agora.getFullYear()
+  
+  // Log para debug (ajuda a ver qual data está sendo usada)
+  if (DATA_TESTE_OVERRIDE) {
+    console.log('🧪 MODO DE TESTE ATIVADO - Simulando:', agora.toLocaleDateString('pt-BR'))
+  }
 
   const dentrooPeriodo = diaAtual >= PERIODO_CONFIG.DIA_INICIO && diaAtual <= PERIODO_CONFIG.DIA_FIM
   const diasRestantes = dentrooPeriodo ? PERIODO_CONFIG.DIA_FIM - diaAtual : 0
