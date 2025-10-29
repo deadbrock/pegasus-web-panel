@@ -12,6 +12,8 @@ interface PedidoCardModernProps {
   getStatusIcon: (status: string) => string
   getUrgenciaColor: (urgencia: string) => string
   getUrgenciaIcon: (urgencia: string) => string
+  onDetalhesPress?: () => void
+  onCancelarPress?: () => void
 }
 
 export function PedidoCardModern({
@@ -20,6 +22,8 @@ export function PedidoCardModern({
   getStatusIcon,
   getUrgenciaColor,
   getUrgenciaIcon,
+  onDetalhesPress,
+  onCancelarPress,
 }: PedidoCardModernProps) {
   return (
     <View style={styles.pedidoCardModern}>
@@ -148,7 +152,7 @@ export function PedidoCardModern({
 
       {/* Footer com Ações */}
       <View style={styles.pedidoFooterModern}>
-        <TouchableOpacity style={styles.footerButton}>
+        <TouchableOpacity style={styles.footerButton} onPress={onDetalhesPress}>
           <MaterialCommunityIcons name="eye-outline" size={18} color="#3b82f6" />
           <Text style={styles.footerButtonText}>Detalhes</Text>
         </TouchableOpacity>
@@ -156,7 +160,7 @@ export function PedidoCardModern({
         {pedido.status === 'Pendente' && (
           <>
             <View style={styles.footerDivider} />
-            <TouchableOpacity style={styles.footerButton}>
+            <TouchableOpacity style={styles.footerButton} onPress={onCancelarPress}>
               <MaterialCommunityIcons name="close-circle-outline" size={18} color="#ef4444" />
               <Text style={[styles.footerButtonText, { color: '#ef4444' }]}>Cancelar</Text>
             </TouchableOpacity>

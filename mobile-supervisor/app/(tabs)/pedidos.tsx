@@ -43,6 +43,10 @@ export default function PedidosScreen() {
   const [requerAutorizacao, setRequerAutorizacao] = useState(false)
   const [autorizacaoDialogVisible, setAutorizacaoDialogVisible] = useState(false)
   const [justificativaAutorizacao, setJustificativaAutorizacao] = useState('')
+  
+  // Dialog de Detalhes
+  const [detalhesDialogVisible, setDetalhesDialogVisible] = useState(false)
+  const [pedidoSelecionado, setPedidoSelecionado] = useState<PedidoMobile | null>(null)
 
   useEffect(() => {
     const init = async () => {
@@ -318,6 +322,32 @@ export default function PedidosScreen() {
     }
   }
 
+  const handleDetalhesPress = (pedido: PedidoMobile) => {
+    setPedidoSelecionado(pedido)
+    setDetalhesDialogVisible(true)
+  }
+
+  const handleCancelarPress = (pedido: PedidoMobile) => {
+    Alert.alert(
+      'Cancelar Pedido',
+      `Tem certeza que deseja cancelar o pedido ${pedido.numero_pedido}?`,
+      [
+        {
+          text: 'Não',
+          style: 'cancel'
+        },
+        {
+          text: 'Sim, Cancelar',
+          onPress: async () => {
+            // TODO: Implementar cancelamento no backend
+            Alert.alert('Aviso', 'Funcionalidade de cancelamento será implementada em breve')
+          },
+          style: 'destructive'
+        }
+      ]
+    )
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Pendente':
@@ -446,6 +476,8 @@ export default function PedidosScreen() {
               getStatusIcon={getStatusIcon}
               getUrgenciaColor={getUrgenciaColor}
               getUrgenciaIcon={getUrgenciaIcon}
+              onDetalhesPress={() => handleDetalhesPress(pedido)}
+              onCancelarPress={() => handleCancelarPress(pedido)}
             />
           ))
         )}
@@ -663,6 +695,136 @@ export default function PedidosScreen() {
                 Enviar Pedido
               </Button>
             )}
+          </Dialog.Actions>
+        </Dialog>
+
+        {/* Dialog de Detalhes do Pedido */}
+        <Dialog visible={detalhesDialogVisible} onDismiss={() => setDetalhesDialogVisible(false)} style={{ maxHeight: '90%' }}>
+          <Dialog.Title>Detalhes do Pedido</Dialog.Title>
+          <Dialog.ScrollArea>
+            <ScrollView>
+              {pedidoSelecionado && (
+                <View style={{ padding: 16, gap: 16 }}>
+                  {/* Informações Principais */}
+                  <View style={{ backgroundColor: '#f0f9ff', padding: 12, borderRadius: 8 }}>
+                    <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#0369a1', marginBottom: 4 }}>
+                      {pedidoSelecionado.numero_pedido}
+                    </Text>
+                    <Text style={{ fontSize: 14, color: '#64748b' }}>
+                      {new Date(pedidoSelecionado.data_solicitacao).toLocaleString('pt-BR')}
+                    </Text>
+                  </View>
+
+                  {/* Status e Urgência */}
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <Chip
+                      icon={getStatusIcon(pedidoSelecionado.status)}
+                      style={{ backgroundColor: getStatusColor(pedidoSelecionado.status) + '20' }}
+                      textStyle={{ color: getStatusColor(pedidoSelecionado.status) }}
+                    >
+                      {pedidoSelecionado.status}
+                    </Chip>
+                    <Chip
+                      icon={getUrgenciaIcon(pedidoSelecionado.urgencia)}
+                      style={{ backgroundColor: getUrgenciaColor(pedidoSelecionado.urgencia) + '20' }}
+                      textStyle={{ color: getUrgenciaColor(pedidoSelecionado.urgencia) }}
+                    >
+                      {pedidoSelecionado.urgencia}
+                    </Chip>
+                  </View>
+
+                  {/* Lista de Produtos */}
+                  <View>
+                    <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: '#1e293b' }}>
+                      Produtos ({pedidoSelecionado.itens?.length || 0})
+                    </Text>
+                    {pedidoSelecionado.itens && pedidoSelecionado.itens.length > 0 ? (
+                      pedidoSelecionado.itens.map((item, index) => (
+                        <View
+                          key={item.id || index}
+                          style={{
+                            backgroundColor: '#f8fafc',
+                            padding: 12,
+                            borderRadius: 8,
+                            marginBottom: 8,
+                            borderLeftWidth: 3,
+                            borderLeftColor: '#3b82f6',
+                          }}
+                        >
+                          <Text style={{ fontSize: 15, fontWeight: '600', color: '#1e293b', marginBottom: 4 }}>
+                            {item.produto_nome}
+                          </Text>
+                          <Text style={{ fontSize: 13, color: '#64748b', marginBottom: 2 }}>
+                            Código: {item.produto_codigo}
+                          </Text>
+                          <Text style={{ fontSize: 13, color: '#64748b' }}>
+                            Quantidade: {item.quantidade} {item.unidade}
+                          </Text>
+                          {item.observacoes && (
+                            <Text style={{ fontSize: 12, color: '#6366f1', marginTop: 4, fontStyle: 'italic' }}>
+                              Obs: {item.observacoes}
+                            </Text>
+                          )}
+                        </View>
+                      ))
+                    ) : (
+                      <Text style={{ color: '#94a3b8', textAlign: 'center', padding: 16 }}>
+                        Nenhum produto encontrado
+                      </Text>
+                    )}
+                  </View>
+
+                  {/* Observações */}
+                  {pedidoSelecionado.observacoes && (
+                    <View>
+                      <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 8, color: '#1e293b' }}>
+                        Observações
+                      </Text>
+                      <View style={{ backgroundColor: '#f1f5f9', padding: 12, borderRadius: 8 }}>
+                        <Text style={{ fontSize: 14, color: '#475569', lineHeight: 20 }}>
+                          {pedidoSelecionado.observacoes}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Autorização */}
+                  {pedidoSelecionado.requer_autorizacao && (
+                    <View>
+                      <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 8, color: '#1e293b' }}>
+                        Autorização
+                      </Text>
+                      <View
+                        style={{
+                          backgroundColor: pedidoSelecionado.autorizacao_status === 'Aprovada' ? '#dcfce7' : '#fef3c7',
+                          padding: 12,
+                          borderRadius: 8,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 14,
+                            fontWeight: '600',
+                            color: pedidoSelecionado.autorizacao_status === 'Aprovada' ? '#16a34a' : '#f59e0b',
+                            marginBottom: 4,
+                          }}
+                        >
+                          Status: {pedidoSelecionado.autorizacao_status || 'Pendente'}
+                        </Text>
+                        {pedidoSelecionado.autorizacao_justificativa && (
+                          <Text style={{ fontSize: 13, color: '#475569', marginTop: 4 }}>
+                            Justificativa: {pedidoSelecionado.autorizacao_justificativa}
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  )}
+                </View>
+              )}
+            </ScrollView>
+          </Dialog.ScrollArea>
+          <Dialog.Actions>
+            <Button onPress={() => setDetalhesDialogVisible(false)}>Fechar</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>

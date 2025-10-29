@@ -294,7 +294,12 @@ export function OrdersTable({ onEdit, data }: OrdersTableProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => {}}
+                    onClick={() => onEdit({
+                      ...order,
+                      itens: Array.isArray((order as any).itens)
+                        ? (order as any).itens
+                        : (() => { try { return (order as any).itens ? JSON.parse((order as any).itens as any) : [] } catch { return [] } })()
+                    })}
                   >
                     <Eye className="w-4 h-4" />
                   </Button>
