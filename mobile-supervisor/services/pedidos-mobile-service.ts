@@ -177,6 +177,58 @@ export async function criarPedido(pedido: {
 }
 
 /**
+ * Cancela um pedido (apenas se estiver Pendente)
+ */
+export async function cancelarPedido(pedidoId: string): Promise<{ success: boolean; message: string }> {
+  try {
+    // Primeiro, verificar se o pedido existe e está Pendente
+    const { data: pedidoAtual, error: fetchError } = await supabase
+      .from('pedidos_supervisores')
+      .select('id, status, numero_pedido')
+      .eq('id', pedidoId)
+      .single()
+
+    if (fetchError) {
+      console.error('Erro ao buscar pedido:', fetchError)
+      return { success: false, message: 'Pedido não encontrado' }
+    }
+
+    // Verificar se o pedido pode ser cancelado
+    if (pedidoAtual.status !== 'Pendente') {
+      return {
+        success: false,
+        message: `Não é possível cancelar um pedido com status "${pedidoAtual.status}". Apenas pedidos "Pendente" podem ser cancelados.`
+      }
+    }
+
+    // Atualizar o status para Cancelado
+    const { error: updateError } = await supabase
+      .from('pedidos_supervisores')
+      .update({
+        status: 'Cancelado',
+        data_atualizacao: new Date().toISOString()
+      })
+      .eq('id', pedidoId)
+
+    if (updateError) {
+      console.error('Erro ao cancelar pedido:', updateError)
+      return { success: false, message: 'Erro ao cancelar pedido. Tente novamente.' }
+    }
+
+    return {
+      success: true,
+      message: `Pedido ${pedidoAtual.numero_pedido} cancelado com sucesso!`
+    }
+  } catch (error: any) {
+    console.error('Erro ao cancelar pedido:', error)
+    return {
+      success: false,
+      message: error.message || 'Erro inesperado ao cancelar pedido'
+    }
+  }
+}
+
+/**
  * Subscribe para mudanças nos pedidos (realtime)
  */
 export function subscribePedidosRealtime(

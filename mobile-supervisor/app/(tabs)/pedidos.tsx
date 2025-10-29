@@ -10,6 +10,7 @@ import {
   criarPedido, 
   fetchMeusPedidos, 
   subscribePedidosRealtime,
+  cancelarPedido,
   type PedidoMobile,
   type ItemPedido
 } from '../../services/pedidos-mobile-service'
@@ -330,7 +331,7 @@ export default function PedidosScreen() {
   const handleCancelarPress = (pedido: PedidoMobile) => {
     Alert.alert(
       'Cancelar Pedido',
-      `Tem certeza que deseja cancelar o pedido ${pedido.numero_pedido}?`,
+      `Tem certeza que deseja cancelar o pedido ${pedido.numero_pedido}?\n\nEsta ação não pode ser desfeita.`,
       [
         {
           text: 'Não',
@@ -339,8 +340,38 @@ export default function PedidosScreen() {
         {
           text: 'Sim, Cancelar',
           onPress: async () => {
-            // TODO: Implementar cancelamento no backend
-            Alert.alert('Aviso', 'Funcionalidade de cancelamento será implementada em breve')
+            try {
+              setRefreshing(true)
+              
+              const resultado = await cancelarPedido(pedido.id)
+              
+              if (resultado.success) {
+                // Sucesso - recarregar lista de pedidos
+                await loadPedidos()
+                
+                Alert.alert(
+                  '✅ Sucesso!',
+                  resultado.message,
+                  [{ text: 'OK' }]
+                )
+              } else {
+                // Erro - mostrar mensagem
+                Alert.alert(
+                  '❌ Erro',
+                  resultado.message,
+                  [{ text: 'OK' }]
+                )
+              }
+            } catch (error: any) {
+              console.error('Erro ao cancelar pedido:', error)
+              Alert.alert(
+                '❌ Erro',
+                'Não foi possível cancelar o pedido. Verifique sua conexão e tente novamente.',
+                [{ text: 'OK' }]
+              )
+            } finally {
+              setRefreshing(false)
+            }
           },
           style: 'destructive'
         }
