@@ -4,11 +4,12 @@ import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import {  X, Package, User, Calendar, AlertCircle, CheckCircle, Clock, Truck, MapPin, Building2 } from 'lucide-react'
+import {  X, Package, User, Calendar, AlertCircle, CheckCircle, Clock, Truck, MapPin, Building2, Download } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { PedidoMobile, aprovarAutorizacaoPedido, updatePedidoMobileStatus } from '@/services/pedidosMobileService'
 import { useToast } from '@/hooks/use-toast'
+import { gerarPedidoPDF } from '@/services/pdfService'
 
 interface MobileOrderViewDialogProps {
   open: boolean
@@ -42,6 +43,42 @@ export function MobileOrderViewDialog({ open, onClose, order }: MobileOrderViewD
   const statusInfo = statusConfig[order.status] || statusConfig['Pendente']
   const urgenciaInfo = urgenciaConfig[order.urgencia] || urgenciaConfig['Média']
   const StatusIcon = statusInfo.icon
+
+  const handleDownloadPDF = () => {
+    try {
+      const pedidoParaPDF = {
+        numero: order.numero_pedido || order.id?.toString() || 'S/N',
+        supervisor: order.supervisor_nome || 'Não informado',
+        dataPedido: order.created_at ? new Date(order.created_at) : new Date(),
+        status: order.status,
+        urgencia: order.urgencia,
+        observacoes: order.observacoes,
+        produtos: order.produtos?.map((p: any) => ({
+          codigo: p.codigo || p.produto_codigo,
+          nome: p.nome || p.produto_nome || p.codigo,
+          quantidade: p.quantidade
+        })),
+        contrato: order.contrato ? {
+          numero: order.contrato.numero,
+          descricao: order.contrato.descricao
+        } : undefined
+      }
+
+      gerarPedidoPDF(pedidoParaPDF)
+      
+      toast({
+        title: 'PDF gerado com sucesso!',
+        description: 'O arquivo foi baixado para seu computador.',
+      })
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error)
+      toast({
+        title: 'Erro ao gerar PDF',
+        description: 'Ocorreu um erro ao gerar o arquivo PDF.',
+        variant: 'destructive'
+      })
+    }
+  }
 
   const handleAprovar = async () => {
     setLoading(true)
@@ -333,6 +370,14 @@ export function MobileOrderViewDialog({ open, onClose, order }: MobileOrderViewD
 
           {/* Botões de Ação */}
           <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button 
+              variant="default"
+              onClick={handleDownloadPDF}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Baixar PDF
+            </Button>
             <Button variant="outline" onClick={onClose} disabled={loading}>
               Fechar
             </Button>

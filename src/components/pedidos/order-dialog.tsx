@@ -9,11 +9,12 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { CalendarIcon, Save, X, Plus, Minus } from 'lucide-react'
+import { CalendarIcon, Save, X, Plus, Minus, Download } from 'lucide-react'
 import { format } from 'date-fns'
 import { createOrder, updateOrder } from '@/services/ordersService'
 import { useToast } from '@/hooks/use-toast'
 import { ptBR } from 'date-fns/locale'
+import { gerarPedidoPDF } from '@/services/pdfService'
 
 interface OrderDialogProps {
   open: boolean
@@ -75,6 +76,42 @@ export function OrderDialog({ open, onClose, order }: OrderDialogProps) {
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
+
+  const handleDownloadPDF = () => {
+    try {
+      const pedidoParaPDF = order ? {
+        numero: order.numero || formData.numero,
+        cliente: order.cliente || formData.cliente,
+        telefone: order.telefone || formData.telefone,
+        endereco: order.endereco || formData.endereco,
+        cidade: order.cidade || formData.cidade,
+        estado: order.estado || formData.estado,
+        cep: order.cep || formData.cep,
+        dataPedido: order.dataPedido || formData.dataPedido,
+        dataEntrega: order.dataEntrega || formData.dataEntrega,
+        status: order.status || formData.status,
+        motorista: order.motorista || formData.motorista,
+        veiculo: order.veiculo || formData.veiculo,
+        formaPagamento: order.formaPagamento || formData.formaPagamento,
+        observacoes: order.observacoes || formData.observacoes,
+        itens: order.itens || formData.itens
+      } : formData
+
+      gerarPedidoPDF(pedidoParaPDF)
+      
+      toast({
+        title: 'PDF gerado com sucesso!',
+        description: 'O arquivo foi baixado para seu computador.',
+      })
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error)
+      toast({
+        title: 'Erro ao gerar PDF',
+        description: 'Ocorreu um erro ao gerar o arquivo PDF.',
+        variant: 'destructive'
+      })
+    }
+  }
 
   useEffect(() => {
     if (order) {
@@ -545,6 +582,17 @@ export function OrderDialog({ open, onClose, order }: OrderDialogProps) {
 
           {/* Buttons */}
           <div className="flex gap-3 pt-4">
+            {order && (
+              <Button
+                type="button"
+                variant="default"
+                onClick={handleDownloadPDF}
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Baixar PDF
+              </Button>
+            )}
             <Button
               type="button"
               variant="outline"
@@ -552,16 +600,18 @@ export function OrderDialog({ open, onClose, order }: OrderDialogProps) {
               className="flex-1"
             >
               <X className="w-4 h-4 mr-2" />
-              Cancelar
+              {order ? 'Fechar' : 'Cancelar'}
             </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex-1"
-            >
-              <Save className="w-4 h-4 mr-2" />
-              {isSubmitting ? 'Salvando...' : 'Salvar'}
-            </Button>
+            {!order && (
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {isSubmitting ? 'Salvando...' : 'Salvar'}
+              </Button>
+            )}
           </div>
         </form>
       </DialogContent>
