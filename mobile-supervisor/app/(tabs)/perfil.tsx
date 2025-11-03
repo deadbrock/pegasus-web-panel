@@ -7,10 +7,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { colors, spacing, typography, borderRadius, shadows } from '../../styles/theme'
 
 export default function PerfilScreen() {
-  const [loading, setLoading] = useState(false)
-  const [userName, setUserName] = useState('Supervisor Teste')
-  const [userEmail, setUserEmail] = useState('supervisor@teste.com')
-  const [userPhone, setUserPhone] = useState('(11) 98765-4321')
+  const [loading, setLoading] = useState(true)
+  const [userName, setUserName] = useState('Supervisor')
+  const [userEmail, setUserEmail] = useState('')
+  const [userPhone, setUserPhone] = useState('')
   const [userRole, setUserRole] = useState('supervisor')
   
   // Diálogos
@@ -43,6 +43,27 @@ export default function PerfilScreen() {
   const [cacheSize, setCacheSize] = useState('0 MB')
   const [clearingCache, setClearingCache] = useState(false)
 
+  // Carregar dados do perfil ao abrir
+  useEffect(() => {
+    loadUserData()
+  }, [])
+
+  const loadUserData = async () => {
+    try {
+      const storedName = await AsyncStorage.getItem('userName')
+      const storedEmail = await AsyncStorage.getItem('userEmail')
+      const storedPhone = await AsyncStorage.getItem('userPhone')
+      
+      if (storedName) setUserName(storedName)
+      if (storedEmail) setUserEmail(storedEmail)
+      if (storedPhone) setUserPhone(storedPhone)
+    } catch (error) {
+      console.error('Erro ao carregar dados do usuário:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleEditarPerfil = () => {
     setNovoNome(userName)
     setNovoEmail(userEmail)
@@ -50,7 +71,7 @@ export default function PerfilScreen() {
     setEditDialogVisible(true)
   }
 
-  const handleSalvarPerfil = () => {
+  const handleSalvarPerfil = async () => {
     if (!novoNome.trim()) {
       Alert.alert('Erro', 'Nome é obrigatório')
       return
@@ -64,11 +85,23 @@ export default function PerfilScreen() {
       return
     }
     
-    setUserName(novoNome)
-    setUserEmail(novoEmail)
-    setUserPhone(novoTelefone)
-    setEditDialogVisible(false)
-    Alert.alert('Sucesso', 'Perfil atualizado com sucesso!')
+    try {
+      // Salvar no AsyncStorage
+      await AsyncStorage.setItem('userName', novoNome)
+      await AsyncStorage.setItem('userEmail', novoEmail)
+      await AsyncStorage.setItem('userPhone', novoTelefone)
+      
+      // Atualizar estados locais
+      setUserName(novoNome)
+      setUserEmail(novoEmail)
+      setUserPhone(novoTelefone)
+      
+      setEditDialogVisible(false)
+      Alert.alert('Sucesso', 'Perfil atualizado com sucesso!')
+    } catch (error) {
+      console.error('Erro ao salvar perfil:', error)
+      Alert.alert('Erro', 'Não foi possível salvar as alterações')
+    }
   }
 
   const handleAlterarSenha = () => {
