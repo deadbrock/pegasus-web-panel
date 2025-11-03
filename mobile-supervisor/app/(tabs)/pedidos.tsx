@@ -636,7 +636,7 @@ export default function PedidosScreen() {
         <Dialog visible={autorizacaoDialogVisible} onDismiss={() => setAutorizacaoDialogVisible(false)}>
           <Dialog.Title>⚠️ Solicitar Autorização</Dialog.Title>
           <Dialog.Content>
-            <Text style={{ marginBottom: 16, color: '#6b7280' }}>
+            <Text style={{ marginBottom: spacing.md, color: colors.textSecondary }}>
               Você já fez um pedido este mês. Para fazer um pedido urgente, forneça uma justificativa que será enviada para aprovação.
             </Text>
             <TextInput
@@ -650,8 +650,14 @@ export default function PedidosScreen() {
             />
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setAutorizacaoDialogVisible(false)}>Cancelar</Button>
-            <Button onPress={handleSolicitarAutorizacao} mode="contained">Solicitar</Button>
+            <Button onPress={() => setAutorizacaoDialogVisible(false)} textColor={colors.textSecondary}>Cancelar</Button>
+            <Button 
+              onPress={handleSolicitarAutorizacao} 
+              mode="contained"
+              buttonColor={colors.warning}
+            >
+              Solicitar
+            </Button>
           </Dialog.Actions>
         </Dialog>
 
@@ -667,13 +673,13 @@ export default function PedidosScreen() {
               
               {loadingContratos ? (
                 <View style={styles.loadingProdutos}>
-                  <ActivityIndicator size="small" color="#3b82f6" />
-                  <Text style={{ marginLeft: 8, color: '#6b7280' }}>Carregando contratos...</Text>
+                  <ActivityIndicator size="small" color={colors.secondary} />
+                  <Text style={{ marginLeft: spacing.sm, color: colors.textSecondary }}>Carregando contratos...</Text>
                 </View>
               ) : contratos.length === 0 ? (
                 <View style={styles.avisoSemContratos}>
-                  <MaterialCommunityIcons name="alert-circle" size={24} color="#f59e0b" />
-                  <Text style={{ color: '#b45309', marginLeft: 8, flex: 1 }}>
+                  <MaterialCommunityIcons name="alert-circle" size={24} color={colors.warning} />
+                  <Text style={{ color: colors.warning, marginLeft: spacing.sm, flex: 1 }}>
                     Você não possui contratos cadastrados. Vá para a aba "Contratos" para cadastrar um cliente.
                   </Text>
                 </View>
@@ -693,7 +699,7 @@ export default function PedidosScreen() {
                     )}
                   </View>
                   <TouchableOpacity onPress={() => setContratoSelecionado(null)}>
-                    <MaterialCommunityIcons name="pencil" size={24} color="#3b82f6" />
+                    <MaterialCommunityIcons name="pencil" size={24} color={colors.secondary} />
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -704,7 +710,7 @@ export default function PedidosScreen() {
                     renderItem={({ item }) => (
                       <TouchableOpacity onPress={() => setContratoSelecionado(item)}>
                         <View style={styles.contratoItem}>
-                          <MaterialCommunityIcons name="file-document-outline" size={24} color="#3b82f6" />
+                          <MaterialCommunityIcons name="file-document-outline" size={24} color={colors.secondary} />
                           <View style={{ flex: 1 }}>
                             <Text style={styles.contratoItemNome}>{item.nome_contrato}</Text>
                             <Text style={styles.contratoItemEndereco}>
@@ -713,7 +719,7 @@ export default function PedidosScreen() {
                                 : formatarEnderecoCompleto(item)}
                             </Text>
                           </View>
-                          <MaterialCommunityIcons name="chevron-right" size={24} color="#9ca3af" />
+                          <MaterialCommunityIcons name="chevron-right" size={24} color={colors.gray400} />
                         </View>
                       </TouchableOpacity>
                     )}
@@ -731,6 +737,7 @@ export default function PedidosScreen() {
                   icon="package-variant"
                   onClose={() => setProdutoSelecionado(null)}
                   style={styles.produtoSelecionadoChip}
+                  textStyle={{ color: colors.secondary }}
                 >
                   {produtoSelecionado.nome}
                 </Chip>
@@ -750,8 +757,8 @@ export default function PedidosScreen() {
                 {/* Lista de Produtos */}
                 {loadingProdutos ? (
                   <View style={styles.loadingProdutos}>
-                    <ActivityIndicator size="small" color="#3b82f6" />
-                    <Text style={{ marginLeft: 8, color: '#6b7280' }}>Carregando produtos...</Text>
+                    <ActivityIndicator size="small" color={colors.secondary} />
+                    <Text style={{ marginLeft: spacing.sm, color: colors.textSecondary }}>Carregando produtos...</Text>
                   </View>
                 ) : (
                   <View style={styles.produtosListContainer}>
@@ -761,14 +768,14 @@ export default function PedidosScreen() {
                       renderItem={({ item }) => (
                         <TouchableOpacity onPress={() => handleSelecionarProduto(item)}>
                           <View style={styles.produtoItem}>
-                            <MaterialCommunityIcons name="package-variant" size={20} color="#3b82f6" />
+                            <MaterialCommunityIcons name="package-variant" size={20} color={colors.secondary} />
                             <View style={{ flex: 1 }}>
                               <Text style={styles.produtoNome}>{item.nome}</Text>
                               {item.codigo && (
                                 <Text style={styles.produtoCodigo}>Cód: {item.codigo}</Text>
                               )}
                             </View>
-                            <MaterialCommunityIcons name="chevron-right" size={20} color="#9ca3af" />
+                            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.gray400} />
                           </View>
                         </TouchableOpacity>
                       )}
@@ -794,7 +801,7 @@ export default function PedidosScreen() {
                 </Text>
                 {itensPedido.map((item, index) => (
                   <View key={index} style={styles.itemAdicionado}>
-                    <MaterialCommunityIcons name="package-variant" size={18} color="#3b82f6" />
+                    <MaterialCommunityIcons name="package-variant" size={18} color={colors.secondary} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.itemNome}>{item.produto_nome}</Text>
                       <Text style={styles.itemQuantidade}>
@@ -802,7 +809,7 @@ export default function PedidosScreen() {
                       </Text>
                     </View>
                     <TouchableOpacity onPress={() => handleRemoverItem(index)}>
-                      <MaterialCommunityIcons name="close-circle" size={24} color="#ef4444" />
+                      <MaterialCommunityIcons name="close-circle" size={24} color={colors.error} />
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -835,7 +842,8 @@ export default function PedidosScreen() {
                   mode="contained" 
                   onPress={handleAdicionarItem}
                   icon="plus"
-                  style={{ marginTop: 8 }}
+                  style={{ marginTop: spacing.sm }}
+                  buttonColor={colors.secondary}
                 >
                   Adicionar ao Pedido
                 </Button>
@@ -848,7 +856,7 @@ export default function PedidosScreen() {
                 {/* Aviso de Autorização */}
                 {requerAutorizacao && (
                   <View style={styles.avisoAutorizacao}>
-                    <MaterialCommunityIcons name="alert-circle" size={20} color="#f59e0b" />
+                    <MaterialCommunityIcons name="alert-circle" size={20} color={colors.warning} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.avisoAutorizacaoTitulo}>Pedido Requer Autorização</Text>
                       <Text style={styles.avisoAutorizacaoTexto}>
@@ -862,15 +870,15 @@ export default function PedidosScreen() {
                 )}
 
                 <View>
-                  <Text style={{ fontSize: 12, color: '#6b7280', marginBottom: 8 }}>Urgência:</Text>
-                  <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                  <Text style={{ fontSize: typography.xs, color: colors.textSecondary, marginBottom: spacing.sm }}>Urgência:</Text>
+                  <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
                     {(['Baixa', 'Média', 'Alta', 'Urgente'] as const).map((urg) => (
                       <Chip
                         key={urg}
                         selected={urgencia === urg}
                         onPress={() => setUrgencia(urg)}
-                        style={{ backgroundColor: urgencia === urg ? '#3b82f6' : '#f3f4f6' }}
-                        textStyle={{ color: urgencia === urg ? 'white' : '#4b5563' }}
+                        style={{ backgroundColor: urgencia === urg ? colors.secondary : colors.gray100 }}
+                        textStyle={{ color: urgencia === urg ? colors.white : colors.textPrimary }}
                       >
                         {urg}
                       </Chip>
@@ -891,9 +899,14 @@ export default function PedidosScreen() {
             )}
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setNovoPedidoVisible(false)}>Cancelar</Button>
+            <Button onPress={() => setNovoPedidoVisible(false)} textColor={colors.textSecondary}>Cancelar</Button>
             {itensPedido.length > 0 && !produtoSelecionado && (
-              <Button onPress={handleSalvarPedido} mode="contained" icon="send">
+              <Button 
+                onPress={handleSalvarPedido} 
+                mode="contained" 
+                icon="send"
+                buttonColor={colors.secondary}
+              >
                 Enviar Pedido
               </Button>
             )}
@@ -1026,7 +1039,14 @@ export default function PedidosScreen() {
             </ScrollView>
           </Dialog.ScrollArea>
           <Dialog.Actions>
-            <Button onPress={() => setDetalhesDialogVisible(false)}>Fechar</Button>
+            <Button 
+              onPress={() => setDetalhesDialogVisible(false)}
+              buttonColor={colors.secondary}
+              textColor={colors.white}
+              mode="contained"
+            >
+              Fechar
+            </Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>

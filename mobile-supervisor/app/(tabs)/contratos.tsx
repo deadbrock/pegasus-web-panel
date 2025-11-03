@@ -200,8 +200,8 @@ export default function ContratosScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
-        <Text style={{ marginTop: 16 }}>Carregando contratos...</Text>
+        <ActivityIndicator size="large" color={colors.secondary} />
+        <Text style={{ marginTop: spacing.md, color: colors.textSecondary }}>Carregando contratos...</Text>
       </View>
     )
   }
@@ -214,7 +214,7 @@ export default function ContratosScreen() {
           <Text style={styles.headerTitle}>Meus Contratos</Text>
           <Text style={styles.headerSubtitle}>{contratos.length} {contratos.length === 1 ? 'contrato' : 'contratos'} cadastrado(s)</Text>
         </View>
-        <MaterialCommunityIcons name="file-document-multiple" size={40} color="#3b82f6" />
+        <MaterialCommunityIcons name="file-document-multiple" size={40} color={colors.secondary} />
       </View>
 
       {/* Lista de Contratos */}
@@ -234,8 +234,9 @@ export default function ContratosScreen() {
             <Button 
               mode="contained" 
               onPress={handleNovoContrato}
-              style={{ marginTop: 16 }}
+              style={{ marginTop: spacing.md }}
               icon="plus"
+              buttonColor={colors.secondary}
             >
               Cadastrar Primeiro Contrato
             </Button>
@@ -297,16 +298,16 @@ export default function ContratosScreen() {
                       style={styles.acaoButton}
                       onPress={() => handleEditarContrato(contrato)}
                     >
-                      <MaterialCommunityIcons name="pencil" size={20} color="#3b82f6" />
-                      <Text style={[styles.acaoText, { color: '#3b82f6' }]}>Editar</Text>
+                      <MaterialCommunityIcons name="pencil" size={20} color={colors.secondary} />
+                      <Text style={[styles.acaoText, { color: colors.secondary }]}>Editar</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity 
                       style={styles.acaoButton}
                       onPress={() => handleDesativarContrato(contrato)}
                     >
-                      <MaterialCommunityIcons name="close-circle" size={20} color="#ef4444" />
-                      <Text style={[styles.acaoText, { color: '#ef4444' }]}>Desativar</Text>
+                      <MaterialCommunityIcons name="close-circle" size={20} color={colors.error} />
+                      <Text style={[styles.acaoText, { color: colors.error }]}>Desativar</Text>
                     </TouchableOpacity>
                   </View>
                 </Card.Content>
@@ -458,6 +459,7 @@ export default function ContratosScreen() {
                 limparFormulario()
               }}
               disabled={salvando}
+              textColor={colors.textSecondary}
             >
               Cancelar
             </Button>
@@ -466,6 +468,7 @@ export default function ContratosScreen() {
               mode="contained"
               loading={salvando}
               disabled={salvando}
+              buttonColor={colors.secondary}
             >
               {salvando ? 'Salvando...' : 'Salvar'}
             </Button>

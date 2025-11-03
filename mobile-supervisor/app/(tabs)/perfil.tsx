@@ -131,7 +131,7 @@ export default function PerfilScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+        <ActivityIndicator size="large" color={colors.secondary} />
       </View>
     )
   }
@@ -300,15 +300,21 @@ export default function PerfilScreen() {
             />
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setEditDialogVisible(false)}>Cancelar</Button>
-            <Button onPress={handleSalvarPerfil}>Salvar</Button>
+            <Button onPress={() => setEditDialogVisible(false)} textColor={colors.textSecondary}>Cancelar</Button>
+            <Button 
+              onPress={handleSalvarPerfil}
+              mode="contained"
+              buttonColor={colors.secondary}
+            >
+              Salvar
+            </Button>
           </Dialog.Actions>
         </Dialog>
 
         {/* Dialog Alterar Senha */}
         <Dialog visible={senhaDialogVisible} onDismiss={() => setSenhaDialogVisible(false)}>
           <Dialog.Title>Alterar Senha</Dialog.Title>
-          <Dialog.Content style={{ gap: 8 }}>
+          <Dialog.Content style={{ gap: spacing.sm }}>
             <TextInput
               label="Senha Atual"
               value={senhaAtual}
@@ -332,31 +338,43 @@ export default function PerfilScreen() {
             />
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setSenhaDialogVisible(false)}>Cancelar</Button>
-            <Button onPress={handleSalvarSenha}>Salvar</Button>
+            <Button onPress={() => setSenhaDialogVisible(false)} textColor={colors.textSecondary}>Cancelar</Button>
+            <Button 
+              onPress={handleSalvarSenha}
+              mode="contained"
+              buttonColor={colors.secondary}
+            >
+              Salvar
+            </Button>
           </Dialog.Actions>
         </Dialog>
 
         {/* Dialog Notificações */}
         <Dialog visible={notifDialogVisible} onDismiss={() => setNotifDialogVisible(false)}>
           <Dialog.Title>Notificações</Dialog.Title>
-          <Dialog.Content style={{ gap: 12 }}>
+          <Dialog.Content style={{ gap: spacing.sm }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text>Novos Pedidos</Text>
+              <Text style={{ color: colors.textPrimary }}>Novos Pedidos</Text>
               <Switch value={notifPedidos} onValueChange={setNotifPedidos} />
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text>Status de Aprovação</Text>
+              <Text style={{ color: colors.textPrimary }}>Status de Aprovação</Text>
               <Switch value={notifAprovacao} onValueChange={setNotifAprovacao} />
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text>Entrega Concluída</Text>
+              <Text style={{ color: colors.textPrimary }}>Entrega Concluída</Text>
               <Switch value={notifEntrega} onValueChange={setNotifEntrega} />
             </View>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setNotifDialogVisible(false)}>Cancelar</Button>
-            <Button onPress={handleSalvarNotificacoes}>Salvar</Button>
+            <Button onPress={() => setNotifDialogVisible(false)} textColor={colors.textSecondary}>Cancelar</Button>
+            <Button 
+              onPress={handleSalvarNotificacoes}
+              mode="contained"
+              buttonColor={colors.secondary}
+            >
+              Salvar
+            </Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
