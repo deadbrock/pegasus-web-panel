@@ -633,8 +633,21 @@ export default function PedidosScreen() {
 
       {/* Dialog Solicitação de Autorização */}
       <Portal>
-        <Dialog visible={autorizacaoDialogVisible} onDismiss={() => setAutorizacaoDialogVisible(false)}>
-          <Dialog.Title>⚠️ Solicitar Autorização</Dialog.Title>
+        <Dialog 
+          visible={autorizacaoDialogVisible} 
+          onDismiss={() => setAutorizacaoDialogVisible(false)}
+          style={{ 
+            borderRadius: borderRadius.lg,
+            backgroundColor: colors.white,
+          }}
+        >
+          <Dialog.Title style={{ 
+            fontSize: typography.lg, 
+            fontWeight: typography.bold,
+            color: colors.textPrimary 
+          }}>
+            ⚠️ Solicitar Autorização
+          </Dialog.Title>
           <Dialog.Content>
             <Text style={{ marginBottom: spacing.md, color: colors.textSecondary }}>
               Você já fez um pedido este mês. Para fazer um pedido urgente, forneça uma justificativa que será enviada para aprovação.
@@ -662,8 +675,20 @@ export default function PedidosScreen() {
         </Dialog>
 
         {/* Dialog Novo Pedido */}
-        <Dialog visible={novoPedidoVisible} onDismiss={() => setNovoPedidoVisible(false)} style={{ maxHeight: '90%' }}>
-          <Dialog.Title>
+        <Dialog 
+          visible={novoPedidoVisible} 
+          onDismiss={() => setNovoPedidoVisible(false)} 
+          style={{ 
+            maxHeight: '90%',
+            borderRadius: borderRadius.lg,
+            backgroundColor: colors.white,
+          }}
+        >
+          <Dialog.Title style={{ 
+            fontSize: typography.lg, 
+            fontWeight: typography.bold,
+            color: colors.textPrimary 
+          }}>
             {requerAutorizacao ? '🔐 Pedido com Autorização' : 'Novo Pedido de Material'}
           </Dialog.Title>
           <Dialog.Content>
@@ -914,8 +939,22 @@ export default function PedidosScreen() {
         </Dialog>
 
         {/* Dialog de Detalhes do Pedido */}
-        <Dialog visible={detalhesDialogVisible} onDismiss={() => setDetalhesDialogVisible(false)} style={{ maxHeight: '90%' }}>
-          <Dialog.Title>Detalhes do Pedido</Dialog.Title>
+        <Dialog 
+          visible={detalhesDialogVisible} 
+          onDismiss={() => setDetalhesDialogVisible(false)} 
+          style={{ 
+            maxHeight: '90%',
+            borderRadius: borderRadius.lg,
+            backgroundColor: colors.white,
+          }}
+        >
+          <Dialog.Title style={{ 
+            fontSize: typography.lg, 
+            fontWeight: typography.bold,
+            color: colors.textPrimary 
+          }}>
+            Detalhes do Pedido
+          </Dialog.Title>
           <Dialog.ScrollArea>
             <ScrollView>
               {pedidoSelecionado && (
@@ -1160,20 +1199,22 @@ const styles = StyleSheet.create({
     backgroundColor: colors.secondary,
   },
   sectionLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 12,
+    fontSize: typography.base,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
   },
   searchBar: {
-    marginBottom: 12,
+    marginBottom: spacing.sm,
+    borderRadius: borderRadius.md,
   },
   produtosListContainer: {
     maxHeight: 300,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 8,
-    backgroundColor: '#fafafa',
+    borderColor: colors.gray200,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.gray50,
+    ...shadows.sm,
   },
   produtosList: {
     maxHeight: 300,
@@ -1181,198 +1222,204 @@ const styles = StyleSheet.create({
   produtoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    gap: 12,
+    padding: spacing.sm,
+    gap: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    backgroundColor: 'white',
+    borderBottomColor: colors.gray200,
+    backgroundColor: colors.white,
   },
   produtoNome: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1f2937',
+    fontSize: typography.base,
+    fontWeight: typography.medium,
+    color: colors.textPrimary,
   },
   produtoCodigo: {
-    fontSize: 11,
-    color: '#9ca3af',
-    marginTop: 2,
+    fontSize: typography.xs,
+    color: colors.gray400,
+    marginTop: spacing.xs,
   },
   loadingProdutos: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: spacing.md,
     justifyContent: 'center',
   },
   emptyProdutos: {
-    padding: 24,
+    padding: spacing.lg,
     alignItems: 'center',
   },
   produtoSelecionadoContainer: {
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   produtoSelecionadoLabel: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginBottom: 8,
+    fontSize: typography.xs,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
   },
   produtoSelecionadoChip: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: colors.secondary + '15',
     alignSelf: 'flex-start',
   },
   avisoAutorizacao: {
     flexDirection: 'row',
-    gap: 12,
-    padding: 12,
-    backgroundColor: '#fffbeb',
-    borderRadius: 8,
+    gap: spacing.sm,
+    padding: spacing.sm,
+    backgroundColor: colors.warning + '15',
+    borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: '#fbbf24',
+    borderColor: colors.warning,
+    ...shadows.sm,
   },
   avisoAutorizacaoTitulo: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#92400e',
-    marginBottom: 4,
+    fontSize: typography.base,
+    fontWeight: typography.semibold,
+    color: colors.warning,
+    marginBottom: spacing.xs,
   },
   avisoAutorizacaoTexto: {
-    fontSize: 12,
-    color: '#78350f',
-    marginBottom: 4,
+    fontSize: typography.xs,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
   },
   avisoAutorizacaoJustificativa: {
-    fontSize: 11,
-    color: '#78350f',
+    fontSize: typography.xs,
+    color: colors.textSecondary,
     fontStyle: 'italic',
   },
   autorizacaoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginTop: 8,
-    padding: 8,
-    backgroundColor: '#fffbeb',
-    borderRadius: 6,
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+    padding: spacing.sm,
+    backgroundColor: colors.warning + '15',
+    borderRadius: borderRadius.sm,
   },
   autorizacaoText: {
-    fontSize: 11,
-    color: '#78350f',
-    fontWeight: '500',
+    fontSize: typography.xs,
+    color: colors.warning,
+    fontWeight: typography.medium,
   },
   itensAdicionadosContainer: {
-    marginTop: 16,
-    padding: 12,
-    backgroundColor: '#f0f9ff',
-    borderRadius: 8,
+    marginTop: spacing.md,
+    padding: spacing.sm,
+    backgroundColor: colors.secondary + '15',
+    borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
+    borderColor: colors.secondary + '40',
+    ...shadows.sm,
   },
   itensAdicionadosLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1e40af',
-    marginBottom: 12,
+    fontSize: typography.sm,
+    fontWeight: typography.semibold,
+    color: colors.secondary,
+    marginBottom: spacing.sm,
   },
   itemAdicionado: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    padding: 10,
-    backgroundColor: 'white',
-    borderRadius: 6,
-    marginBottom: 8,
+    gap: spacing.sm,
+    padding: spacing.sm,
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.sm,
+    marginBottom: spacing.sm,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.gray200,
+    ...shadows.sm,
   },
   itemNome: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1f2937',
+    fontSize: typography.base,
+    fontWeight: typography.medium,
+    color: colors.textPrimary,
   },
   itemQuantidade: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 2,
+    fontSize: typography.xs,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
   },
   itensContainer: {
-    marginTop: 12,
-    padding: 10,
-    backgroundColor: '#f9fafb',
-    borderRadius: 6,
+    marginTop: spacing.sm,
+    padding: spacing.sm,
+    backgroundColor: colors.gray50,
+    borderRadius: borderRadius.sm,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.gray200,
   },
   itemPedido: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingVertical: 4,
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
   },
   itemPedidoTexto: {
-    fontSize: 13,
-    color: '#4b5563',
+    fontSize: typography.sm,
+    color: colors.textPrimary,
     flex: 1,
   },
   // ✨ Estilos de Contrato
   contratosListContainer: {
     maxHeight: 200,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 8,
-    backgroundColor: '#fafafa',
+    borderColor: colors.gray200,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.gray50,
+    ...shadows.sm,
   },
   contratoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    gap: 12,
+    padding: spacing.sm,
+    gap: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    backgroundColor: 'white',
+    borderBottomColor: colors.gray200,
+    backgroundColor: colors.white,
   },
   contratoItemNome: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1f2937',
+    fontSize: typography.base,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
   },
   contratoItemEndereco: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 2,
+    fontSize: typography.xs,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
   },
   contratoSelecionadoContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    padding: 12,
-    backgroundColor: '#f0fdf4',
-    borderRadius: 8,
+    padding: spacing.sm,
+    backgroundColor: colors.success + '15',
+    borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: '#86efac',
-    gap: 12,
+    borderColor: colors.success,
+    gap: spacing.sm,
+    ...shadows.sm,
   },
   contratoSelecionadoNome: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#166534',
-    marginBottom: 6,
+    fontSize: typography.md,
+    fontWeight: typography.semibold,
+    color: colors.success,
+    marginBottom: spacing.xs,
   },
   contratoSelecionadoEndereco: {
-    fontSize: 13,
-    color: '#15803d',
-    marginBottom: 4,
+    fontSize: typography.sm,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
   },
   contratoSelecionadoEncarregado: {
-    fontSize: 12,
-    color: '#16a34a',
+    fontSize: typography.xs,
+    color: colors.textSecondary,
     fontStyle: 'italic',
   },
   avisoSemContratos: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#fffbeb',
-    borderRadius: 8,
+    padding: spacing.sm,
+    backgroundColor: colors.warning + '15',
+    borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: '#fbbf24',
+    borderColor: colors.warning,
+    ...shadows.sm,
   },
   // ✨ Estilos do Banner de Período
   periodoBanner: {

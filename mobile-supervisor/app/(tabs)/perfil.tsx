@@ -271,8 +271,21 @@ export default function PerfilScreen() {
       {/* Diálogos */}
       <Portal>
         {/* Dialog Editar Perfil */}
-        <Dialog visible={editDialogVisible} onDismiss={() => setEditDialogVisible(false)}>
-          <Dialog.Title>Editar Perfil</Dialog.Title>
+        <Dialog 
+          visible={editDialogVisible} 
+          onDismiss={() => setEditDialogVisible(false)}
+          style={{ 
+            borderRadius: borderRadius.lg,
+            backgroundColor: colors.white,
+          }}
+        >
+          <Dialog.Title style={{ 
+            fontSize: typography.lg, 
+            fontWeight: typography.bold,
+            color: colors.textPrimary 
+          }}>
+            Editar Perfil
+          </Dialog.Title>
           <Dialog.Content style={{ gap: 12 }}>
             <TextInput
               label="Nome Completo"
@@ -312,8 +325,21 @@ export default function PerfilScreen() {
         </Dialog>
 
         {/* Dialog Alterar Senha */}
-        <Dialog visible={senhaDialogVisible} onDismiss={() => setSenhaDialogVisible(false)}>
-          <Dialog.Title>Alterar Senha</Dialog.Title>
+        <Dialog 
+          visible={senhaDialogVisible} 
+          onDismiss={() => setSenhaDialogVisible(false)}
+          style={{ 
+            borderRadius: borderRadius.lg,
+            backgroundColor: colors.white,
+          }}
+        >
+          <Dialog.Title style={{ 
+            fontSize: typography.lg, 
+            fontWeight: typography.bold,
+            color: colors.textPrimary 
+          }}>
+            Alterar Senha
+          </Dialog.Title>
           <Dialog.Content style={{ gap: spacing.sm }}>
             <TextInput
               label="Senha Atual"
@@ -350,8 +376,21 @@ export default function PerfilScreen() {
         </Dialog>
 
         {/* Dialog Notificações */}
-        <Dialog visible={notifDialogVisible} onDismiss={() => setNotifDialogVisible(false)}>
-          <Dialog.Title>Notificações</Dialog.Title>
+        <Dialog 
+          visible={notifDialogVisible} 
+          onDismiss={() => setNotifDialogVisible(false)}
+          style={{ 
+            borderRadius: borderRadius.lg,
+            backgroundColor: colors.white,
+          }}
+        >
+          <Dialog.Title style={{ 
+            fontSize: typography.lg, 
+            fontWeight: typography.bold,
+            color: colors.textPrimary 
+          }}>
+            Notificações
+          </Dialog.Title>
           <Dialog.Content style={{ gap: spacing.sm }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text style={{ color: colors.textPrimary }}>Novos Pedidos</Text>

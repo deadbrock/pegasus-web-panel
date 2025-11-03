@@ -329,8 +329,20 @@ export default function ContratosScreen() {
 
       {/* Dialog de Cadastro/Edição */}
       <Portal>
-        <Dialog visible={dialogVisible} onDismiss={() => setDialogVisible(false)} style={{ maxHeight: '90%' }}>
-          <Dialog.Title>
+        <Dialog 
+          visible={dialogVisible} 
+          onDismiss={() => setDialogVisible(false)} 
+          style={{ 
+            maxHeight: '90%',
+            borderRadius: borderRadius.lg,
+            backgroundColor: colors.white,
+          }}
+        >
+          <Dialog.Title style={{ 
+            fontSize: typography.lg, 
+            fontWeight: typography.bold,
+            color: colors.textPrimary 
+          }}>
             {contratoEditando ? 'Editar Contrato' : 'Novo Contrato'}
           </Dialog.Title>
           <Dialog.ScrollArea>
@@ -519,15 +531,15 @@ const styles = StyleSheet.create({
     marginTop: 60,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#374151',
-    marginTop: 16,
-    marginBottom: 8,
+    fontSize: typography.xl,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
   },
   emptyText: {
-    fontSize: 14,
-    color: '#6b7280',
+    fontSize: typography.base,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -548,57 +560,60 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   contratoNome: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1f2937',
+    fontSize: typography.lg,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 8,
-    marginTop: 8,
+    gap: spacing.sm,
+    marginTop: spacing.sm,
   },
   infoText: {
     flex: 1,
-    fontSize: 14,
-    color: '#4b5563',
+    fontSize: typography.base,
+    color: colors.textPrimary,
     lineHeight: 20,
   },
   infoSubtext: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 2,
+    fontSize: typography.xs,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
   },
   observacoesBox: {
-    backgroundColor: '#f9fafb',
-    padding: 10,
-    borderRadius: 8,
-    marginTop: 12,
+    backgroundColor: colors.gray50,
+    padding: spacing.sm,
+    borderRadius: borderRadius.md,
+    marginTop: spacing.sm,
     borderLeftWidth: 3,
-    borderLeftColor: '#3b82f6',
+    borderLeftColor: colors.secondary,
+    ...shadows.sm,
   },
   observacoesText: {
-    fontSize: 13,
-    color: '#4b5563',
+    fontSize: typography.sm,
+    color: colors.textPrimary,
     fontStyle: 'italic',
   },
   acoesRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: 16,
-    marginTop: 16,
-    paddingTop: 12,
+    gap: spacing.md,
+    marginTop: spacing.md,
+    paddingTop: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    borderTopColor: colors.gray100,
   },
   acaoButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: spacing.xs,
+    padding: spacing.sm,
+    borderRadius: borderRadius.md,
   },
   acaoText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: typography.base,
+    fontWeight: typography.semibold,
   },
   fab: {
     position: 'absolute',
@@ -607,10 +622,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.secondary,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-    marginTop: 8,
-    marginBottom: 4,
+    fontSize: typography.md,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
   },
 })
