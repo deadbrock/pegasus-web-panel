@@ -54,6 +54,9 @@ module.exports = {
       router: {
         origin: false
       },
+      eas: {
+        projectId: "a4e08d93-f4ba-4ce1-96bd-a04a093a73d0"
+      },
       supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
       supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
     }
