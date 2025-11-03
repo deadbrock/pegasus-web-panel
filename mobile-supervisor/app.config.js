@@ -4,9 +4,11 @@ module.exports = {
     slug: "pegasus-supervisor",
     version: "1.0.0",
     orientation: "portrait",
+    icon: "./assets/logo-original.png",
     userInterfaceStyle: "automatic",
     splash: {
-      backgroundColor: "#3b82f6",
+      image: "./assets/logo-original.png",
+      backgroundColor: "#a2122a",
       resizeMode: "contain"
     },
     assetBundlePatterns: [
@@ -23,6 +25,10 @@ module.exports = {
     android: {
       package: "com.pegasus.supervisor",
       versionCode: 1,
+      adaptiveIcon: {
+        foregroundImage: "./assets/logo-original.png",
+        backgroundColor: "#a2122a"
+      },
       permissions: [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
