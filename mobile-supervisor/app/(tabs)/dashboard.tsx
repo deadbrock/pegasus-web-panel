@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
-import { View, StyleSheet, ScrollView, RefreshControl, Alert, TouchableOpacity } from 'react-native'
-import { Card, Title, Paragraph, Text, Chip, ActivityIndicator } from 'react-native-paper'
+import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Text as RNText } from 'react-native'
+import { Text, ActivityIndicator } from 'react-native-paper'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
+import { LinearGradient } from 'expo-linear-gradient'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { fetchMeusPedidos, type PedidoMobile } from '../../services/pedidos-mobile-service'
+import { fetchMeusPedidos } from '../../services/pedidos-mobile-service'
+import { colors, spacing, typography, borderRadius, shadows } from '../../styles/theme'
 
 type Stats = {
   pedidos_ativos: number
@@ -32,14 +34,12 @@ export default function DashboardScreen() {
 
   const loadDashboardData = async () => {
     try {
-      // Carregar nome do usuário do AsyncStorage
       const storedName = await AsyncStorage.getItem('userName')
       const storedUserId = await AsyncStorage.getItem('userId')
       
       if (storedName) setUserName(storedName)
       if (storedUserId) setSupervisorId(storedUserId)
       
-      // Só carregar pedidos se tiver um ID válido
       if (!storedUserId) {
         console.log('⚠️ Nenhum ID de supervisor encontrado')
         setLoading(false)
@@ -47,16 +47,14 @@ export default function DashboardScreen() {
         return
       }
       
-      // Carregar pedidos do supervisor
       const pedidos = await fetchMeusPedidos(storedUserId)
       
-      // Calcular estatísticas
       const ativos = pedidos.filter(p => 
         ['Aprovado', 'Em Separação', 'Saiu para Entrega'].includes(p.status)
       ).length
       
       const pendentes = pedidos.filter(p => 
-        p.status === 'Pendente'
+        p.status === 'Pendente' || p.status === 'Aguardando Autorização'
       ).length
       
       const concluidos = pedidos.filter(p => 
@@ -82,23 +80,11 @@ export default function DashboardScreen() {
     loadDashboardData()
   }
 
-  const handleNovoPedido = () => {
-    router.push('/(tabs)/pedidos')
-  }
-
-  const handleHistorico = () => {
-    router.push('/(tabs)/pedidos')
-  }
-
-  const handlePendentes = () => {
-    router.push('/(tabs)/pedidos')
-  }
-
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3b82f6" />
-        <Text style={styles.loadingText}>Carregando...</Text>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <RNText style={styles.loadingText}>Carregando...</RNText>
       </View>
     )
   }
@@ -107,110 +93,163 @@ export default function DashboardScreen() {
     <ScrollView
       style={styles.container}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        <RefreshControl 
+          refreshing={refreshing} 
+          onRefresh={onRefresh}
+          tintColor={colors.primary}
+          colors={[colors.primary]}
+        />
       }
     >
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Olá,</Text>
-          <Title style={styles.userName}>{userName}!</Title>
+      {/* Header com Gradiente */}
+      <LinearGradient
+        colors={[colors.primary, colors.primaryDark]}
+        style={styles.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={styles.headerContent}>
+          <View>
+            <RNText style={styles.greeting}>Olá,</RNText>
+            <RNText style={styles.userName}>{userName}!</RNText>
+            <RNText style={styles.headerSubtitle}>Bem-vindo ao sistema</RNText>
+          </View>
+          <View style={styles.avatarContainer}>
+            <MaterialCommunityIcons name="account-circle" size={56} color={colors.white} />
+          </View>
         </View>
-        <MaterialCommunityIcons name="account-circle" size={48} color="#3b82f6" />
-      </View>
+      </LinearGradient>
 
       {/* Cards de Estatísticas */}
-      <View style={styles.statsGrid}>
-        <Card style={[styles.statCard, styles.blueCard]}>
-          <Card.Content>
-            <MaterialCommunityIcons name="clipboard-list" size={32} color="#3b82f6" />
-            <Title style={styles.statNumber}>{stats.pedidos_ativos}</Title>
-            <Paragraph style={styles.statLabel}>Em Andamento</Paragraph>
-          </Card.Content>
-        </Card>
+      <View style={styles.statsContainer}>
+        <View style={styles.statsGrid}>
+          {/* Pedidos Ativos */}
+          <View style={styles.statCard}>
+            <LinearGradient
+              colors={[colors.secondary, colors.secondaryDark]}
+              style={styles.statGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <MaterialCommunityIcons name="package-variant" size={32} color={colors.white} />
+              <RNText style={styles.statNumber}>{stats.pedidos_ativos}</RNText>
+              <RNText style={styles.statLabel}>Em Andamento</RNText>
+            </LinearGradient>
+          </View>
 
-        <Card style={[styles.statCard, styles.orangeCard]}>
-          <Card.Content>
-            <MaterialCommunityIcons name="clock-outline" size={32} color="#f59e0b" />
-            <Title style={styles.statNumber}>{stats.pedidos_pendentes}</Title>
-            <Paragraph style={styles.statLabel}>Pendentes</Paragraph>
-          </Card.Content>
-        </Card>
+          {/* Pedidos Pendentes */}
+          <View style={styles.statCard}>
+            <LinearGradient
+              colors={[colors.warning, '#d97706']}
+              style={styles.statGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <MaterialCommunityIcons name="clock-outline" size={32} color={colors.white} />
+              <RNText style={styles.statNumber}>{stats.pedidos_pendentes}</RNText>
+              <RNText style={styles.statLabel}>Pendentes</RNText>
+            </LinearGradient>
+          </View>
 
-        <Card style={[styles.statCard, styles.greenCard]}>
-          <Card.Content>
-            <MaterialCommunityIcons name="check-circle" size={32} color="#10b981" />
-            <Title style={styles.statNumber}>{stats.pedidos_concluidos}</Title>
-            <Paragraph style={styles.statLabel}>Concluídos</Paragraph>
-          </Card.Content>
-        </Card>
+          {/* Pedidos Concluídos */}
+          <View style={styles.statCard}>
+            <LinearGradient
+              colors={[colors.success, '#059669']}
+              style={styles.statGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <MaterialCommunityIcons name="check-circle" size={32} color={colors.white} />
+              <RNText style={styles.statNumber}>{stats.pedidos_concluidos}</RNText>
+              <RNText style={styles.statLabel}>Concluídos</RNText>
+            </LinearGradient>
+          </View>
 
-        <Card style={[styles.statCard, styles.purpleCard]}>
-          <Card.Content>
-            <MaterialCommunityIcons name="format-list-bulleted" size={32} color="#8b5cf6" />
-            <Title style={styles.statNumber}>{stats.total_pedidos}</Title>
-            <Paragraph style={styles.statLabel}>Total de Pedidos</Paragraph>
-          </Card.Content>
-        </Card>
+          {/* Total de Pedidos */}
+          <View style={styles.statCard}>
+            <LinearGradient
+              colors={[colors.primary, colors.primaryDark]}
+              style={styles.statGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <MaterialCommunityIcons name="format-list-bulleted" size={32} color={colors.white} />
+              <RNText style={styles.statNumber}>{stats.total_pedidos}</RNText>
+              <RNText style={styles.statLabel}>Total</RNText>
+            </LinearGradient>
+          </View>
+        </View>
       </View>
 
       {/* Ações Rápidas */}
       <View style={styles.section}>
-        <Title style={styles.sectionTitle}>Ações Rápidas</Title>
+        <RNText style={styles.sectionTitle}>Ações Rápidas</RNText>
         
-        <TouchableOpacity onPress={handleNovoPedido}>
-          <Card style={styles.actionCard}>
-            <Card.Content style={styles.actionContent}>
-              <MaterialCommunityIcons name="plus-circle" size={24} color="#3b82f6" />
-              <View style={styles.actionText}>
-                <Text style={styles.actionTitle}>Novo Pedido de Material</Text>
-                <Text style={styles.actionDescription}>Solicitar materiais do almoxarifado</Text>
-              </View>
-              <MaterialCommunityIcons name="chevron-right" size={24} color="#9ca3af" />
-            </Card.Content>
-          </Card>
+        <TouchableOpacity 
+          onPress={() => router.push('/(tabs)/pedidos')}
+          activeOpacity={0.7}
+        >
+          <View style={styles.actionCard}>
+            <View style={[styles.iconContainer, { backgroundColor: colors.secondaryLight + '20' }]}>
+              <MaterialCommunityIcons name="plus-circle" size={28} color={colors.secondary} />
+            </View>
+            <View style={styles.actionContent}>
+              <RNText style={styles.actionTitle}>Novo Pedido de Material</RNText>
+              <RNText style={styles.actionDescription}>Solicitar materiais do almoxarifado</RNText>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={24} color={colors.gray400} />
+          </View>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={handleHistorico}>
-          <Card style={styles.actionCard}>
-            <Card.Content style={styles.actionContent}>
-              <MaterialCommunityIcons name="history" size={24} color="#10b981" />
-              <View style={styles.actionText}>
-                <Text style={styles.actionTitle}>Histórico de Pedidos</Text>
-                <Text style={styles.actionDescription}>Ver todos os pedidos anteriores</Text>
-              </View>
-              <MaterialCommunityIcons name="chevron-right" size={24} color="#9ca3af" />
-            </Card.Content>
-          </Card>
+        <TouchableOpacity 
+          onPress={() => router.push('/(tabs)/pedidos')}
+          activeOpacity={0.7}
+        >
+          <View style={styles.actionCard}>
+            <View style={[styles.iconContainer, { backgroundColor: colors.success + '20' }]}>
+              <MaterialCommunityIcons name="history" size={28} color={colors.success} />
+            </View>
+            <View style={styles.actionContent}>
+              <RNText style={styles.actionTitle}>Histórico de Pedidos</RNText>
+              <RNText style={styles.actionDescription}>Ver todos os pedidos anteriores</RNText>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={24} color={colors.gray400} />
+          </View>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={handlePendentes}>
-          <Card style={styles.actionCard}>
-            <Card.Content style={styles.actionContent}>
-              <MaterialCommunityIcons name="clipboard-text" size={24} color="#f59e0b" />
-              <View style={styles.actionText}>
-                <Text style={styles.actionTitle}>Pedidos Pendentes</Text>
-                <Text style={styles.actionDescription}>Verificar status dos pedidos</Text>
-              </View>
-              <MaterialCommunityIcons name="chevron-right" size={24} color="#9ca3af" />
-            </Card.Content>
-          </Card>
+        <TouchableOpacity 
+          onPress={() => router.push('/(tabs)/contratos')}
+          activeOpacity={0.7}
+        >
+          <View style={styles.actionCard}>
+            <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
+              <MaterialCommunityIcons name="file-document-multiple" size={28} color={colors.primary} />
+            </View>
+            <View style={styles.actionContent}>
+              <RNText style={styles.actionTitle}>Gerenciar Contratos</RNText>
+              <RNText style={styles.actionDescription}>Cadastrar e editar contratos</RNText>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={24} color={colors.gray400} />
+          </View>
         </TouchableOpacity>
       </View>
 
       {/* Status do Sistema */}
       <View style={styles.section}>
-        <Title style={styles.sectionTitle}>Status do Sistema</Title>
-        <View style={styles.statusRow}>
-          <Chip icon="check-circle" style={styles.statusChip} textStyle={styles.statusText}>
-            Sistema Online
-          </Chip>
-          <Chip icon="sync" style={styles.statusChip} textStyle={styles.statusText}>
-            Sincronizado
-          </Chip>
+        <RNText style={styles.sectionTitle}>Status do Sistema</RNText>
+        <View style={styles.statusContainer}>
+          <View style={styles.statusBadge}>
+            <MaterialCommunityIcons name="check-circle" size={16} color={colors.success} />
+            <RNText style={styles.statusText}>Sistema Online</RNText>
+          </View>
+          <View style={styles.statusBadge}>
+            <MaterialCommunityIcons name="sync" size={16} color={colors.secondary} />
+            <RNText style={styles.statusText}>Sincronizado</RNText>
+          </View>
         </View>
       </View>
 
+      <View style={{ height: spacing.xl }} />
     </ScrollView>
   )
 }
@@ -218,108 +257,145 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.gray50,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.gray50,
   },
   loadingText: {
-    marginTop: 16,
-    color: '#6b7280',
+    marginTop: spacing.md,
+    color: colors.textSecondary,
+    fontSize: typography.base,
   },
   header: {
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    ...shadows.md,
+  },
+  headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
   },
   greeting: {
-    fontSize: 16,
-    color: '#6b7280',
+    fontSize: typography.base,
+    color: colors.white,
+    opacity: 0.9,
+    marginBottom: spacing.xs,
   },
   userName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1f2937',
+    fontSize: typography['3xl'],
+    fontWeight: typography.extrabold,
+    color: colors.white,
+    marginBottom: spacing.xs,
+  },
+  headerSubtitle: {
+    fontSize: typography.sm,
+    color: colors.white,
+    opacity: 0.8,
+  },
+  avatarContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: borderRadius.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statsContainer: {
+    marginTop: -spacing.xl,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.md,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: 16,
-    gap: 12,
+    gap: spacing.sm,
   },
   statCard: {
-    width: '48%',
-    marginBottom: 4,
+    width: '48.5%',
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+    ...shadows.lg,
   },
-  blueCard: {
-    backgroundColor: '#eff6ff',
-  },
-  orangeCard: {
-    backgroundColor: '#fff7ed',
-  },
-  greenCard: {
-    backgroundColor: '#f0fdf4',
-  },
-  purpleCard: {
-    backgroundColor: '#faf5ff',
+  statGradient: {
+    padding: spacing.md,
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   statNumber: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginTop: 8,
-    marginBottom: 4,
+    fontSize: typography['4xl'],
+    fontWeight: typography.extrabold,
+    color: colors.white,
+    marginTop: spacing.xs,
   },
   statLabel: {
-    fontSize: 12,
-    color: '#6b7280',
+    fontSize: typography.sm,
+    color: colors.white,
+    opacity: 0.9,
+    fontWeight: typography.medium,
   },
   section: {
-    padding: 16,
+    padding: spacing.lg,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    color: '#1f2937',
+    fontSize: typography.xl,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
   },
   actionCard: {
-    marginBottom: 12,
-    backgroundColor: 'white',
-  },
-  actionContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    backgroundColor: colors.white,
+    padding: spacing.md,
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing.sm,
+    gap: spacing.md,
+    ...shadows.sm,
   },
-  actionText: {
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: borderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionContent: {
     flex: 1,
   },
   actionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 2,
+    fontSize: typography.base,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
   },
   actionDescription: {
-    fontSize: 12,
-    color: '#6b7280',
+    fontSize: typography.sm,
+    color: colors.textSecondary,
   },
-  statusRow: {
+  statusContainer: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing.sm,
+    flexWrap: 'wrap',
   },
-  statusChip: {
-    backgroundColor: '#dcfce7',
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.successLight,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    borderRadius: borderRadius.full,
   },
   statusText: {
-    color: '#15803d',
+    fontSize: typography.xs,
+    color: colors.success,
+    fontWeight: typography.semibold,
   },
 })
 

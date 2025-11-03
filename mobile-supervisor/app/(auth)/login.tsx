@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { View, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native'
-import { TextInput, Button, Text } from 'react-native-paper'
+import { View, StyleSheet, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, Text as RNText } from 'react-native'
+import { TextInput, Text } from 'react-native-paper'
 import { router } from 'expo-router'
 import { LinearGradient } from 'expo-linear-gradient'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { supabase } from '../../services/supabase'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { colors, spacing, typography, borderRadius, shadows } from '../../styles/theme'
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('')
@@ -22,25 +23,19 @@ export default function LoginScreen() {
     setLoading(true)
     
     try {
-      // Autenticação real com Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: password
       })
 
-      if (error) {
-        throw error
-      }
+      if (error) throw error
 
       if (data.user) {
-        // Salvar dados do usuário no AsyncStorage
         await AsyncStorage.setItem('userId', data.user.id)
         await AsyncStorage.setItem('userEmail', data.user.email || '')
         await AsyncStorage.setItem('userName', data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'Supervisor')
         
         console.log('✅ Login bem-sucedido:', data.user.email)
-        
-        // Ir para dashboard
         router.replace('/(tabs)/dashboard')
       }
     } catch (error: any) {
@@ -64,10 +59,10 @@ export default function LoginScreen() {
 
   return (
     <LinearGradient
-      colors={['#1e3a8a', '#3b82f6', '#60a5fa']}
+      colors={[colors.primary, colors.primaryDark]}
       style={styles.gradient}
       start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
+      end={{ x: 0, y: 1 }}
     >
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -77,29 +72,22 @@ export default function LoginScreen() {
           {/* Header com Logo */}
           <View style={styles.header}>
             <View style={styles.logoContainer}>
-              {/* Ícone Pegasus (Cavalo com Asas) */}
               <View style={styles.iconWrapper}>
-                <MaterialCommunityIcons name="horse-variant" size={48} color="#ffffff" />
-                <View style={styles.wingsLeft}>
-                  <MaterialCommunityIcons name="bird" size={24} color="#ffffff" style={{ opacity: 0.9 }} />
-                </View>
-                <View style={styles.wingsRight}>
-                  <MaterialCommunityIcons name="bird" size={24} color="#ffffff" style={{ opacity: 0.9, transform: [{ scaleX: -1 }] }} />
-                </View>
+                <MaterialCommunityIcons name="truck-fast" size={48} color={colors.white} />
               </View>
               
-              <Text style={styles.brandName}>PEGASUS</Text>
+              <RNText style={styles.brandName}>PEGASUS</RNText>
               <View style={styles.divider} />
-              <Text style={styles.subtitle}>Sistema de Gestão Logística</Text>
-              <Text style={styles.loginText}>Acesso Supervisor</Text>
+              <RNText style={styles.subtitle}>Sistema de Gestão Logística</RNText>
+              <RNText style={styles.roleText}>Acesso Supervisor</RNText>
             </View>
           </View>
 
           {/* Card de Login */}
           <View style={styles.loginCard}>
             <View style={styles.cardHeader}>
-              <MaterialCommunityIcons name="shield-account" size={28} color="#1e40af" />
-              <Text style={styles.cardTitle}>Autenticação</Text>
+              <MaterialCommunityIcons name="shield-account" size={28} color={colors.secondary} />
+              <RNText style={styles.cardTitle}>Autenticação</RNText>
             </View>
 
             {/* Formulário */}
@@ -113,13 +101,14 @@ export default function LoginScreen() {
                 autoComplete="email"
                 mode="outlined"
                 style={styles.input}
-                outlineColor="#cbd5e1"
-                activeOutlineColor="#3b82f6"
-                left={<TextInput.Icon icon="email-outline" color="#64748b" />}
+                outlineColor={colors.gray300}
+                activeOutlineColor={colors.secondary}
+                left={<TextInput.Icon icon="email-outline" color={colors.gray500} />}
                 disabled={loading}
                 theme={{
                   colors: {
-                    background: '#ffffff',
+                    background: colors.white,
+                    primary: colors.secondary,
                   },
                 }}
               />
@@ -132,49 +121,60 @@ export default function LoginScreen() {
                 autoCapitalize="none"
                 mode="outlined"
                 style={styles.input}
-                outlineColor="#cbd5e1"
-                activeOutlineColor="#3b82f6"
-                left={<TextInput.Icon icon="lock-outline" color="#64748b" />}
+                outlineColor={colors.gray300}
+                activeOutlineColor={colors.secondary}
+                left={<TextInput.Icon icon="lock-outline" color={colors.gray500} />}
                 right={
                   <TextInput.Icon 
                     icon={showPassword ? 'eye-off-outline' : 'eye-outline'} 
                     onPress={() => setShowPassword(!showPassword)}
-                    color="#64748b"
+                    color={colors.gray500}
                   />
                 }
                 disabled={loading}
                 theme={{
                   colors: {
-                    background: '#ffffff',
+                    background: colors.white,
+                    primary: colors.secondary,
                   },
                 }}
               />
 
-              <Button
-                mode="contained"
+              <TouchableOpacity
+                style={[styles.button, loading && styles.buttonDisabled]}
                 onPress={handleLogin}
-                loading={loading}
                 disabled={loading}
-                style={styles.button}
-                contentStyle={styles.buttonContent}
-                labelStyle={styles.buttonLabel}
-                icon={loading ? undefined : "login"}
+                activeOpacity={0.8}
               >
-                {loading ? 'Autenticando...' : 'Entrar no Sistema'}
-              </Button>
+                <LinearGradient
+                  colors={[colors.secondary, colors.secondaryDark]}
+                  style={styles.buttonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  {loading ? (
+                    <RNText style={styles.buttonText}>Autenticando...</RNText>
+                  ) : (
+                    <>
+                      <MaterialCommunityIcons name="login" size={20} color={colors.white} />
+                      <RNText style={styles.buttonText}>Entrar no Sistema</RNText>
+                    </>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
 
             {/* Info de Segurança */}
             <View style={styles.securityInfo}>
-              <MaterialCommunityIcons name="shield-check" size={16} color="#10b981" />
-              <Text style={styles.securityText}>Conexão Segura SSL</Text>
+              <MaterialCommunityIcons name="shield-check" size={16} color={colors.success} />
+              <RNText style={styles.securityText}>Conexão Segura SSL</RNText>
             </View>
           </View>
 
           {/* Footer */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Pegasus Logistics © 2025</Text>
-            <Text style={styles.version}>v1.0.0</Text>
+            <RNText style={styles.footerText}>Pegasus Logistics</RNText>
+            <RNText style={styles.footerVersion}>v1.0.0 • 2025</RNText>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -192,157 +192,135 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     justifyContent: 'space-between',
-    padding: 24,
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    padding: spacing.lg,
+    paddingTop: Platform.OS === 'ios' ? spacing.xxl * 2 : spacing.xxl,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: spacing.xl,
   },
   logoContainer: {
     alignItems: 'center',
   },
   iconWrapper: {
-    position: 'relative',
     width: 100,
     height: 100,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: borderRadius.full,
     borderWidth: 3,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 12,
-  },
-  wingsLeft: {
-    position: 'absolute',
-    left: -10,
-    top: 20,
-    transform: [{ rotate: '-30deg' }],
-  },
-  wingsRight: {
-    position: 'absolute',
-    right: -10,
-    top: 20,
-    transform: [{ rotate: '30deg' }],
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    marginBottom: spacing.lg,
+    ...shadows.lg,
   },
   brandName: {
-    fontSize: 42,
-    fontWeight: '900',
-    color: '#ffffff',
+    fontSize: typography['4xl'],
+    fontWeight: typography.extrabold,
+    color: colors.white,
     letterSpacing: 4,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   divider: {
     width: 60,
     height: 3,
-    backgroundColor: '#ffffff',
-    borderRadius: 2,
-    marginVertical: 12,
-    opacity: 0.8,
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.sm,
+    marginVertical: spacing.sm,
+    opacity: 0.9,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#ffffff',
-    fontWeight: '600',
+    fontSize: typography.base,
+    color: colors.white,
+    fontWeight: typography.semibold,
     opacity: 0.95,
-    marginBottom: 4,
-    textAlign: 'center',
+    marginBottom: spacing.xs,
   },
-  loginText: {
-    fontSize: 13,
-    color: '#ffffff',
+  roleText: {
+    fontSize: typography.sm,
+    color: colors.white,
     opacity: 0.8,
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   loginCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 15,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
+    ...shadows.xl,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 24,
-    paddingBottom: 16,
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+    paddingBottom: spacing.md,
     borderBottomWidth: 2,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: colors.gray100,
   },
   cardTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#1e293b',
+    fontSize: typography.xl,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
   },
   form: {
-    gap: 16,
+    gap: spacing.md,
   },
   input: {
-    backgroundColor: '#ffffff',
-    fontSize: 15,
+    backgroundColor: colors.white,
+    fontSize: typography.base,
   },
   button: {
-    marginTop: 8,
-    borderRadius: 12,
-    backgroundColor: '#2563eb',
-    elevation: 4,
-    shadowColor: '#2563eb',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    marginTop: spacing.sm,
+    borderRadius: borderRadius.md,
+    overflow: 'hidden',
+    ...shadows.md,
   },
-  buttonContent: {
-    paddingVertical: 12,
+  buttonDisabled: {
+    opacity: 0.6,
   },
-  buttonLabel: {
-    fontSize: 16,
-    fontWeight: '700',
+  buttonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+  },
+  buttonText: {
+    color: colors.white,
+    fontSize: typography.base,
+    fontWeight: typography.bold,
     letterSpacing: 0.5,
   },
   securityInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    marginTop: 20,
-    paddingTop: 16,
+    gap: spacing.xs,
+    marginTop: spacing.lg,
+    paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
+    borderTopColor: colors.gray100,
   },
   securityText: {
-    fontSize: 12,
-    color: '#10b981',
-    fontWeight: '600',
+    fontSize: typography.xs,
+    color: colors.success,
+    fontWeight: typography.semibold,
   },
   footer: {
     alignItems: 'center',
-    marginTop: 24,
-    gap: 4,
+    marginTop: spacing.lg,
+    gap: spacing.xs,
   },
   footerText: {
-    fontSize: 13,
-    color: '#ffffff',
-    fontWeight: '600',
+    fontSize: typography.sm,
+    color: colors.white,
+    fontWeight: typography.semibold,
     opacity: 0.9,
   },
-  version: {
-    fontSize: 11,
-    color: '#ffffff',
+  footerVersion: {
+    fontSize: typography.xs,
+    color: colors.white,
     opacity: 0.7,
   },
 })

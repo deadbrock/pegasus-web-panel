@@ -1,10 +1,10 @@
 import React from 'react'
-import { View, Text, TouchableOpacity } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { modernCardStyles as styles } from '../styles/pedido-card-modern.styles'
 import { PedidoMobile } from '../services/pedidos-mobile-service'
+import { colors, spacing, typography, borderRadius, shadows } from '../styles/theme'
 
 interface PedidoCardModernProps {
   pedido: PedidoMobile
@@ -27,127 +27,302 @@ export function PedidoCardModern({
 }: PedidoCardModernProps) {
   const totalItens = pedido.itens?.length || 0
   const primeiroItem = pedido.itens && pedido.itens.length > 0 ? pedido.itens[0] : null
+  const statusColor = getStatusColor(pedido.status)
+  const urgenciaColor = getUrgenciaColor(pedido.urgencia)
 
   return (
-    <View style={styles.pedidoCardModern}>
-      {/* Header Compacto */}
-      <View style={styles.headerCompacto}>
+    <View style={styles.card}>
+      {/* Header */}
+      <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <MaterialCommunityIcons 
-            name="file-document" 
-            size={20} 
-            color={getStatusColor(pedido.status)} 
-          />
-          <Text style={[styles.numeroCompacto, { color: getStatusColor(pedido.status) }]}>
-            {pedido.numero_pedido}
-          </Text>
+          <View style={[styles.iconBadge, { backgroundColor: statusColor + '20' }]}>
+            <MaterialCommunityIcons 
+              name={getStatusIcon(pedido.status) as any} 
+              size={20} 
+              color={statusColor} 
+            />
+          </View>
+          <View>
+            <Text style={styles.numeroPedido}>{pedido.numero_pedido}</Text>
+            <Text style={styles.dataPedido}>
+              {format(new Date(pedido.data_solicitacao), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+            </Text>
+          </View>
         </View>
         
-        <View style={[styles.statusBadgeCompacto, { backgroundColor: getStatusColor(pedido.status) }]}>
-          <MaterialCommunityIcons 
-            name={getStatusIcon(pedido.status) as any} 
-            size={14} 
-            color="white" 
-          />
-          <Text style={styles.statusTextCompacto}>{pedido.status}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
+          <Text style={styles.statusText}>{pedido.status}</Text>
         </View>
       </View>
 
-      {/* Info Principal - Destaque */}
-      <View style={styles.infoDestaque}>
-        <View style={styles.infoDestaqueLeft}>
-          <View style={styles.iconeBadge}>
-            <MaterialCommunityIcons name="cube-outline" size={18} color="#3b82f6" />
-          </View>
-          <View style={styles.infoDestaqueTextos}>
-            <Text style={styles.labelDestaque}>
-              {totalItens} {totalItens === 1 ? 'ITEM' : 'ITENS'}
-            </Text>
-            {primeiroItem && (
-              <Text style={styles.primeiroItemNome} numberOfLines={1}>
-                {primeiroItem.produto_nome}
-              </Text>
-            )}
-          </View>
+      {/* Info Principal */}
+      <View style={styles.infoSection}>
+        <View style={styles.infoRow}>
+          <MaterialCommunityIcons name="package-variant" size={18} color={colors.textSecondary} />
+          <Text style={styles.infoLabel}>
+            {totalItens} {totalItens === 1 ? 'item' : 'itens'} solicitado{totalItens === 1 ? '' : 's'}
+          </Text>
         </View>
         
-        <View style={[styles.urgenciaBadge, { borderColor: getUrgenciaColor(pedido.urgencia) }]}>
+        {primeiroItem && (
+          <View style={styles.produtoDestaque}>
+            <Text style={styles.produtoNome} numberOfLines={1}>
+              {primeiroItem.produto_nome}
+            </Text>
+            <Text style={styles.produtoCodigo}>
+              Cód: {primeiroItem.produto_codigo} • {primeiroItem.quantidade} {primeiroItem.unidade}
+            </Text>
+          </View>
+        )}
+
+        {totalItens > 1 && (
+          <Text style={styles.maisItens}>
+            +{totalItens - 1} {totalItens - 1 === 1 ? 'produto' : 'produtos'}
+          </Text>
+        )}
+      </View>
+
+      {/* Urgência e Contrato */}
+      <View style={styles.tagsSection}>
+        <View style={[styles.urgenciaBadge, { borderColor: urgenciaColor, backgroundColor: urgenciaColor + '15' }]}>
           <MaterialCommunityIcons 
             name={getUrgenciaIcon(pedido.urgencia) as any} 
             size={14} 
-            color={getUrgenciaColor(pedido.urgencia)} 
+            color={urgenciaColor} 
           />
-          <Text style={[styles.urgenciaTexto, { color: getUrgenciaColor(pedido.urgencia) }]}>
+          <Text style={[styles.urgenciaText, { color: urgenciaColor }]}>
             {pedido.urgencia}
           </Text>
         </View>
+
+        {pedido.contrato_nome && (
+          <View style={styles.contratoInfo}>
+            <MaterialCommunityIcons name="file-document" size={14} color={colors.secondary} />
+            <Text style={styles.contratoText} numberOfLines={1}>
+              {pedido.contrato_nome}
+            </Text>
+          </View>
+        )}
       </View>
 
-      {/* Lista Resumida de Produtos */}
-      {totalItens > 0 && (
-        <View style={styles.listaProdutosResumida}>
-          {pedido.itens!.slice(0, 2).map((item, index) => (
-            <View key={item.id || index} style={styles.produtoLinha}>
-              <View style={styles.produtoLinhaInfo}>
-                <Text style={styles.produtoLinhaCodigo}>{item.produto_codigo}</Text>
-                <View style={styles.produtoLinhaDot} />
-                <Text style={styles.produtoLinhaQuantidade}>
-                  {item.quantidade} {item.unidade}
-                </Text>
-              </View>
-            </View>
-          ))}
-          {totalItens > 2 && (
-            <Text style={styles.maisItensCompacto}>
-              +{totalItens - 2} {totalItens - 2 === 1 ? 'produto' : 'produtos'}
-            </Text>
-          )}
-        </View>
-      )}
-
-      {/* Status de Autorização - Destaque */}
+      {/* Status de Autorização */}
       {pedido.requer_autorizacao && (
         <View style={[
-          styles.autorizacaoDestaque,
+          styles.autorizacaoBox,
           { 
-            backgroundColor: pedido.autorizacao_status === 'Aprovada' ? '#dcfce7' : '#fef3c7',
-            borderLeftColor: pedido.autorizacao_status === 'Aprovada' ? '#16a34a' : '#f59e0b'
+            backgroundColor: pedido.autorizacao_status === 'Aprovada' ? colors.successLight : colors.warningLight,
+            borderColor: pedido.autorizacao_status === 'Aprovada' ? colors.success : colors.warning
           }
         ]}>
           <MaterialCommunityIcons 
             name={pedido.autorizacao_status === 'Aprovada' ? 'check-decagram' : 'clock-alert-outline'}
-            size={18} 
-            color={pedido.autorizacao_status === 'Aprovada' ? '#16a34a' : '#f59e0b'} 
+            size={16} 
+            color={pedido.autorizacao_status === 'Aprovada' ? colors.success : colors.warning} 
           />
           <Text style={[
-            styles.autorizacaoTexto,
-            { color: pedido.autorizacao_status === 'Aprovada' ? '#16a34a' : '#f59e0b' }
+            styles.autorizacaoText,
+            { color: pedido.autorizacao_status === 'Aprovada' ? colors.success : colors.warning }
           ]}>
-            {pedido.autorizacao_status === 'Aprovada' ? '✓ Autorizado' : '⏱ Aguardando Autorização'}
+            {pedido.autorizacao_status === 'Aprovada' ? 'Autorizado' : 'Aguardando Autorização'}
           </Text>
         </View>
       )}
 
-      {/* Footer Compacto */}
-      <View style={styles.footerCompacto}>
-        <Text style={styles.dataCompacta}>
-          {format(new Date(pedido.data_solicitacao), "dd/MM 'às' HH:mm", { locale: ptBR })}
-        </Text>
+      {/* Ações */}
+      <View style={styles.actions}>
+        <TouchableOpacity 
+          style={styles.buttonDetalhes} 
+          onPress={onDetalhesPress}
+          activeOpacity={0.7}
+        >
+          <MaterialCommunityIcons name="eye" size={18} color={colors.secondary} />
+          <Text style={styles.buttonDetalhesText}>Ver Detalhes</Text>
+        </TouchableOpacity>
         
-        <View style={styles.footerAcoes}>
-          <TouchableOpacity style={styles.botaoDetalhes} onPress={onDetalhesPress}>
-            <MaterialCommunityIcons name="eye" size={16} color="#3b82f6" />
-            <Text style={styles.botaoDetalhesTexto}>Ver Detalhes</Text>
+        {pedido.status === 'Pendente' && (
+          <TouchableOpacity 
+            style={styles.buttonCancelar} 
+            onPress={onCancelarPress}
+            activeOpacity={0.7}
+          >
+            <MaterialCommunityIcons name="close-circle-outline" size={18} color={colors.error} />
+            <Text style={styles.buttonCancelarText}>Cancelar</Text>
           </TouchableOpacity>
-          
-          {pedido.status === 'Pendente' && (
-            <TouchableOpacity style={styles.botaoCancelar} onPress={onCancelarPress}>
-              <MaterialCommunityIcons name="close-circle" size={16} color="#ef4444" />
-            </TouchableOpacity>
-          )}
-        </View>
+        )}
       </View>
     </View>
   )
 }
 
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    ...shadows.md,
+    borderWidth: 1,
+    borderColor: colors.gray100,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing.md,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray100,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flex: 1,
+  },
+  iconBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  numeroPedido: {
+    fontSize: typography.base,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
+  },
+  dataPedido: {
+    fontSize: typography.xs,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  statusBadge: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    borderRadius: borderRadius.full,
+  },
+  statusText: {
+    fontSize: typography.xs,
+    fontWeight: typography.semibold,
+    color: colors.white,
+  },
+  infoSection: {
+    marginBottom: spacing.sm,
+    gap: spacing.xs,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  infoLabel: {
+    fontSize: typography.sm,
+    color: colors.textSecondary,
+    fontWeight: typography.medium,
+  },
+  produtoDestaque: {
+    marginTop: spacing.xs,
+    paddingLeft: spacing.lg + spacing.xs,
+  },
+  produtoNome: {
+    fontSize: typography.base,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+    marginBottom: 2,
+  },
+  produtoCodigo: {
+    fontSize: typography.xs,
+    color: colors.textSecondary,
+  },
+  maisItens: {
+    fontSize: typography.sm,
+    color: colors.secondary,
+    fontWeight: typography.medium,
+    paddingLeft: spacing.lg + spacing.xs,
+  },
+  tagsSection: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  urgenciaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+  },
+  urgenciaText: {
+    fontSize: typography.xs,
+    fontWeight: typography.semibold,
+  },
+  contratoInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    backgroundColor: colors.secondaryLight + '15',
+    borderRadius: borderRadius.full,
+    maxWidth: '60%',
+  },
+  contratoText: {
+    fontSize: typography.xs,
+    color: colors.secondary,
+    fontWeight: typography.medium,
+  },
+  autorizacaoBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    padding: spacing.sm,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+  },
+  autorizacaoText: {
+    fontSize: typography.sm,
+    fontWeight: typography.semibold,
+  },
+  actions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  buttonDetalhes: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.secondaryLight + '15',
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.secondary,
+  },
+  buttonDetalhesText: {
+    fontSize: typography.sm,
+    fontWeight: typography.semibold,
+    color: colors.secondary,
+  },
+  buttonCancelar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.errorLight,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.error,
+  },
+  buttonCancelarText: {
+    fontSize: typography.sm,
+    fontWeight: typography.semibold,
+    color: colors.error,
+  },
+})
