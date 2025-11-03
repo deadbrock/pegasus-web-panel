@@ -1,3 +1,9 @@
+// =========================================
+// APP.CONFIG.JS PARA PRODUCTION BUILD (APK)
+// =========================================
+// Use este arquivo quando for gerar APK de produção
+// Para usar: renomeie para app.config.js
+
 module.exports = {
   expo: {
     name: "Pegasus Supervisor",
@@ -26,7 +32,9 @@ module.exports = {
       permissions: [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
-        "FOREGROUND_SERVICE"
+        "FOREGROUND_SERVICE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
       ]
     },
     web: {
@@ -39,9 +47,15 @@ module.exports = {
         {
           locationAlwaysAndWhenInUsePermission: "Permitir que Pegasus Supervisor acesse sua localização."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          icon: "./assets/notification-icon.png",
+          color: "#3b82f6",
+          sounds: ["./assets/notification-sound.wav"]
+        }
       ]
-      // expo-notifications removido temporariamente para compatibilidade com Expo Go
-      // Em production builds (APK), adicionar de volta se necessário
     ],
     scheme: "pegasus-supervisor",
     extra: {

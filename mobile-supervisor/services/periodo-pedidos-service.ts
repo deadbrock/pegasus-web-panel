@@ -11,16 +11,17 @@ import { supabase } from './supabase'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { Platform } from 'react-native'
 
-// Importar notificações apenas se não estiver no Expo Go
+// Importar notificações de forma segura
 let Notifications: any = null
 try {
   // expo-notifications não funciona no Expo Go (SDK 53+)
   // Funciona apenas em development builds ou production builds
-  if (Platform.OS === 'web' || !__DEV__) {
+  if (Platform.OS !== 'web') {
     Notifications = require('expo-notifications')
   }
 } catch (error) {
-  console.log('⚠️ Notificações não disponíveis no Expo Go. Use development build para notificações.')
+  console.log('⚠️ Notificações não disponíveis. Use development build para notificações push.')
+  Notifications = null
 }
 
 // Configurações do período
