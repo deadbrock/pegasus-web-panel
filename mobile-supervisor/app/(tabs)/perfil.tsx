@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView, Alert } from 'react-native'
 import { List, Divider, Text, Avatar, Button, ActivityIndicator, Dialog, Portal, TextInput, Switch } from 'react-native-paper'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { router } from 'expo-router'
+import { colors, spacing, typography, borderRadius, shadows } from '../../styles/theme'
 
 export default function PerfilScreen() {
   const [loading, setLoading] = useState(false)
@@ -251,7 +252,7 @@ export default function PerfilScreen() {
           mode="outlined"
           onPress={handleLogout}
           icon="logout"
-          textColor="#ef4444"
+          textColor={colors.error}
           style={styles.logoutButton}
         >
           Sair do Aplicativo
@@ -366,59 +367,61 @@ export default function PerfilScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.gray50,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.gray50,
   },
   header: {
-    backgroundColor: 'white',
-    padding: 24,
+    backgroundColor: colors.white,
+    padding: spacing.lg,
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: colors.gray200,
   },
   avatar: {
-    backgroundColor: '#3b82f6',
-    marginBottom: 16,
+    backgroundColor: colors.secondary,
+    marginBottom: spacing.md,
   },
   name: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 4,
+    fontSize: typography['2xl'],
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
   },
   email: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 4,
+    fontSize: typography.sm,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
   },
   phone: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 8,
+    fontSize: typography.sm,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
   },
   role: {
-    fontSize: 12,
-    color: '#3b82f6',
-    backgroundColor: '#eff6ff',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    fontSize: typography.xs,
+    color: colors.secondary,
+    backgroundColor: colors.secondaryLight + '20',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full,
+    fontWeight: typography.semibold,
   },
   section: {
-    backgroundColor: 'white',
-    marginTop: 16,
+    backgroundColor: colors.white,
+    marginTop: spacing.md,
   },
   logoutContainer: {
-    padding: 16,
-    marginTop: 16,
+    padding: spacing.md,
+    marginTop: spacing.md,
   },
   logoutButton: {
-    borderColor: '#ef4444',
+    borderColor: colors.error,
+    borderRadius: borderRadius.md,
   },
   footer: {
     padding: 24,

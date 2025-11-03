@@ -15,6 +15,7 @@ import {
   type Contrato,
   type ContratoFormData
 } from '../../services/contratos-service'
+import { colors, spacing, typography, borderRadius, shadows } from '../../styles/theme'
 
 export default function ContratosScreen() {
   const [loading, setLoading] = useState(true)
@@ -478,7 +479,7 @@ export default function ContratosScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.gray50,
   },
   loadingContainer: {
     flex: 1,
@@ -486,23 +487,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    backgroundColor: 'white',
-    padding: 20,
+    backgroundColor: colors.white,
+    padding: spacing.lg,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: colors.gray200,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1f2937',
+    fontSize: typography['2xl'],
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 4,
+    fontSize: typography.sm,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
   },
   scrollView: {
     flex: 1,
@@ -532,10 +533,10 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   contratoCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    marginBottom: 12,
-    elevation: 2,
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing.sm,
+    ...shadows.md,
   },
   contratoHeader: {
     flexDirection: 'row',
@@ -598,9 +599,9 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    right: 16,
-    bottom: 16,
-    backgroundColor: '#3b82f6',
+    right: spacing.md,
+    bottom: spacing.md,
+    backgroundColor: colors.secondary,
   },
   sectionTitle: {
     fontSize: 16,
