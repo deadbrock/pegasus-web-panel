@@ -135,7 +135,7 @@ BEGIN
       OLD.estoque_atual,
       NEW.estoque_atual,
       'Atualização manual de estoque',
-      current_setting('request.jwt.claims', true)::json->>'email'
+      COALESCE(current_setting('request.jwt.claims', true)::json->>'email', 'sistema')
     );
   END IF;
   
