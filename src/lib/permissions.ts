@@ -15,7 +15,7 @@ export const ALL_MODULES: ModulePermission[] = [
     name: 'Dashboard',
     icon: 'LayoutDashboard',
     path: '/dashboard',
-    allowedRoles: ['admin', 'diretor', 'financeiro', 'gestor']
+    allowedRoles: ['admin', 'diretor', 'financeiro', 'gestor', 'logistica']
   },
   {
     id: 'financeiro',
@@ -29,21 +29,21 @@ export const ALL_MODULES: ModulePermission[] = [
     name: 'Fiscal',
     icon: 'FileText',
     path: '/dashboard/fiscal',
-    allowedRoles: ['admin', 'diretor', 'financeiro']
+    allowedRoles: ['admin', 'diretor', 'financeiro', 'logistica']
   },
   {
     id: 'auditoria',
     name: 'Auditoria',
     icon: 'Search',
     path: '/dashboard/auditoria',
-    allowedRoles: ['admin', 'diretor', 'financeiro']
+    allowedRoles: ['admin', 'diretor', 'financeiro', 'logistica']
   },
   {
     id: 'planejamento',
     name: 'Planejamento',
     icon: 'Calendar',
     path: '/dashboard/planejamento',
-    allowedRoles: ['admin', 'diretor', 'financeiro']
+    allowedRoles: ['admin', 'diretor', 'financeiro', 'logistica']
   },
   {
     id: 'planejamento-financeiro',
@@ -57,63 +57,63 @@ export const ALL_MODULES: ModulePermission[] = [
     name: 'Relatórios',
     icon: 'BarChart3',
     path: '/dashboard/relatorios',
-    allowedRoles: ['admin', 'diretor', 'financeiro', 'gestor']
+    allowedRoles: ['admin', 'diretor', 'financeiro', 'gestor', 'logistica']
   },
   {
     id: 'documentos',
     name: 'Documentos',
     icon: 'FolderOpen',
     path: '/dashboard/documentos',
-    allowedRoles: ['admin', 'diretor', 'financeiro']
+    allowedRoles: ['admin', 'diretor', 'financeiro', 'logistica']
   },
   {
     id: 'pedidos',
     name: 'Pedidos',
     icon: 'Package',
     path: '/dashboard/pedidos',
-    allowedRoles: ['admin', 'diretor', 'gestor']
+    allowedRoles: ['admin', 'diretor', 'gestor', 'logistica']
   },
   {
     id: 'estoque',
     name: 'Estoque',
     icon: 'Warehouse',
     path: '/dashboard/estoque',
-    allowedRoles: ['admin', 'diretor', 'gestor']
+    allowedRoles: ['admin', 'diretor', 'gestor', 'logistica']
   },
   {
     id: 'veiculos',
     name: 'Veículos',
     icon: 'Truck',
     path: '/dashboard/veiculos',
-    allowedRoles: ['admin', 'diretor', 'gestor']
+    allowedRoles: ['admin', 'diretor', 'gestor', 'logistica']
   },
   {
     id: 'motoristas',
     name: 'Motoristas',
     icon: 'User',
     path: '/dashboard/motoristas',
-    allowedRoles: ['admin', 'diretor', 'gestor']
+    allowedRoles: ['admin', 'diretor', 'gestor', 'logistica']
   },
   {
     id: 'manutencao',
     name: 'Manutenção',
     icon: 'Wrench',
     path: '/dashboard/manutencao',
-    allowedRoles: ['admin', 'diretor', 'gestor']
+    allowedRoles: ['admin', 'diretor', 'gestor', 'logistica']
   },
   {
     id: 'rastreamento',
     name: 'Rastreamento',
     icon: 'MapPin',
     path: '/dashboard/rastreamento',
-    allowedRoles: ['admin', 'diretor', 'gestor']
+    allowedRoles: ['admin', 'diretor', 'gestor', 'logistica']
   },
   {
     id: 'contratos',
     name: 'Contratos',
     icon: 'FileCheck',
     path: '/dashboard/contratos',
-    allowedRoles: ['admin', 'diretor', 'financeiro']
+    allowedRoles: ['admin', 'diretor', 'financeiro', 'logistica']
   },
   {
     id: 'custos',
@@ -127,28 +127,28 @@ export const ALL_MODULES: ModulePermission[] = [
     name: 'Centro de Custos',
     icon: 'Target',
     path: '/dashboard/centro-custos',
-    allowedRoles: ['admin', 'diretor', 'financeiro']
+    allowedRoles: ['admin', 'diretor', 'financeiro', 'logistica']
   },
   {
     id: 'analytics',
     name: 'Analytics',
     icon: 'BarChart2',
     path: '/dashboard/analytics',
-    allowedRoles: ['admin', 'diretor']
+    allowedRoles: ['admin', 'diretor', 'logistica']
   },
   {
     id: 'data-hub',
     name: 'Data Hub',
     icon: 'Database',
     path: '/dashboard/data-hub',
-    allowedRoles: ['admin', 'diretor']
+    allowedRoles: ['admin', 'diretor', 'logistica']
   },
   {
     id: 'forecast',
     name: 'Forecast',
     icon: 'TrendingUp',
     path: '/dashboard/forecast',
-    allowedRoles: ['admin', 'diretor', 'financeiro']
+    allowedRoles: ['admin', 'diretor', 'financeiro', 'logistica']
   },
   {
     id: 'insights',
@@ -239,7 +239,8 @@ export const USER_ROLES = {
   ADMIN: 'admin',
   DIRETOR: 'diretor', 
   FINANCEIRO: 'financeiro',
-  GESTOR: 'gestor'
+  GESTOR: 'gestor',
+  LOGISTICA: 'logistica'
 } as const;
 
 export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
