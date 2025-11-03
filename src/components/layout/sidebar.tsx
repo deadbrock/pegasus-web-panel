@@ -115,6 +115,10 @@ export function Sidebar() {
   // Obtém os módulos permitidos para o perfil do usuário
   const allowedModules = getModulesForRole(user.role)
   const allowedPaths = allowedModules.map(m => m.path)
+  
+  // Debug: Log do role e módulos permitidos
+  console.log('[Sidebar] User role:', user.role)
+  console.log('[Sidebar] Allowed paths:', allowedPaths)
 
   const toggleGroup = (groupId: string) => {
     setExpandedGroups(prev =>
