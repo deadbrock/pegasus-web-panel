@@ -29,74 +29,68 @@ https://supabase.com/dashboard
 
 BEGIN;
 
+-- Garantir que coluna senha existe
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS senha TEXT;
+
 -- Criar usuário 1: Eduardo
-INSERT INTO users (
-  id,
+INSERT INTO public.users (
   email,
-  name,
+  nome,
   role,
-  password,
-  active,
-  created_at,
-  updated_at
+  ativo,
+  senha,
+  created_at
 )
 VALUES (
-  gen_random_uuid(),
   'logistica@fgservices.com.br',
   'Eduardo',
   'logistica',
-  crypt('logisticadafg2026', gen_salt('bf')),
   true,
-  now(),
-  now()
+  crypt('logisticadafg2026', gen_salt('bf')),
+  NOW()
 )
 ON CONFLICT (email) DO UPDATE
 SET
-  name = EXCLUDED.name,
+  nome = EXCLUDED.nome,
   role = EXCLUDED.role,
-  password = EXCLUDED.password,
-  active = EXCLUDED.active,
-  updated_at = now();
+  senha = EXCLUDED.senha,
+  ativo = EXCLUDED.ativo;
 
 -- Criar usuário 2: Emerson
-INSERT INTO users (
-  id,
+INSERT INTO public.users (
   email,
-  name,
+  nome,
   role,
-  password,
-  active,
-  created_at,
-  updated_at
+  ativo,
+  senha,
+  created_at
 )
 VALUES (
-  gen_random_uuid(),
   'logistica-2@fgservices.com.br',
   'Emerson',
   'logistica',
-  crypt('logisticadafgsegundo2026', gen_salt('bf')),
   true,
-  now(),
-  now()
+  crypt('logisticadafgsegundo2026', gen_salt('bf')),
+  NOW()
 )
 ON CONFLICT (email) DO UPDATE
 SET
-  name = EXCLUDED.name,
+  nome = EXCLUDED.nome,
   role = EXCLUDED.role,
-  password = EXCLUDED.password,
-  active = EXCLUDED.active,
-  updated_at = now();
+  senha = EXCLUDED.senha,
+  ativo = EXCLUDED.ativo;
 
 -- Verificar criação
 SELECT
   '✅ Usuário criado' as status,
-  name as "Nome",
+  nome as "Nome",
   email as "Email",
   role as "Perfil",
-  active as "Ativo"
-FROM users
+  ativo as "Ativo",
+  CASE WHEN senha IS NOT NULL THEN '✅ Configurada' ELSE '❌ Sem senha' END as "Senha"
+FROM public.users
 WHERE email IN ('logistica@fgservices.com.br', 'logistica-2@fgservices.com.br')
-ORDER BY name;
+ORDER BY nome;
 
 COMMIT;
 ```
@@ -108,10 +102,10 @@ COMMIT;
 ### **6️⃣ Verifique o Resultado**
 Você deve ver uma tabela com:
 
-| status | Nome | Email | Perfil | Ativo |
-|--------|------|-------|--------|-------|
-| ✅ Usuário criado | Eduardo | logistica@fgservices.com.br | logistica | true |
-| ✅ Usuário criado | Emerson | logistica-2@fgservices.com.br | logistica | true |
+| status | Nome | Email | Perfil | Ativo | Senha |
+|--------|------|-------|--------|-------|-------|
+| ✅ Usuário criado | Eduardo | logistica@fgservices.com.br | logistica | true | ✅ Configurada |
+| ✅ Usuário criado | Emerson | logistica-2@fgservices.com.br | logistica | true | ✅ Configurada |
 
 ---
 
