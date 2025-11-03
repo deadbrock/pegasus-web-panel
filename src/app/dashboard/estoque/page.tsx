@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { 
   Package, 
   Plus,
@@ -17,7 +18,8 @@ import {
   BarChart3,
   MapPin,
   RefreshCw,
-  TrendingDown
+  TrendingDown,
+  X
 } from 'lucide-react'
 import { MetricCard } from '@/components/dashboard/metric-card'
 import { StockTable } from '@/components/estoque/stock-table'
@@ -47,12 +49,30 @@ export default function EstoquePage() {
   
   // Dados reais do Supabase
   const [produtos, setProdutos] = useState<any[]>([])
+  const [produtosFiltrados, setProdutosFiltrados] = useState<any[]>([])
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
     loadDados()
   }, [])
+
+  useEffect(() => {
+    // Filtrar produtos quando o termo de busca mudar
+    if (searchTerm.trim() === '') {
+      setProdutosFiltrados(produtos)
+    } else {
+      const termo = searchTerm.toLowerCase()
+      const filtrados = produtos.filter(produto =>
+        produto.nome?.toLowerCase().includes(termo) ||
+        produto.codigo?.toLowerCase().includes(termo) ||
+        produto.categoria?.toLowerCase().includes(termo) ||
+        produto.fornecedor?.toLowerCase().includes(termo)
+      )
+      setProdutosFiltrados(filtrados)
+    }
+  }, [searchTerm, produtos])
 
   const loadDados = async () => {
     setLoading(true)
@@ -62,6 +82,7 @@ export default function EstoquePage() {
         fetchProdutosStats()
       ])
       setProdutos(produtosData)
+      setProdutosFiltrados(produtosData)
       setStats(statsData)
     } catch (error) {
       console.error('Erro ao carregar dados do estoque:', error)
@@ -213,23 +234,40 @@ export default function EstoquePage() {
             {/* Products Table */}
             <Card className="lg:col-span-3">
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Lista de Produtos</CardTitle>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
-                      <Search className="w-4 h-4 mr-2" />
-                      Buscar
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      <Filter className="w-4 h-4 mr-2" />
-                      Filtrar
-                    </Button>
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Lista de Produtos</CardTitle>
+                    <div className="text-sm text-gray-600">
+                      {produtosFiltrados.length} {produtosFiltrados.length === 1 ? 'produto' : 'produtos'}
+                      {searchTerm && ` encontrado${produtosFiltrados.length !== 1 ? 's' : ''}`}
+                    </div>
+                  </div>
+                  
+                  {/* Campo de Busca */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                      placeholder="Buscar por nome, código, categoria ou fornecedor..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                    {searchTerm && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-1 top-1/2 transform -translate-y-1/2"
+                        onClick={() => setSearchTerm('')}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
                 <StockTable 
-                  produtos={produtos}
+                  produtos={produtosFiltrados}
                   loading={loading}
                   onEdit={handleEditProduct}
                   onUpdateStock={handleUpdateStock}

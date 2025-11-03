@@ -44,6 +44,7 @@ export function ProductDialog({ open, onClose, product }: ProductDialogProps) {
     categoria: '',
     unidade: 'UN',
     valorUnitario: '',
+    estoqueAtual: '',
     estoqueMinimo: '',
     localizacao: '',
     fornecedor: '',
@@ -59,8 +60,9 @@ export function ProductDialog({ open, onClose, product }: ProductDialogProps) {
         nome: product.nome || '',
         categoria: product.categoria || '',
         unidade: product.unidade || 'UN',
-        valorUnitario: product.valorUnitario?.toString() || '',
-        estoqueMinimo: product.estoqueMinimo?.toString() || '',
+        valorUnitario: product.preco_unitario?.toString() || product.valorUnitario?.toString() || '',
+        estoqueAtual: product.estoque_atual?.toString() || product.estoqueAtual?.toString() || '',
+        estoqueMinimo: product.estoque_minimo?.toString() || product.estoqueMinimo?.toString() || '',
         localizacao: product.localizacao || '',
         fornecedor: product.fornecedor || '',
         descricao: product.descricao || ''
@@ -73,6 +75,7 @@ export function ProductDialog({ open, onClose, product }: ProductDialogProps) {
         categoria: '',
         unidade: 'UN',
         valorUnitario: '',
+        estoqueAtual: '0',
         estoqueMinimo: '',
         localizacao: '',
         fornecedor: '',
@@ -181,6 +184,22 @@ export function ProductDialog({ open, onClose, product }: ProductDialogProps) {
                 value={formData.valorUnitario}
                 onChange={(e) => handleInputChange('valorUnitario', e.target.value)}
               />
+            </div>
+
+            {/* Estoque Atual */}
+            <div className="space-y-2">
+              <Label htmlFor="estoqueAtual">Estoque Atual *</Label>
+              <Input
+                id="estoqueAtual"
+                type="number"
+                placeholder="Ex: 100"
+                value={formData.estoqueAtual}
+                onChange={(e) => handleInputChange('estoqueAtual', e.target.value)}
+                required
+              />
+              <p className="text-xs text-gray-500">
+                Alterar este valor criará uma movimentação de estoque
+              </p>
             </div>
 
             {/* Estoque Mínimo */}
