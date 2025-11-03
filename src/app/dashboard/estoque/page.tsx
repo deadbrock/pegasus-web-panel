@@ -478,6 +478,7 @@ export default function EstoquePage() {
         open={isProductDialogOpen}
         onClose={() => setIsProductDialogOpen(false)}
         product={selectedProduct}
+        onSave={loadDados}
       />
 
       <StockUpdateDialog

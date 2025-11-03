@@ -8,11 +8,14 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Save, X } from 'lucide-react'
+import { createProduto, updateProduto, type Produto } from '@/lib/services/produtos-service'
+import { toast } from '@/hooks/use-toast'
 
 interface ProductDialogProps {
   open: boolean
   onClose: () => void
   product?: any
+  onSave?: () => void
 }
 
 const categories = [
@@ -37,7 +40,7 @@ const units = [
   'PCT'
 ]
 
-export function ProductDialog({ open, onClose, product }: ProductDialogProps) {
+export function ProductDialog({ open, onClose, product, onSave }: ProductDialogProps) {
   const [formData, setFormData] = useState({
     codigo: '',
     nome: '',
@@ -89,15 +92,49 @@ export function ProductDialog({ open, onClose, product }: ProductDialogProps) {
     setIsSubmitting(true)
 
     try {
-      // Aqui seria feita a integração com Supabase
-      console.log('Salvando produto:', formData)
+      const produtoData: Partial<Produto> = {
+        codigo: formData.codigo,
+        nome: formData.nome,
+        categoria: formData.categoria,
+        unidade: formData.unidade,
+        preco_unitario: formData.valorUnitario ? parseFloat(formData.valorUnitario) : 0,
+        estoque_atual: formData.estoqueAtual ? parseFloat(formData.estoqueAtual) : 0,
+        estoque_minimo: formData.estoqueMinimo ? parseFloat(formData.estoqueMinimo) : 0,
+        localizacao: formData.localizacao || null,
+        fornecedor: formData.fornecedor || null,
+        descricao: formData.descricao || null,
+        status: 'Ativo'
+      }
+
+      if (product?.id) {
+        // Editando produto existente
+        await updateProduto(product.id, produtoData)
+        toast({
+          title: 'Produto atualizado!',
+          description: 'O produto foi atualizado com sucesso.',
+        })
+      } else {
+        // Criando novo produto
+        await createProduto(produtoData as Omit<Produto, 'id' | 'created_at' | 'updated_at'>)
+        toast({
+          title: 'Produto criado!',
+          description: 'O novo produto foi cadastrado com sucesso.',
+        })
+      }
       
-      // Simular delay da API
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Callback para recarregar a lista
+      if (onSave) {
+        onSave()
+      }
       
       onClose()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao salvar produto:', error)
+      toast({
+        title: 'Erro ao salvar',
+        description: error.message || 'Não foi possível salvar o produto. Tente novamente.',
+        variant: 'destructive'
+      })
     } finally {
       setIsSubmitting(false)
     }
