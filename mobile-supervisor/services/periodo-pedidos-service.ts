@@ -11,18 +11,21 @@ import { supabase } from './supabase'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { Platform } from 'react-native'
 
-// Importar notificações de forma segura
+// Notificações DESABILITADAS no Expo Go (SDK 53+)
+// Para usar notificações, gere um development build ou production build (APK)
+// Em Expo Go, apenas o banner visual de período funciona
 let Notifications: any = null
-try {
-  // expo-notifications não funciona no Expo Go (SDK 53+)
-  // Funciona apenas em development builds ou production builds
-  if (Platform.OS !== 'web') {
-    Notifications = require('expo-notifications')
-  }
-} catch (error) {
-  console.log('⚠️ Notificações não disponíveis. Use development build para notificações push.')
-  Notifications = null
-}
+
+// IMPORTANTE: expo-notifications causa erro no Expo Go, então mantemos null
+// Descomente as linhas abaixo apenas em builds (APK):
+// try {
+//   if (Platform.OS !== 'web') {
+//     Notifications = require('expo-notifications')
+//   }
+// } catch (error) {
+//   console.log('⚠️ Notificações não disponíveis.')
+//   Notifications = null
+// }
 
 // Configurações do período
 export const PERIODO_CONFIG = {
