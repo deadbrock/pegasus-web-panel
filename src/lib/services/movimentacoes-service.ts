@@ -2,18 +2,21 @@ import { supabase } from '../supabase'
 
 export type MovimentacaoEstoque = {
   id?: string
-  produto_id: string
+  produto_id?: string
+  produto_codigo?: string
   produto?: {
     codigo: string
     nome: string
   }
-  tipo: 'entrada' | 'saida' | 'ajuste' | 'transferencia'
+  tipo: 'entrada' | 'saida' | 'ajuste' | 'transferencia' | 'entrada_nota' | 'saida_nota'
   quantidade: number
   estoque_anterior?: number
   estoque_novo?: number
   motivo?: string
   documento?: string
   usuario?: string
+  nota_fiscal_id?: string
+  custo_unitario?: number
   data_movimentacao?: string
   created_at?: string
 }

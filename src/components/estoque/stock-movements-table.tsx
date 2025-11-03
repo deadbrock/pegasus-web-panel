@@ -35,8 +35,12 @@ export function StockMovementsTable() {
     switch (tipo) {
       case 'entrada':
         return <Badge className="bg-green-500"><TrendingUp className="w-3 h-3 mr-1" />Entrada</Badge>
+      case 'entrada_nota':
+        return <Badge className="bg-green-600"><TrendingUp className="w-3 h-3 mr-1" />Entrada NF</Badge>
       case 'saida':
         return <Badge className="bg-red-500"><TrendingDown className="w-3 h-3 mr-1" />Saída</Badge>
+      case 'saida_nota':
+        return <Badge className="bg-red-600"><TrendingDown className="w-3 h-3 mr-1" />Saída NF</Badge>
       case 'ajuste':
         return <Badge className="bg-blue-500"><RefreshCw className="w-3 h-3 mr-1" />Ajuste</Badge>
       case 'transferencia':
@@ -105,11 +109,11 @@ export function StockMovementsTable() {
                     )
                   : '-'}
               </TableCell>
-              <TableCell>{mov.produto?.codigo || '-'}</TableCell>
-              <TableCell>{mov.produto?.nome || '-'}</TableCell>
+              <TableCell>{mov.produto?.codigo || mov.produto_codigo || '-'}</TableCell>
+              <TableCell>{mov.produto?.nome || mov.produto_codigo || '-'}</TableCell>
               <TableCell>{getTipoBadge(mov.tipo)}</TableCell>
               <TableCell className="text-right font-semibold">
-                {mov.tipo === 'entrada' || mov.tipo === 'ajuste' ? '+' : '-'}
+                {mov.tipo === 'entrada' || mov.tipo === 'entrada_nota' || mov.tipo === 'ajuste' ? '+' : '-'}
                 {mov.quantidade}
               </TableCell>
               <TableCell className="text-right text-gray-600">
