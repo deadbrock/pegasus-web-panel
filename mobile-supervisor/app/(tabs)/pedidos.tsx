@@ -25,6 +25,7 @@ import {
   verificarEEnviarNotificacao,
   type StatusPeriodo
 } from '../../services/periodo-pedidos-service'
+import { colors, spacing, typography, borderRadius, shadows } from '../../styles/theme'
 
 export default function PedidosScreen() {
   const [loading, setLoading] = useState(true)
@@ -1036,17 +1037,18 @@ export default function PedidosScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.gray50,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.gray50,
   },
   loadingText: {
-    marginTop: 16,
-    color: '#6b7280',
+    marginTop: spacing.md,
+    color: colors.textSecondary,
+    fontSize: typography.base,
   },
   filterContainer: {
     flexDirection: 'row',
@@ -1132,10 +1134,10 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    margin: 16,
+    margin: spacing.md,
     right: 0,
     bottom: 0,
-    backgroundColor: '#3b82f6',
+    backgroundColor: colors.secondary,
   },
   sectionLabel: {
     fontSize: 14,
