@@ -10,8 +10,8 @@ export function TabScreenContainer({ children, style, ...props }: TabScreenConta
   const insets = useSafeAreaInsets()
   
   // Calcular padding bottom baseado na plataforma e safe area
-  // Android precisa de mais espaço por causa dos botões de navegação do sistema
-  const bottomPadding = Platform.OS === 'ios' ? 100 + insets.bottom : 120
+  // Android precisa de MUITO mais espaço por causa dos botões de navegação do sistema
+  const bottomPadding = Platform.OS === 'ios' ? 100 + insets.bottom : 140
 
   return (
     <ScrollView style={style} {...props}>

@@ -8,18 +8,18 @@ export default function TabsLayout() {
   const { height } = Dimensions.get('window')
   
   // Ajustar altura da tab bar baseado no tamanho da tela e safe area
-  // Adicionar espaço extra para botões de navegação do sistema Android
+  // CRÍTICO: Adicionar muito espaço extra para botões de navegação do sistema Android
   const tabBarHeight = Platform.select({
-    ios: 65 + insets.bottom,
-    android: Math.max(75, height * 0.09), // Aumentado para 75px mínimo e 9% da altura
-    default: 75
+    ios: 70 + insets.bottom,
+    android: Math.max(90, height * 0.11), // Aumentado para 90px mínimo e 11% da altura
+    default: 90
   })
   
-  // Padding bottom para garantir que os ícones fiquem acima dos botões do sistema
+  // Padding bottom MAIOR para garantir que os ícones fiquem BEM acima dos botões do sistema
   const tabBarPaddingBottom = Platform.select({
     ios: insets.bottom || 8,
-    android: Math.max(insets.bottom, 12), // Mínimo 12px no Android
-    default: 8
+    android: Math.max(insets.bottom + 10, 20), // Mínimo 20px no Android (era 12px)
+    default: 20
   })
 
   return (
@@ -45,12 +45,14 @@ export default function TabsLayout() {
           shadowRadius: 6,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: '600',
-          marginTop: -4,
+          marginTop: 2,
+          marginBottom: 2,
         },
         tabBarIconStyle: {
-          marginTop: 4,
+          marginTop: 6,
+          marginBottom: 2,
         },
         headerStyle: {
           backgroundColor: '#3b82f6',

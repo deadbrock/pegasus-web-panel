@@ -252,7 +252,7 @@ export default function DashboardScreen() {
       </View>
 
       {/* Espaço extra para a tab bar */}
-      <View style={{ height: Platform.OS === 'ios' ? 100 + insets.bottom : 120 }} />
+      <View style={{ height: Platform.OS === 'ios' ? 100 + insets.bottom : 140 }} />
     </ScrollView>
   )
 }
