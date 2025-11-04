@@ -155,15 +155,14 @@ export function MobileOrderViewDialog({ open, onClose, order }: MobileOrderViewD
       if (success) {
         toast({
           title: '📦 Separação Iniciada!',
-          description: `O pedido ${order.numero_pedido} está em separação.`
+          description: `O pedido ${order.numero_pedido} está em separação. Uma rota será criada automaticamente.`
         })
         onClose()
-        // Recarregar a página para atualizar a lista
         window.location.reload()
       } else {
         toast({
           title: '❌ Erro',
-          description: 'Não foi possível iniciar a separação. Tente novamente.',
+          description: 'Não foi possível iniciar a separação.',
           variant: 'destructive'
         })
       }
@@ -172,6 +171,79 @@ export function MobileOrderViewDialog({ open, onClose, order }: MobileOrderViewD
       toast({
         title: '❌ Erro',
         description: 'Ocorreu um erro ao iniciar a separação.',
+        variant: 'destructive'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleConcluirSeparacao = async () => {
+    setLoading(true)
+    try {
+      const success = await updatePedidoMobileStatus(order.id, 'Separado')
+      
+      if (success) {
+        toast({
+          title: '✅ Separação Concluída!',
+          description: `Pedido pronto para atribuição de rota.`
+        })
+        onClose()
+        window.location.reload()
+      }
+    } catch (error) {
+      console.error('Erro:', error)
+      toast({
+        title: '❌ Erro',
+        description: 'Erro ao concluir separação.',
+        variant: 'destructive'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSaiuParaEntrega = async () => {
+    setLoading(true)
+    try {
+      const success = await updatePedidoMobileStatus(order.id, 'Saiu para Entrega')
+      
+      if (success) {
+        toast({
+          title: '🚚 Saiu para Entrega!',
+          description: `Pedido em rota de entrega.`
+        })
+        onClose()
+        window.location.reload()
+      }
+    } catch (error) {
+      toast({
+        title: '❌ Erro',
+        description: 'Erro ao atualizar status.',
+        variant: 'destructive'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleMarcarEntregue = async () => {
+    setLoading(true)
+    try {
+      const success = await updatePedidoMobileStatus(order.id, 'Entregue')
+      
+      if (success) {
+        toast({
+          title: '✅ Entrega Confirmada!',
+          description: `Pedido entregue com sucesso.`
+        })
+        onClose()
+        window.location.reload()
+      }
+    } catch (error) {
+      toast({
+        title: '❌ Erro',
+        description: 'Erro ao confirmar entrega.',
         variant: 'destructive'
       })
     } finally {
@@ -407,6 +479,33 @@ export function MobileOrderViewDialog({ open, onClose, order }: MobileOrderViewD
                 disabled={loading}
               >
                 {loading ? 'Processando...' : 'Iniciar Separação'}
+              </Button>
+            )}
+            {order.status === 'Em Separação' && (
+              <Button 
+                className="bg-purple-600 hover:bg-purple-700"
+                onClick={handleConcluirSeparacao}
+                disabled={loading}
+              >
+                {loading ? 'Processando...' : 'Concluir Separação'}
+              </Button>
+            )}
+            {order.status === 'Separado' && (
+              <Button 
+                className="bg-orange-600 hover:bg-orange-700"
+                onClick={handleSaiuParaEntrega}
+                disabled={loading}
+              >
+                {loading ? 'Processando...' : 'Saiu para Entrega'}
+              </Button>
+            )}
+            {order.status === 'Saiu para Entrega' && (
+              <Button 
+                className="bg-green-600 hover:bg-green-700"
+                onClick={handleMarcarEntregue}
+                disabled={loading}
+              >
+                {loading ? 'Processando...' : 'Confirmar Entrega'}
               </Button>
             )}
           </div>
