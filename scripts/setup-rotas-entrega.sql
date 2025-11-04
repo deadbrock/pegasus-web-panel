@@ -7,8 +7,8 @@
 CREATE TABLE IF NOT EXISTS rotas_entrega (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   
-  -- Relacionamento com pedido mobile
-  pedido_id UUID NOT NULL REFERENCES pedidos_mobile(id) ON DELETE CASCADE,
+  -- Relacionamento com pedido supervisor
+  pedido_id UUID NOT NULL REFERENCES pedidos_supervisores(id) ON DELETE CASCADE,
   
   -- Informações da rota
   numero_rota VARCHAR(50) UNIQUE NOT NULL,
@@ -175,10 +175,10 @@ $$ LANGUAGE plpgsql;
 -- Criar sequence para números de rotas
 CREATE SEQUENCE IF NOT EXISTS seq_rotas START 1;
 
-DROP TRIGGER IF EXISTS trigger_criar_rota_automatica ON pedidos_mobile;
+DROP TRIGGER IF EXISTS trigger_criar_rota_automatica ON pedidos_supervisores;
 
 CREATE TRIGGER trigger_criar_rota_automatica
-  AFTER INSERT OR UPDATE ON pedidos_mobile
+  AFTER INSERT OR UPDATE ON pedidos_supervisores
   FOR EACH ROW
   EXECUTE FUNCTION criar_rota_automatica();
 

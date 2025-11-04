@@ -40,7 +40,7 @@ export async function fetchRotas(status?: string): Promise<RotaEntrega[]> {
     .from('rotas_entrega')
     .select(`
       *,
-      pedido:pedidos_mobile(numero_pedido, supervisor_nome, created_at),
+      pedido:pedidos_supervisores(numero_pedido, supervisor_nome, created_at),
       motorista:motoristas(nome, telefone),
       veiculo:veiculos(placa, modelo)
     `)
@@ -75,7 +75,7 @@ export async function fetchRotasEmAndamento(): Promise<RotaEntrega[]> {
     .from('rotas_entrega')
     .select(`
       *,
-      pedido:pedidos_mobile(numero_pedido, supervisor_nome),
+      pedido:pedidos_supervisores(numero_pedido, supervisor_nome),
       motorista:motoristas(nome, telefone),
       veiculo:veiculos(placa, modelo)
     `)
@@ -111,7 +111,7 @@ export async function atribuirMotoristaVeiculo(
     .eq('id', rotaId)
     .select(`
       *,
-      pedido:pedidos_mobile(numero_pedido, supervisor_nome),
+      pedido:pedidos_supervisores(numero_pedido, supervisor_nome),
       motorista:motoristas(nome, telefone),
       veiculo:veiculos(placa, modelo)
     `)
@@ -169,7 +169,7 @@ export async function finalizarEntrega(rotaId: string): Promise<RotaEntrega | nu
   // Atualizar status do pedido também
   if (data) {
     await supabase
-      .from('pedidos_mobile')
+      .from('pedidos_supervisores')
       .update({ status: 'Entregue' })
       .eq('id', data.pedido_id)
   }
