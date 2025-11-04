@@ -492,7 +492,7 @@ export function OrdersTable({ onEdit, data }: OrdersTableProps) {
                 O supervisor receberá esta justificativa no aplicativo mobile.
               </p>
             </div>
-          </DialogFooter>
+          </div>
           <DialogFooter>
             <Button 
               variant="outline" 
