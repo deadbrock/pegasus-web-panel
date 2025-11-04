@@ -34,15 +34,41 @@ export default function RastreamentoPage() {
   const [selectedVehicle, setSelectedVehicle] = useState(null)
   const [lastUpdate, setLastUpdate] = useState(new Date())
   const [rows, setRows] = useState<any[]>([])
+  const [stats, setStats] = useState({
+    veiculosAtivos: 0,
+    emMovimento: 0,
+    entregasHoje: 0,
+    kmPercorridos: 0
+  })
+  const [loading, setLoading] = useState(true)
   const { toast } = useToast()
 
   // Carrega dados e assina Realtime para posições
   useEffect(() => {
     let unsub: any
     const load = async () => {
-      const v = await fetchVeiculos()
-      setRows(v)
-      setLastUpdate(new Date())
+      setLoading(true)
+      try {
+        const v = await fetchVeiculos()
+        setRows(v)
+        
+        // Calcular estatísticas reais
+        const ativos = v.filter(veiculo => veiculo.status === 'Ativo' || veiculo.status === 'Em Rota').length
+        const movimento = v.filter(veiculo => veiculo.status === 'Em Rota').length
+        
+        setStats({
+          veiculosAtivos: ativos,
+          emMovimento: movimento,
+          entregasHoje: 0, // Será calculado quando houver integração com entregas
+          kmPercorridos: 0 // Será calculado quando houver histórico de rotas
+        })
+        
+        setLastUpdate(new Date())
+      } catch (error) {
+        console.error('Erro ao carregar veículos:', error)
+      } finally {
+        setLoading(false)
+      }
     }
     load()
     const unsubPos = subscribePosicoes(() => load())
@@ -91,7 +117,12 @@ export default function RastreamentoPage() {
             Importar
           </Button>
           <Button variant="outline" size="sm" onClick={() => {
-            const resumo = { 'Veículos Ativos': 18, 'Em Movimento': 14, 'Entregas Hoje': 24, 'KM Hoje': 1245 }
+            const resumo = { 
+              'Veículos Ativos': stats.veiculosAtivos, 
+              'Em Movimento': stats.emMovimento, 
+              'Entregas Hoje': stats.entregasHoje, 
+              'KM Hoje': stats.kmPercorridos 
+            }
             exportRastreamentoKPIs(resumo)
           }}>
             <Download className="w-4 h-4 mr-2" />
@@ -114,37 +145,37 @@ export default function RastreamentoPage() {
         </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards - Dados Reais */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
           title="Veículos Ativos"
-          value="18"
-          change="+2"
-          changeType="positive"
+          value={loading ? '...' : stats.veiculosAtivos.toString()}
+          change={loading ? '' : `${rows.length} total`}
+          changeType="neutral"
           icon={Truck}
           description="Em operação"
         />
         <MetricCard
           title="Em Movimento"
-          value="14"
-          change="+1"
+          value={loading ? '...' : stats.emMovimento.toString()}
+          change={loading ? '' : `${((stats.emMovimento / (stats.veiculosAtivos || 1)) * 100).toFixed(0)}%`}
           changeType="positive"
           icon={Navigation}
           description="Trafegando"
         />
         <MetricCard
           title="Entregas Hoje"
-          value="24"
-          change="+8"
-          changeType="positive"
+          value={loading ? '...' : stats.entregasHoje.toString()}
+          change={loading ? '' : 'Em desenvolvimento'}
+          changeType="neutral"
           icon={MapPin}
           description="Finalizadas"
         />
         <MetricCard
           title="KM Percorridos"
-          value="1,245"
-          change="+12.5%"
-          changeType="positive"
+          value={loading ? '...' : stats.kmPercorridos.toString()}
+          change={loading ? '' : 'Em desenvolvimento'}
+          changeType="neutral"
           icon={Route}
           description="Hoje"
         />
@@ -274,38 +305,53 @@ export default function RastreamentoPage() {
               </CardContent>
             </Card>
 
-            {/* Estatísticas de Rotas */}
+            {/* Estatísticas de Rotas - Dados Reais */}
             <Card>
               <CardHeader>
                 <CardTitle>Estatísticas do Dia</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Total de Rotas</span>
-                    <span className="font-semibold">47</span>
+                {loading ? (
+                  <div className="flex items-center justify-center h-48">
+                    <Activity className="w-8 h-8 text-gray-400 animate-spin" />
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Rotas Concluídas</span>
-                    <span className="font-semibold text-green-600">42</span>
+                ) : rows.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Route className="mx-auto h-12 w-12 mb-4 text-gray-400" />
+                    <p>Nenhum veículo cadastrado</p>
+                    <p className="text-sm mt-2">Cadastre veículos para visualizar estatísticas</p>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Em Andamento</span>
-                    <span className="font-semibold text-blue-600">5</span>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Veículos Ativos</span>
+                      <span className="font-semibold">{stats.veiculosAtivos}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Em Movimento</span>
+                      <span className="font-semibold text-blue-600">{stats.emMovimento}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Parados</span>
+                      <span className="font-semibold text-orange-600">{stats.veiculosAtivos - stats.emMovimento}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Total de Veículos</span>
+                      <span className="font-semibold">{rows.length}</span>
+                    </div>
+                    <div className="pt-2 border-t">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Entregas Hoje</span>
+                        <span className="font-semibold text-gray-400">{stats.entregasHoje}</span>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">Em desenvolvimento</p>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">KM Percorridos</span>
+                      <span className="font-semibold text-gray-400">{stats.kmPercorridos} km</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Distância Total</span>
-                    <span className="font-semibold">1,245 km</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Tempo Médio</span>
-                    <span className="font-semibold">2h 15min</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Eficiência</span>
-                    <span className="font-semibold text-green-600">94%</span>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </div>
