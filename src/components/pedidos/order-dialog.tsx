@@ -587,18 +587,30 @@ export function OrderDialog({ open, onClose, order }: OrderDialogProps) {
               {/* Motorista */}
               <div className="space-y-2">
                 <Label>Motorista</Label>
-                <Select onValueChange={handleDriverSelect}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecionar motorista" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mockDrivers.map((driver) => (
-                      <SelectItem key={driver.id} value={driver.id.toString()}>
-                        {driver.name} - {driver.vehicle}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {loadingData ? (
+                  <Select disabled>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Carregando motoristas..." />
+                    </SelectTrigger>
+                  </Select>
+                ) : motoristas.length === 0 ? (
+                  <div className="text-sm text-gray-500 p-2 border rounded">
+                    Nenhum motorista cadastrado
+                  </div>
+                ) : (
+                  <Select onValueChange={handleMotoristaSelect}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecionar motorista" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {motoristas.map((motorista) => (
+                        <SelectItem key={motorista.id} value={motorista.id}>
+                          {motorista.nome} - CNH: {motorista.cnh}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
 
               {/* Forma de Pagamento */}
