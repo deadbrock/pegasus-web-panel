@@ -1,11 +1,16 @@
 'use client'
 
+import { useState } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 import { Edit, Eye, Package, MapPin, Calendar, DollarSign, User, Truck, Check, X as XIcon } from 'lucide-react'
 import { approveOrder, rejectOrder } from '@/services/ordersService'
-import { aprovarAutorizacaoPedido } from '@/services/pedidosMobileService'
+import { aprovarAutorizacaoPedido, updatePedidoMobileStatus } from '@/services/pedidosMobileService'
 import { useToast } from '@/hooks/use-toast'
 
 // Mock data - substituir por dados do Supabase
@@ -115,6 +120,91 @@ interface OrdersTableProps {
 
 export function OrdersTable({ onEdit, data }: OrdersTableProps) {
   const { toast } = useToast()
+  const [rejeitarDialogOpen, setRejeitarDialogOpen] = useState(false)
+  const [motivoRejeicao, setMotivoRejeicao] = useState('')
+  const [pedidoSelecionado, setPedidoSelecionado] = useState<any>(null)
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
+  
+  const handleStatusChange = async (pedido: any, novoStatus: string) => {
+    // Se for rejeição, abrir dialog primeiro
+    if (novoStatus === 'Rejeitado') {
+      setPedidoSelecionado(pedido)
+      setRejeitarDialogOpen(true)
+      return
+    }
+    
+    // Atualizar status
+    setUpdatingStatus(pedido.id)
+    try {
+      // Verificar se é pedido mobile ou web
+      const isPedidoMobile = pedido.supervisor_id || pedido.numero_pedido
+      
+      if (isPedidoMobile) {
+        const success = await updatePedidoMobileStatus(pedido.id, novoStatus as any)
+        if (success) {
+          toast({
+            title: 'Status atualizado!',
+            description: `Pedido ${pedido.numero_pedido || pedido.numero} → ${novoStatus}`,
+          })
+          // Recarregar página
+          setTimeout(() => window.location.reload(), 1000)
+        }
+      } else {
+        // Pedido web
+        toast({
+          title: 'Funcionalidade em desenvolvimento',
+          description: 'Atualização de pedidos web em breve.',
+        })
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar status:', error)
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível atualizar o status.',
+        variant: 'destructive'
+      })
+    } finally {
+      setUpdatingStatus(null)
+    }
+  }
+  
+  const handleConfirmarRejeicao = async () => {
+    if (!motivoRejeicao.trim()) {
+      toast({
+        title: 'Atenção',
+        description: 'Informe o motivo da rejeição.',
+        variant: 'destructive'
+      })
+      return
+    }
+    
+    setUpdatingStatus(pedidoSelecionado.id)
+    try {
+      const success = await aprovarAutorizacaoPedido(
+        pedidoSelecionado.id,
+        false,
+        `Admin - Motivo: ${motivoRejeicao}`
+      )
+      
+      if (success) {
+        toast({
+          title: 'Pedido rejeitado',
+          description: 'O supervisor receberá a justificativa.',
+        })
+        setRejeitarDialogOpen(false)
+        setMotivoRejeicao('')
+        setTimeout(() => window.location.reload(), 1000)
+      }
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível rejeitar o pedido.',
+        variant: 'destructive'
+      })
+    } finally {
+      setUpdatingStatus(null)
+    }
+  }
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline', color: string }> = {
       'Pendente': { variant: 'secondary', color: 'bg-gray-500' },
@@ -242,7 +332,27 @@ export function OrdersTable({ onEdit, data }: OrdersTableProps) {
                   </div>
                 </div>
               </TableCell>
-            <TableCell>{getStatusBadge(status)}</TableCell>
+              <TableCell>
+                <Select 
+                  value={status}
+                  onValueChange={(novoStatus) => handleStatusChange(order, novoStatus)}
+                  disabled={updatingStatus === order.id}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Pendente">📋 Pendente</SelectItem>
+                    <SelectItem value="Aprovado">✅ Aprovado</SelectItem>
+                    <SelectItem value="Em Separação">📦 Em Separação</SelectItem>
+                    <SelectItem value="Separado">✅ Separado</SelectItem>
+                    <SelectItem value="Saiu para Entrega">🚚 Saiu para Entrega</SelectItem>
+                    <SelectItem value="Entregue">✅ Entregue</SelectItem>
+                    <SelectItem value="Rejeitado">❌ Rejeitado</SelectItem>
+                    <SelectItem value="Cancelado">❌ Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </TableCell>
               <TableCell>
                 {motorista ? (
                   <div className="flex items-center gap-2">
@@ -360,6 +470,49 @@ export function OrdersTable({ onEdit, data }: OrdersTableProps) {
           )})}
         </TableBody>
       </Table>
+      
+      {/* Dialog de Rejeição */}
+      <Dialog open={rejeitarDialogOpen} onOpenChange={setRejeitarDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rejeitar Pedido</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="motivo">Motivo da Rejeição *</Label>
+              <Textarea
+                id="motivo"
+                placeholder="Informe o motivo da rejeição..."
+                value={motivoRejeicao}
+                onChange={(e) => setMotivoRejeicao(e.target.value)}
+                rows={4}
+                className="resize-none"
+              />
+              <p className="text-xs text-gray-500">
+                O supervisor receberá esta justificativa no aplicativo mobile.
+              </p>
+            </div>
+          </DialogFooter>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setRejeitarDialogOpen(false)
+                setMotivoRejeicao('')
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={handleConfirmarRejeicao}
+              disabled={!motivoRejeicao.trim() || updatingStatus !== null}
+            >
+              {updatingStatus ? 'Rejeitando...' : 'Confirmar Rejeição'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
