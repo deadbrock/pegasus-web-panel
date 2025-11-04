@@ -12,87 +12,8 @@ interface VehiclesTableProps {
   data?: any[]
 }
 
-// Mock data (fallback)
-const vehiclesMock = [
-  {
-    id: 1,
-    placa: 'BRA-2023',
-    motorista: 'Carlos Lima',
-    modelo: 'Volkswagen Delivery',
-    status: 'Em Movimento',
-    velocidade: 65,
-    posicao: 'São Paulo - Centro',
-    destino: 'Santos - Porto',
-    ultimaAtualizacao: '2024-01-15T14:23:45',
-    combustivel: 75,
-    temperatura: 85,
-    kmDia: 245,
-    eta: '16:30'
-  },
-  {
-    id: 2,
-    placa: 'BRA-2024',
-    motorista: 'Ana Oliveira',
-    modelo: 'Ford Cargo',
-    status: 'Parado',
-    velocidade: 0,
-    posicao: 'Rio de Janeiro - Zona Sul',
-    destino: 'Niterói - Centro',
-    ultimaAtualizacao: '2024-01-15T14:20:12',
-    combustivel: 45,
-    temperatura: 90,
-    kmDia: 180,
-    eta: '17:15'
-  },
-  {
-    id: 3,
-    placa: 'BRA-2025',
-    motorista: 'João Silva',
-    modelo: 'Mercedes Sprinter',
-    status: 'Em Movimento',
-    velocidade: 45,
-    posicao: 'Belo Horizonte - Centro',
-    destino: 'Contagem - Industrial',
-    ultimaAtualizacao: '2024-01-15T14:24:32',
-    combustivel: 30,
-    temperatura: 75,
-    kmDia: 320,
-    eta: '15:45'
-  },
-  {
-    id: 4,
-    placa: 'BRA-2026',
-    motorista: 'Maria Santos',
-    modelo: 'Iveco Daily',
-    status: 'Entregando',
-    velocidade: 15,
-    posicao: 'Curitiba - Centro',
-    destino: 'No destino',
-    ultimaAtualizacao: '2024-01-15T14:25:01',
-    combustivel: 85,
-    temperatura: 80,
-    kmDia: 125,
-    eta: 'Chegou'
-  },
-  {
-    id: 5,
-    placa: 'BRA-2027',
-    motorista: 'Pedro Costa',
-    modelo: 'Fiat Ducato',
-    status: 'Offline',
-    velocidade: 0,
-    posicao: 'Última: Porto Alegre',
-    destino: '-',
-    ultimaAtualizacao: '2024-01-15T13:45:23',
-    combustivel: 60,
-    temperatura: 0,
-    kmDia: 95,
-    eta: '-'
-  }
-]
-
-export function VehiclesTable({ compact = false, onVehicleSelect, selectedVehicle, data }: VehiclesTableProps) {
-  const vehiclesData = (data && data.length ? data : vehiclesMock)
+export function VehiclesTable({ compact = false, onVehicleSelect, selectedVehicle, data = [] }: VehiclesTableProps) {
+  const vehiclesData = data || []
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline', color: string }> = {
       'Em Movimento': { variant: 'default', color: 'bg-green-500' },
@@ -145,6 +66,17 @@ export function VehiclesTable({ compact = false, onVehicleSelect, selectedVehicl
 
   const handleVehicleClick = (vehicle: any) => {
     onVehicleSelect(vehicle)
+  }
+
+  // Se não houver veículos, mostrar mensagem
+  if (vehiclesData.length === 0) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        <Truck className="mx-auto h-12 w-12 mb-4 text-gray-400" />
+        <p>Nenhum veículo cadastrado</p>
+        <p className="text-sm mt-2">Cadastre veículos em Frota → Veículos</p>
+      </div>
+    )
   }
 
   if (compact) {
