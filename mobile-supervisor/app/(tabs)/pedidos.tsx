@@ -603,7 +603,7 @@ export default function PedidosScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-        contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 100 + insets.bottom : 100 }}
+        contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 100 + insets.bottom : 120 }}
       >
         {pedidos.length === 0 ? (
           <View style={styles.emptyContainer}>
