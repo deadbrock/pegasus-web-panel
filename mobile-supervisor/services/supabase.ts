@@ -1,50 +1,22 @@
 import { createClient } from '@supabase/supabase-js'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Constants from 'expo-constants'
-import { Alert } from 'react-native'
 
-const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || ''
-const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || ''
+// Pegar variáveis de ambiente do .env ou usar valores padrão para builds
+const supabaseUrl = 
+  Constants.expoConfig?.extra?.supabaseUrl || 
+  process.env.EXPO_PUBLIC_SUPABASE_URL ||
+  'https://moswhtqcgjcpsideykzw.supabase.co' // Fallback para builds
+
+const supabaseAnonKey = 
+  Constants.expoConfig?.extra?.supabaseAnonKey || 
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vc3dodHFjZ2pjcHNpZGV5a3p3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0MzczMjIsImV4cCI6MjA2NjAxMzMyMn0.qqljvTvAzrheLJMOKpTtVHOWvmTQzm-UA5pp319nh28' // Fallback para builds
 
 // Logs para debug
 console.log('🔍 Verificando configuração do Supabase...')
-console.log('📍 Supabase URL:', supabaseUrl || '❌ NÃO CONFIGURADA')
+console.log('📍 Supabase URL:', supabaseUrl ? '✅ Configurada' : '❌ NÃO CONFIGURADA')
 console.log('🔑 Supabase Key:', supabaseAnonKey ? '✅ Configurada' : '❌ NÃO CONFIGURADA')
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  const errorMsg = `
-❌ ERRO DE CONFIGURAÇÃO
-
-Falta configurar as credenciais do Supabase!
-
-SOLUÇÃO:
-1. Crie um arquivo ".env" na pasta mobile-supervisor
-2. Adicione estas linhas:
-
-EXPO_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=sua-chave-anonima
-
-3. Pegue as credenciais em:
-   https://supabase.com/dashboard → Settings → API
-
-4. Reinicie o servidor: npx expo start -c
-
-Consulte: mobile-supervisor/ENV_EXAMPLE.txt
-`
-  
-  console.error(errorMsg)
-  
-  // Mostrar alert no app
-  setTimeout(() => {
-    Alert.alert(
-      '❌ Configuração Necessária',
-      'Credenciais do Supabase não configuradas.\n\nVeja o console do terminal para instruções.',
-      [{ text: 'OK' }]
-    )
-  }, 100)
-  
-  throw new Error('Supabase URL e Anon Key são obrigatórias - Configure o arquivo .env')
-}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
