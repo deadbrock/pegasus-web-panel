@@ -100,15 +100,26 @@ export function OrderDialog({ open, onClose, order }: OrderDialogProps) {
         fetchVeiculos()
       ])
       
+      console.log('[OrderDialog] Produtos carregados:', produtosData.length)
+      console.log('[OrderDialog] Motoristas carregados:', motoristasData.length)
+      console.log('[OrderDialog] Veículos carregados:', veiculosData.length)
+      
       setProdutos(produtosData)
       setMotoristas(motoristasData)
       setVeiculos(veiculosData)
+      
+      if (produtosData.length === 0) {
+        toast({
+          title: 'Atenção',
+          description: 'Nenhum produto encontrado no estoque. Cadastre produtos primeiro em Estoque → Produtos.',
+        })
+      }
     } catch (error) {
       console.error('Erro ao carregar dados:', error)
       toast({
-        title: 'Aviso',
-        description: 'Alguns dados podem não estar disponíveis.',
-        variant: 'default'
+        title: 'Erro ao carregar dados',
+        description: 'Não foi possível carregar produtos, motoristas ou veículos.',
+        variant: 'destructive'
       })
     } finally {
       setLoadingData(false)
