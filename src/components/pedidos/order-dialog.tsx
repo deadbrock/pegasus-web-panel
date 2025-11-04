@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast'
 import { ptBR } from 'date-fns/locale'
 import { gerarPedidoPDF } from '@/services/pdfService'
 import { fetchProdutos } from '@/lib/services/produtos-service'
-import { fetchMotoristas } from '@/services/driversService'
+import { fetchMotoristas } from '@/lib/services/motoristas-service'
 import { fetchVeiculos } from '@/lib/services/rastreamento-realtime'
 
 interface OrderDialogProps {
