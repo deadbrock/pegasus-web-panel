@@ -9,12 +9,15 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { CalendarIcon, Save, X, Plus, Minus, Download } from 'lucide-react'
+import { CalendarIcon, Save, X, Plus, Minus, Download, Package } from 'lucide-react'
 import { format } from 'date-fns'
 import { createOrder, updateOrder } from '@/services/ordersService'
 import { useToast } from '@/hooks/use-toast'
 import { ptBR } from 'date-fns/locale'
 import { gerarPedidoPDF } from '@/services/pdfService'
+import { fetchProdutos } from '@/lib/services/produtos-service'
+import { fetchMotoristas } from '@/services/driversService'
+import { fetchVeiculos } from '@/lib/services/rastreamento-realtime'
 
 interface OrderDialogProps {
   open: boolean
@@ -75,7 +78,42 @@ export function OrderDialog({ open, onClose, order }: OrderDialogProps) {
   })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const { toast } = useToast()
+  const [produtos, setProdutos] = useState<any[]>([])
+  const [motoristas, setMotoristas] = useState<any[]>([])
+  const [veiculos, setVeiculos] = useState<any[]>([])
+  const [loadingData, setLoadingData] = useState(false)
+  const { toast} = useToast()
+  
+  // Carregar dados reais ao abrir o dialog
+  useEffect(() => {
+    if (open) {
+      loadDadosReais()
+    }
+  }, [open])
+  
+  const loadDadosReais = async () => {
+    setLoadingData(true)
+    try {
+      const [produtosData, motoristasData, veiculosData] = await Promise.all([
+        fetchProdutos(),
+        fetchMotoristas(),
+        fetchVeiculos()
+      ])
+      
+      setProdutos(produtosData)
+      setMotoristas(motoristasData)
+      setVeiculos(veiculosData)
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error)
+      toast({
+        title: 'Aviso',
+        description: 'Alguns dados podem não estar disponíveis.',
+        variant: 'default'
+      })
+    } finally {
+      setLoadingData(false)
+    }
+  }
 
   const handleDownloadPDF = () => {
     try {
@@ -256,18 +294,22 @@ export function OrderDialog({ open, onClose, order }: OrderDialogProps) {
   }
 
   const handleProductSelect = (index: number, productId: string) => {
-    const product = mockProducts.find(p => p.id === parseInt(productId))
+    const product = produtos.find(p => p.id === productId)
     if (product) {
-      handleItemChange(index, 'produto', product.name)
-      handleItemChange(index, 'valorUnitario', product.price)
+      handleItemChange(index, 'produto', product.nome)
+      handleItemChange(index, 'valorUnitario', product.preco_unitario || 0)
     }
   }
 
-  const handleDriverSelect = (driverId: string) => {
-    const driver = mockDrivers.find(d => d.id === parseInt(driverId))
-    if (driver) {
-      handleInputChange('motorista', driver.name)
-      handleInputChange('veiculo', driver.vehicle)
+  const handleMotoristaSelect = (motoristaId: string) => {
+    const motorista = motoristas.find(m => m.id === motoristaId)
+    if (motorista) {
+      handleInputChange('motorista', motorista.nome)
+      // Buscar veículo do motorista (se houver vinculação)
+      const veiculoMotorista = veiculos.find(v => v.motorista_id === motoristaId)
+      if (veiculoMotorista) {
+        handleInputChange('veiculo', veiculoMotorista.placa)
+      }
     }
   }
 
@@ -460,19 +502,32 @@ export function OrderDialog({ open, onClose, order }: OrderDialogProps) {
             {formData.itens.map((item, index) => (
               <div key={index} className="grid grid-cols-1 md:grid-cols-6 gap-4 p-4 border rounded-lg">
                 <div className="space-y-2">
-                  <Label>Produto</Label>
-                  <Select onValueChange={(value) => handleProductSelect(index, value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecionar produto" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {mockProducts.map((product) => (
-                        <SelectItem key={product.id} value={product.id.toString()}>
-                          {product.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>Produto *</Label>
+                  {loadingData ? (
+                    <Select disabled>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Carregando produtos..." />
+                      </SelectTrigger>
+                    </Select>
+                  ) : produtos.length === 0 ? (
+                    <div className="flex items-center gap-2 text-sm text-gray-500 p-2 border rounded">
+                      <Package className="w-4 h-4" />
+                      <span>Nenhum produto cadastrado</span>
+                    </div>
+                  ) : (
+                    <Select onValueChange={(value) => handleProductSelect(index, value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecionar produto do estoque" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[200px]">
+                        {produtos.map((product) => (
+                          <SelectItem key={product.id} value={product.id}>
+                            {product.codigo} - {product.nome} (R$ {(product.preco_unitario || 0).toFixed(2)})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
                 <div className="space-y-2">
