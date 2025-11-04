@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Text as RNText } from 'react-native'
+import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Text as RNText, Platform } from 'react-native'
 import { Text, ActivityIndicator } from 'react-native-paper'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { LinearGradient } from 'expo-linear-gradient'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { fetchMeusPedidos } from '../../services/pedidos-mobile-service'
 import { colors, spacing, typography, borderRadius, shadows } from '../../styles/theme'
 
@@ -17,6 +18,7 @@ type Stats = {
 
 export default function DashboardScreen() {
   const router = useRouter()
+  const insets = useSafeAreaInsets()
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [userName, setUserName] = useState('Supervisor')
@@ -249,7 +251,8 @@ export default function DashboardScreen() {
         </View>
       </View>
 
-      <View style={{ height: spacing.xl }} />
+      {/* Espaço extra para a tab bar */}
+      <View style={{ height: Platform.OS === 'ios' ? 100 + insets.bottom : 100 }} />
     </ScrollView>
   )
 }

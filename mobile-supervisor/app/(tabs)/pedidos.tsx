@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { View, StyleSheet, ScrollView, RefreshControl, Alert, FlatList, TouchableOpacity } from 'react-native'
+import { View, StyleSheet, ScrollView, RefreshControl, Alert, FlatList, TouchableOpacity, Platform } from 'react-native'
 import { Card, Title, Paragraph, Text, Chip, FAB, ActivityIndicator, Badge, Dialog, Portal, TextInput, Button, Searchbar } from 'react-native-paper'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { PedidoCardModern } from '../../components/PedidoCardModern'
 import { fetchProdutosDisponiveis, type Produto } from '../../services/produtos-service'
 import { 
@@ -28,6 +29,7 @@ import {
 import { colors, spacing, typography, borderRadius, shadows } from '../../styles/theme'
 
 export default function PedidosScreen() {
+  const insets = useSafeAreaInsets()
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [pedidos, setPedidos] = useState<PedidoMobile[]>([])
@@ -601,6 +603,7 @@ export default function PedidosScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
+        contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 100 + insets.bottom : 100 }}
       >
         {pedidos.length === 0 ? (
           <View style={styles.emptyContainer}>
