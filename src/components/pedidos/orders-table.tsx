@@ -126,6 +126,12 @@ export function OrdersTable({ onEdit, data }: OrdersTableProps) {
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
   
   const handleStatusChange = async (pedido: any, novoStatus: string) => {
+    console.log('[OrdersTable] Mudando status:', { pedido, novoStatus })
+    console.log('[OrdersTable] Pedido completo:', pedido)
+    console.log('[OrdersTable] supervisor_id:', pedido.supervisor_id)
+    console.log('[OrdersTable] numero_pedido:', pedido.numero_pedido)
+    console.log('[OrdersTable] contrato_id:', pedido.contrato_id)
+    
     // Se for rejeição, abrir dialog primeiro
     if (novoStatus === 'Rejeitado') {
       setPedidoSelecionado(pedido)
@@ -136,10 +142,14 @@ export function OrdersTable({ onEdit, data }: OrdersTableProps) {
     // Atualizar status
     setUpdatingStatus(pedido.id)
     try {
-      // Verificar se é pedido mobile ou web
-      const isPedidoMobile = pedido.supervisor_id || pedido.numero_pedido
+      // Verificar se é pedido mobile (do app) ou web (painel)
+      // Pedidos mobile têm: supervisor_id, numero_pedido ou contrato_id
+      const isPedidoMobile = pedido.supervisor_id || pedido.contrato_id || pedido.supervisor_nome
+      
+      console.log('[OrdersTable] isPedidoMobile:', isPedidoMobile)
       
       if (isPedidoMobile) {
+        console.log('[OrdersTable] Atualizando pedido mobile...')
         const success = await updatePedidoMobileStatus(pedido.id, novoStatus as any)
         if (success) {
           toast({
@@ -148,9 +158,16 @@ export function OrdersTable({ onEdit, data }: OrdersTableProps) {
           })
           // Recarregar página
           setTimeout(() => window.location.reload(), 1000)
+        } else {
+          toast({
+            title: 'Erro',
+            description: 'Não foi possível atualizar o status.',
+            variant: 'destructive'
+          })
         }
       } else {
         // Pedido web
+        console.log('[OrdersTable] Pedido web detectado')
         toast({
           title: 'Funcionalidade em desenvolvimento',
           description: 'Atualização de pedidos web em breve.',
