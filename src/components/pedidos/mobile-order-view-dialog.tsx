@@ -181,7 +181,7 @@ export function MobileOrderViewDialog({ open, onClose, order }: MobileOrderViewD
   const handleConcluirSeparacao = async () => {
     setLoading(true)
     try {
-      const success = await updatePedidoMobileStatus(order.id, 'Em Separação')
+      const success = await updatePedidoMobileStatus(order.id, 'Separado')
       
       if (success) {
         toast({
@@ -490,7 +490,7 @@ export function MobileOrderViewDialog({ open, onClose, order }: MobileOrderViewD
                 {loading ? 'Processando...' : 'Concluir Separação'}
               </Button>
             )}
-            {order.status === 'Em Separação' && (
+            {order.status === 'Separado' && (
               <Button 
                 className="bg-orange-600 hover:bg-orange-700"
                 onClick={handleSaiuParaEntrega}

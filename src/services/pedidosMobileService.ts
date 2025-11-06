@@ -22,7 +22,7 @@ export type PedidoMobile = {
   contrato_endereco?: string
   urgencia: 'Baixa' | 'Média' | 'Alta' | 'Urgente'
   observacoes?: string
-  status: 'Pendente' | 'Aprovado' | 'Em Separação' | 'Saiu para Entrega' | 'Entregue' | 'Cancelado' | 'Rejeitado'
+  status: 'Pendente' | 'Aprovado' | 'Em Separação' | 'Separado' | 'Saiu para Entrega' | 'Entregue' | 'Cancelado' | 'Rejeitado'
   requer_autorizacao: boolean
   autorizacao_status?: 'Pendente' | 'Aprovada' | 'Rejeitada'
   autorizacao_justificativa?: string
@@ -204,7 +204,7 @@ export function subscribePedidosMobile(callback: () => void) {
 export function calcularEstatisticasPedidos(pedidos: PedidoMobile[]) {
   const total = pedidos.length
   const entregues = pedidos.filter(p => p.status === 'Entregue').length
-  const emAndamento = pedidos.filter(p => ['Aprovado', 'Em Separação', 'Saiu para Entrega'].includes(p.status)).length
+  const emAndamento = pedidos.filter(p => ['Aprovado', 'Em Separação', 'Separado', 'Saiu para Entrega'].includes(p.status)).length
   const pendentes = pedidos.filter(p => p.status === 'Pendente').length
   const cancelados = pedidos.filter(p => p.status === 'Cancelado' || p.status === 'Rejeitado').length
   
@@ -212,6 +212,7 @@ export function calcularEstatisticasPedidos(pedidos: PedidoMobile[]) {
     'Pendente': pedidos.filter(p => p.status === 'Pendente').length,
     'Aprovado': pedidos.filter(p => p.status === 'Aprovado').length,
     'Em Separação': pedidos.filter(p => p.status === 'Em Separação').length,
+    'Separado': pedidos.filter(p => p.status === 'Separado').length,
     'Saiu para Entrega': pedidos.filter(p => p.status === 'Saiu para Entrega').length,
     'Entregue': pedidos.filter(p => p.status === 'Entregue').length,
     'Cancelado': pedidos.filter(p => p.status === 'Cancelado').length,
