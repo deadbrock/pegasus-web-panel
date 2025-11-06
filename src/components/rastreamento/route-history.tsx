@@ -9,10 +9,11 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { CalendarIcon, MapPin, Clock, Route, Navigation, Filter, Loader2, User, Truck as TruckIcon } from 'lucide-react'
+import { CalendarIcon, MapPin, Clock, Route, Navigation, Filter, Loader2, User, Truck as TruckIcon, UserPlus } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { fetchRotas, type RotaEntrega } from '@/lib/services/rotas-service'
+import { AtribuirRotaDialog } from './atribuir-rota-dialog'
 
 interface RouteHistoryProps {
   selectedVehicle?: any
@@ -103,24 +104,35 @@ export function RouteHistory({ selectedVehicle }: RouteHistoryProps) {
   const [filterStatus, setFilterStatus] = useState('')
   const [rotas, setRotas] = useState<RotaEntrega[]>([])
   const [loading, setLoading] = useState(true)
+  const [atribuirDialogOpen, setAtribuirDialogOpen] = useState(false)
+  const [rotaSelecionada, setRotaSelecionada] = useState<RotaEntrega | null>(null)
 
   // Carregar rotas reais do banco
   useEffect(() => {
-    const loadRotas = async () => {
-      setLoading(true)
-      try {
-        const rotasData = await fetchRotas()
-        console.log('[RouteHistory] Rotas carregadas:', rotasData.length)
-        setRotas(rotasData)
-      } catch (error) {
-        console.error('[RouteHistory] Erro ao carregar rotas:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-    
     loadRotas()
   }, [])
+
+  const loadRotas = async () => {
+    setLoading(true)
+    try {
+      const rotasData = await fetchRotas()
+      console.log('[RouteHistory] Rotas carregadas:', rotasData.length)
+      setRotas(rotasData)
+    } catch (error) {
+      console.error('[RouteHistory] Erro ao carregar rotas:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAtribuir = (rota: RotaEntrega) => {
+    setRotaSelecionada(rota)
+    setAtribuirDialogOpen(true)
+  }
+
+  const handleAtribuicaoSuccess = () => {
+    loadRotas() // Recarregar rotas após atribuição
+  }
 
   const filteredRoutes = rotas.filter(rota => {
     if (selectedVehicle && rota.veiculo_id !== selectedVehicle.id) return false
@@ -385,12 +397,34 @@ export function RouteHistory({ selectedVehicle }: RouteHistoryProps) {
                       )}
                     </div>
                   )}
+
+                  {/* Botão de Atribuir - Apenas para rotas aguardando */}
+                  {rota.status === 'Aguardando Atribuição' && (
+                    <div className="pt-3 border-t">
+                      <Button 
+                        onClick={() => handleAtribuir(rota)}
+                        className="w-full bg-blue-600 hover:bg-blue-700"
+                        size="sm"
+                      >
+                        <UserPlus className="w-4 h-4 mr-2" />
+                        Atribuir Motorista e Veículo
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
           ))
         )}
       </div>
+
+      {/* Dialog de Atribuição */}
+      <AtribuirRotaDialog
+        open={atribuirDialogOpen}
+        onClose={() => setAtribuirDialogOpen(false)}
+        rota={rotaSelecionada}
+        onSuccess={handleAtribuicaoSuccess}
+      />
 
       {/* Resumo */}
       {filteredRoutes.length > 0 && !loading && (
