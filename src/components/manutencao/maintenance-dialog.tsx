@@ -9,25 +9,19 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { CalendarIcon, Save, X } from 'lucide-react'
+import { CalendarIcon, Save, X, Loader2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { fetchVeiculos } from '@/lib/services/veiculos-service'
+import { createManutencao, updateManutencao, type Manutencao } from '@/lib/services/manutencoes-service'
+import { useToast } from '@/hooks/use-toast'
 
 interface MaintenanceDialogProps {
   open: boolean
   onClose: () => void
-  maintenance?: any
+  maintenance?: Manutencao | null
+  onSave?: () => void
 }
-
-// Mock data - substituir por dados do Supabase
-const vehicles = [
-  { id: '1', placa: 'BRA-2023', modelo: 'Volkswagen Delivery' },
-  { id: '2', placa: 'BRA-2024', modelo: 'Ford Cargo' },
-  { id: '3', placa: 'BRA-2025', modelo: 'Mercedes Sprinter' },
-  { id: '4', placa: 'BRA-2022', modelo: 'Iveco Daily' },
-  { id: '5', placa: 'BRA-2026', modelo: 'Renault Master' },
-  { id: '6', placa: 'BRA-2021', modelo: 'Fiat Ducato' }
-]
 
 const maintenanceTypes = [
   'Preventiva',
@@ -35,6 +29,7 @@ const maintenanceTypes = [
   'Revisão',
   'Troca de Óleo',
   'Pneus',
+  'Inspeção',
   'Outros'
 ]
 
@@ -43,10 +38,14 @@ const statusOptions = [
   'Agendada',
   'Em Andamento',
   'Concluída',
+  'Atrasada',
   'Cancelada'
 ]
 
-export function MaintenanceDialog({ open, onClose, maintenance }: MaintenanceDialogProps) {
+export function MaintenanceDialog({ open, onClose, maintenance, onSave }: MaintenanceDialogProps) {
+  const { toast } = useToast()
+  const [vehicles, setVehicles] = useState<any[]>([])
+  const [loadingVehicles, setLoadingVehicles] = useState(true)
   const [formData, setFormData] = useState({
     veiculoId: '',
     tipo: '',
@@ -61,20 +60,45 @@ export function MaintenanceDialog({ open, onClose, maintenance }: MaintenanceDia
 
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Carrega veículos do Supabase
   useEffect(() => {
-    if (maintenance) {
+    async function loadVehicles() {
+      setLoadingVehicles(true)
+      try {
+        const data = await fetchVeiculos()
+        setVehicles(data)
+      } catch (error) {
+        console.error('[MaintenanceDialog] Erro ao carregar veículos:', error)
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível carregar a lista de veículos',
+          variant: 'destructive'
+        })
+      } finally {
+        setLoadingVehicles(false)
+      }
+    }
+
+    if (open) {
+      loadVehicles()
+    }
+  }, [open, toast])
+
+  // Preenche o formulário quando edita uma manutenção
+  useEffect(() => {
+    if (maintenance && open) {
       setFormData({
-        veiculoId: maintenance.veiculoId || '',
+        veiculoId: maintenance.veiculo_id || '',
         tipo: maintenance.tipo || '',
         descricao: maintenance.descricao || '',
-        dataAgendada: maintenance.dataAgendada ? new Date(maintenance.dataAgendada) : undefined,
+        dataAgendada: maintenance.data_agendada ? new Date(maintenance.data_agendada) : undefined,
         quilometragem: maintenance.quilometragem?.toString() || '',
         status: maintenance.status || 'Pendente',
         custo: maintenance.custo?.toString() || '',
         responsavel: maintenance.responsavel || '',
         observacoes: maintenance.observacoes || ''
       })
-    } else {
+    } else if (!maintenance && open) {
       // Reset form for new maintenance
       setFormData({
         veiculoId: '',
@@ -82,7 +106,7 @@ export function MaintenanceDialog({ open, onClose, maintenance }: MaintenanceDia
         descricao: '',
         dataAgendada: undefined,
         quilometragem: '',
-        status: 'Pendente',
+        status: 'Agendada',
         custo: '',
         responsavel: '',
         observacoes: ''
@@ -92,18 +116,101 @@ export function MaintenanceDialog({ open, onClose, maintenance }: MaintenanceDia
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validações
+    if (!formData.veiculoId) {
+      toast({
+        title: 'Erro',
+        description: 'Selecione um veículo',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    if (!formData.tipo) {
+      toast({
+        title: 'Erro',
+        description: 'Selecione o tipo de manutenção',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    if (!formData.descricao.trim()) {
+      toast({
+        title: 'Erro',
+        description: 'Preencha a descrição',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    if (!formData.dataAgendada) {
+      toast({
+        title: 'Erro',
+        description: 'Selecione a data agendada',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    if (!formData.quilometragem || parseInt(formData.quilometragem) <= 0) {
+      toast({
+        title: 'Erro',
+        description: 'Informe a quilometragem válida',
+        variant: 'destructive'
+      })
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
-      // Aqui seria feita a integração com Supabase
-      console.log('Salvando manutenção:', formData)
-      
-      // Simular delay da API
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
+      const payload: any = {
+        veiculo_id: formData.veiculoId,
+        tipo: formData.tipo,
+        descricao: formData.descricao.trim(),
+        data_agendada: formData.dataAgendada.toISOString(),
+        quilometragem: parseInt(formData.quilometragem),
+        status: formData.status,
+        custo: formData.custo ? parseFloat(formData.custo) : null,
+        responsavel: formData.responsavel.trim() || null,
+        observacoes: formData.observacoes.trim() || null
+      }
+
+      console.log('[MaintenanceDialog] Salvando:', payload)
+
+      if (maintenance?.id) {
+        // Atualizar manutenção existente
+        const success = await updateManutencao(maintenance.id, payload)
+        if (!success) {
+          throw new Error('Falha ao atualizar manutenção')
+        }
+        toast({
+          title: 'Sucesso',
+          description: 'Manutenção atualizada com sucesso!'
+        })
+      } else {
+        // Criar nova manutenção
+        const created = await createManutencao(payload)
+        if (!created) {
+          throw new Error('Falha ao criar manutenção')
+        }
+        toast({
+          title: 'Sucesso',
+          description: 'Manutenção criada com sucesso!'
+        })
+      }
+
       onClose()
-    } catch (error) {
-      console.error('Erro ao salvar manutenção:', error)
+      if (onSave) onSave()
+    } catch (error: any) {
+      console.error('[MaintenanceDialog] Erro ao salvar:', error)
+      toast({
+        title: 'Erro',
+        description: error?.message || 'Não foi possível salvar a manutenção',
+        variant: 'destructive'
+      })
     } finally {
       setIsSubmitting(false)
     }
@@ -133,18 +240,38 @@ export function MaintenanceDialog({ open, onClose, maintenance }: MaintenanceDia
               <Select 
                 value={formData.veiculoId} 
                 onValueChange={(value) => handleInputChange('veiculoId', value)}
+                disabled={loadingVehicles}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o veículo" />
+                  <SelectValue placeholder={
+                    loadingVehicles ? "Carregando veículos..." : 
+                    vehicles.length === 0 ? "Nenhum veículo cadastrado" :
+                    "Selecione o veículo"
+                  } />
                 </SelectTrigger>
                 <SelectContent>
-                  {vehicles.map((vehicle) => (
-                    <SelectItem key={vehicle.id} value={vehicle.id}>
-                      {vehicle.placa} - {vehicle.modelo}
-                    </SelectItem>
-                  ))}
+                  {loadingVehicles ? (
+                    <div className="flex items-center justify-center p-4">
+                      <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                    </div>
+                  ) : vehicles.length === 0 ? (
+                    <div className="p-4 text-center text-sm text-gray-500">
+                      Nenhum veículo cadastrado
+                    </div>
+                  ) : (
+                    vehicles.map((vehicle) => (
+                      <SelectItem key={vehicle.id} value={vehicle.id}>
+                        {vehicle.placa} - {vehicle.marca} {vehicle.modelo}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
+              {!loadingVehicles && vehicles.length === 0 && (
+                <p className="text-xs text-gray-500">
+                  Cadastre veículos no módulo <strong>Frota</strong> primeiro
+                </p>
+              )}
             </div>
 
             {/* Tipo */}
@@ -289,11 +416,20 @@ export function MaintenanceDialog({ open, onClose, maintenance }: MaintenanceDia
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || loadingVehicles || vehicles.length === 0}
               className="flex-1"
             >
-              <Save className="w-4 h-4 mr-2" />
-              {isSubmitting ? 'Salvando...' : 'Salvar'}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Salvar
+                </>
+              )}
             </Button>
           </div>
         </form>
