@@ -43,7 +43,7 @@ function mapRowFromDb(row: any): DriverRecord {
 }
 
 function mapToDbPayload(d: Partial<DriverRecord>): any {
-  return {
+  const payload: any = {
     nome: d.nome,
     cpf: d.cpf,
     cnh: d.cnh,
@@ -51,11 +51,27 @@ function mapToDbPayload(d: Partial<DriverRecord>): any {
     email: d.email ?? null,
     endereco: d.endereco ?? null,
     status: d.status ?? 'Ativo',
-    // se campos extras existirem no schema, serão aplicados
-    categoria: (d as any).categoria ?? undefined,
-    validade_cnh: (d as any).validadeCnh ?? undefined,
     updated_at: new Date().toISOString(),
   }
+  
+  // Campos adicionais do banco (se virem do payload direto do dialog)
+  if ((d as any).categoria_cnh) {
+    payload.categoria_cnh = (d as any).categoria_cnh
+  }
+  if ((d as any).validade_cnh) {
+    payload.validade_cnh = (d as any).validade_cnh
+  }
+  if ((d as any).data_admissao) {
+    payload.data_admissao = (d as any).data_admissao
+  }
+  if ((d as any).data_nascimento !== undefined) {
+    payload.data_nascimento = (d as any).data_nascimento
+  }
+  if ((d as any).observacoes !== undefined) {
+    payload.observacoes = (d as any).observacoes
+  }
+  
+  return payload
 }
 
 export async function fetchDrivers(): Promise<DriverRecord[]> {
