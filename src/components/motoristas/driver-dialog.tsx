@@ -51,7 +51,7 @@ export function DriverDialog({ open, onClose, driver, onSave }: DriverDialogProp
     estado: '',
     cep: '',
     cnh: '',
-    categoria: '',
+    categoria_cnh: '',
     validadeCnh: undefined as Date | undefined,
     dataAdmissao: undefined as Date | undefined,
     status: 'Ativo',
@@ -73,9 +73,9 @@ export function DriverDialog({ open, onClose, driver, onSave }: DriverDialogProp
         estado: driver.estado || '',
         cep: driver.cep || '',
         cnh: driver.cnh || '',
-        categoria: driver.categoria || '',
-        validadeCnh: driver.validadeCnh ? new Date(driver.validadeCnh) : undefined,
-        dataAdmissao: driver.dataAdmissao ? new Date(driver.dataAdmissao) : undefined,
+        categoria_cnh: driver.categoria_cnh || '',
+        validadeCnh: driver.validade_cnh ? new Date(driver.validade_cnh) : undefined,
+        dataAdmissao: driver.data_admissao ? new Date(driver.data_admissao) : undefined,
         status: driver.status || 'Ativo',
         observacoes: driver.observacoes || ''
       })
@@ -92,7 +92,7 @@ export function DriverDialog({ open, onClose, driver, onSave }: DriverDialogProp
         estado: '',
         cep: '',
         cnh: '',
-        categoria: '',
+        categoria_cnh: '',
         validadeCnh: undefined,
         dataAdmissao: undefined,
         status: 'Ativo',
@@ -110,13 +110,14 @@ export function DriverDialog({ open, onClose, driver, onSave }: DriverDialogProp
         nome: formData.nome,
         cpf: formData.cpf,
         cnh: formData.cnh,
+        categoria_cnh: formData.categoria_cnh,
+        validade_cnh: formData.validadeCnh ? formData.validadeCnh.toISOString().split('T')[0] : null,
         telefone: formData.telefone || null,
         email: formData.email || null,
         endereco: [formData.endereco, formData.cidade, formData.estado, formData.cep].filter(Boolean).join(', '),
+        data_admissao: formData.dataAdmissao ? formData.dataAdmissao.toISOString().split('T')[0] : null,
+        data_nascimento: null,
         status: formData.status,
-        categoria: formData.categoria || undefined,
-        validadeCnh: formData.validadeCnh ? formData.validadeCnh.toISOString() : null,
-        dataAdmissao: formData.dataAdmissao ? formData.dataAdmissao.toISOString() : null,
         observacoes: formData.observacoes || null,
       }
       if (onSave) await onSave(payload)
@@ -341,10 +342,11 @@ export function DriverDialog({ open, onClose, driver, onSave }: DriverDialogProp
 
               {/* Categoria */}
               <div className="space-y-2">
-                <Label htmlFor="categoria">Categoria *</Label>
+                <Label htmlFor="categoria_cnh">Categoria *</Label>
                 <Select 
-                  value={formData.categoria} 
-                  onValueChange={(value) => handleInputChange('categoria', value)}
+                  value={formData.categoria_cnh} 
+                  onValueChange={(value) => handleInputChange('categoria_cnh', value)}
+                  required
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a categoria" />
