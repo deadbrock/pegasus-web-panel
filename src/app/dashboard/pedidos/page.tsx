@@ -48,17 +48,18 @@ export default function PedidosPage() {
   
   useEffect(() => {
     const loadPedidos = async () => {
-      // Buscar pedidos do web panel (ordersService)
-      const webOrders = await fetchOrders()
+      // Buscar pedidos do web panel (ordersService) - DESABILITADO TEMPORARIAMENTE
+      // const webOrders = await fetchOrders()
       
       // Buscar pedidos do mobile (supervisores)
       const mobilePedidos = await fetchPedidosMobile()
       
+      console.log('[PedidosPage] Pedidos mobile carregados:', mobilePedidos.length)
       setPedidosMobile(mobilePedidos)
       
-      // Combinar todos os pedidos
-      const allOrders = [...webOrders, ...mobilePedidos]
-      setOrders(allOrders)
+      // APENAS PEDIDOS MOBILE POR ENQUANTO
+      // Pedidos web serão implementados posteriormente
+      setOrders(mobilePedidos)
       
       // Calcular estatísticas
       const statistics = calcularEstatisticasPedidos(mobilePedidos)
@@ -72,11 +73,11 @@ export default function PedidosPage() {
     loadPedidos()
     
     // Subscribe para mudanças em tempo real
-    const unsubWeb = subscribeOrders(loadPedidos)
+    // const unsubWeb = subscribeOrders(loadPedidos) - DESABILITADO
     const unsubMobile = subscribePedidosMobile(loadPedidos)
     
     return () => {
-      unsubWeb()
+      // unsubWeb()
       unsubMobile()
     }
   }, [])
@@ -280,7 +281,12 @@ export default function PedidosPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Lista de Pedidos</CardTitle>
+                <div>
+                  <CardTitle>Lista de Pedidos Mobile</CardTitle>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Pedidos realizados pelos supervisores via aplicativo mobile
+                  </p>
+                </div>
                 <div className="flex gap-2 items-center">
                   <input className="border rounded px-3 py-1 text-sm" placeholder="Buscar número, cliente, endereço" value={search} onChange={(e) => setSearch(e.target.value)} />
                   <Popover>

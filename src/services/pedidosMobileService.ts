@@ -115,18 +115,6 @@ export async function updatePedidoMobileStatus(
     updateData.autorizacao_status = 'Aprovada'
   }
 
-  // Atualizar data específica baseada no status
-  const agora = new Date().toISOString()
-  if (status === 'Aprovado') {
-    updateData.data_aprovacao = agora
-  } else if (status === 'Em Separação') {
-    updateData.data_separacao = agora
-  } else if (status === 'Saiu para Entrega') {
-    updateData.data_envio = agora
-  } else if (status === 'Entregue') {
-    updateData.data_entrega = agora
-  }
-
   console.log('[updatePedidoMobileStatus] Dados de atualização:', updateData)
 
   const { data, error } = await supabase
@@ -147,7 +135,10 @@ export async function updatePedidoMobileStatus(
   }
 
   console.log('[updatePedidoMobileStatus] Pedido atualizado com sucesso:', data)
-  return true
+  console.log('[updatePedidoMobileStatus] Total de linhas afetadas:', data?.length || 0)
+  
+  // Retornar true apenas se pelo menos uma linha foi afetada
+  return data && data.length > 0
 }
 
 /**
