@@ -4,90 +4,23 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Edit, Trash2, Eye, Calendar } from 'lucide-react'
-
-// Mock data - substituir por dados do Supabase
-export const maintenanceData = [
-  {
-    id: 1,
-    veiculo: 'BRA-2023',
-    tipo: 'Preventiva',
-    descricao: 'Revisão dos 10.000 km',
-    dataAgendada: '2024-01-15',
-    quilometragem: 10000,
-    status: 'Agendada',
-    custo: 850.00,
-    responsavel: 'Oficina Central'
-  },
-  {
-    id: 2,
-    veiculo: 'BRA-2024',
-    tipo: 'Corretiva',
-    descricao: 'Reparo do sistema de freios',
-    dataAgendada: '2024-01-12',
-    quilometragem: 8500,
-    status: 'Em Andamento',
-    custo: 1200.00,
-    responsavel: 'Auto Mecânica Silva'
-  },
-  {
-    id: 3,
-    veiculo: 'BRA-2025',
-    tipo: 'Troca de Óleo',
-    descricao: 'Troca de óleo e filtros',
-    dataAgendada: '2024-01-18',
-    quilometragem: 5000,
-    status: 'Pendente',
-    custo: 320.00,
-    responsavel: 'Posto Shell'
-  },
-  {
-    id: 4,
-    veiculo: 'BRA-2022',
-    tipo: 'Revisão',
-    descricao: 'Revisão anual obrigatória',
-    dataAgendada: '2024-01-10',
-    quilometragem: 15000,
-    status: 'Concluída',
-    custo: 950.00,
-    responsavel: 'Concessionária Ford'
-  },
-  {
-    id: 5,
-    veiculo: 'BRA-2026',
-    tipo: 'Pneus',
-    descricao: 'Troca de 4 pneus',
-    dataAgendada: '2024-01-20',
-    quilometragem: 12000,
-    status: 'Atrasada',
-    custo: 1600.00,
-    responsavel: 'Borracharia Central'
-  },
-  {
-    id: 6,
-    veiculo: 'BRA-2021',
-    tipo: 'Preventiva',
-    descricao: 'Manutenção do ar condicionado',
-    dataAgendada: '2024-01-22',
-    quilometragem: 18000,
-    status: 'Agendada',
-    custo: 450.00,
-    responsavel: 'Climatização Plus'
-  }
-]
+import { Manutencao } from '@/lib/services/manutencoes-service'
 
 interface MaintenanceTableProps {
-  onEdit: (maintenance: any) => void
-  data?: typeof maintenanceData
+  onEdit: (maintenance: Manutencao) => void
+  data?: Manutencao[]
+  onDelete?: (id: string) => void
 }
 
-export function MaintenanceTable({ onEdit, data }: MaintenanceTableProps) {
+export function MaintenanceTable({ onEdit, data = [], onDelete }: MaintenanceTableProps) {
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline', color: string }> = {
       'Agendada': { variant: 'outline', color: 'text-blue-600 border-blue-200' },
       'Em Andamento': { variant: 'default', color: 'bg-yellow-500' },
       'Pendente': { variant: 'secondary', color: 'bg-gray-500' },
       'Concluída': { variant: 'default', color: 'bg-green-500' },
-      'Atrasada': { variant: 'destructive', color: 'bg-red-500' }
+      'Atrasada': { variant: 'destructive', color: 'bg-red-500' },
+      'Cancelada': { variant: 'outline', color: 'text-gray-600 border-gray-200' }
     }
     
     return (
@@ -100,7 +33,8 @@ export function MaintenanceTable({ onEdit, data }: MaintenanceTableProps) {
     )
   }
 
-  const formatCurrency = (value: number) => {
+  const formatCurrency = (value?: number | null) => {
+    if (!value) return 'R$ 0,00'
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
@@ -109,6 +43,16 @@ export function MaintenanceTable({ onEdit, data }: MaintenanceTableProps) {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR')
+  }
+
+  if (data.length === 0) {
+    return (
+      <div className="rounded-md border p-8 text-center">
+        <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+        <p className="text-gray-600">Nenhuma manutenção cadastrada</p>
+        <p className="text-sm text-gray-500 mt-1">Clique em "Nova Manutenção" para começar</p>
+      </div>
+    )
   }
 
   return (
@@ -128,9 +72,9 @@ export function MaintenanceTable({ onEdit, data }: MaintenanceTableProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {(data ?? maintenanceData).map((maintenance) => (
+          {data.map((maintenance) => (
             <TableRow key={maintenance.id}>
-              <TableCell className="font-medium">{maintenance.veiculo}</TableCell>
+              <TableCell className="font-medium">{maintenance.veiculo_placa || 'N/A'}</TableCell>
               <TableCell>{maintenance.tipo}</TableCell>
               <TableCell className="max-w-[200px] truncate">
                 {maintenance.descricao}
@@ -138,7 +82,7 @@ export function MaintenanceTable({ onEdit, data }: MaintenanceTableProps) {
               <TableCell>
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-gray-500" />
-                  {formatDate(maintenance.dataAgendada)}
+                  {formatDate(maintenance.data_agendada)}
                 </div>
               </TableCell>
               <TableCell>{maintenance.quilometragem.toLocaleString()} km</TableCell>
@@ -147,14 +91,15 @@ export function MaintenanceTable({ onEdit, data }: MaintenanceTableProps) {
                 {formatCurrency(maintenance.custo)}
               </TableCell>
               <TableCell className="max-w-[150px] truncate">
-                {maintenance.responsavel}
+                {maintenance.responsavel || 'N/A'}
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-2">
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => {}}
+                    onClick={() => onEdit(maintenance)}
+                    title="Ver detalhes"
                   >
                     <Eye className="w-4 h-4" />
                   </Button>
@@ -162,16 +107,21 @@ export function MaintenanceTable({ onEdit, data }: MaintenanceTableProps) {
                     variant="ghost"
                     size="sm"
                     onClick={() => onEdit(maintenance)}
+                    title="Editar"
                   >
                     <Edit className="w-4 h-4" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {}}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  {onDelete && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onDelete(maintenance.id)}
+                      title="Excluir"
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </TableCell>
             </TableRow>

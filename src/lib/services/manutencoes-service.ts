@@ -1,109 +1,157 @@
-import { supabase } from '../supabase'
+import { supabase } from '@/lib/supabaseClient'
 
-export type Manutencao = {
-  id?: string
+export type ManutencaoStatus = 'Agendada' | 'Em Andamento' | 'Pendente' | 'Concluída' | 'Atrasada' | 'Cancelada'
+export type ManutencaoTipo = 'Preventiva' | 'Corretiva' | 'Revisão' | 'Troca de Óleo' | 'Pneus' | 'Inspeção' | 'Outros'
+
+export interface Manutencao {
+  id: string
   veiculo_id: string
-  tipo: 'Preventiva' | 'Corretiva' | 'Preditiva'
+  veiculo_placa?: string
+  tipo: ManutencaoTipo
   descricao: string
-  data_programada?: string
-  data_realizada?: string
-  km_veiculo?: number
-  custo?: number
-  status: 'Agendada' | 'Em Andamento' | 'Concluída' | 'Cancelada'
-  oficina?: string
-  mecanico?: string
-  pecas_trocadas?: string
-  proxima_manutencao_km?: number
-  proxima_manutencao_data?: string
-  prioridade?: 'Baixa' | 'Média' | 'Alta' | 'Urgente'
-  observacoes?: string
-  anexos_url?: string
+  data_agendada: string // ISO
+  data_inicio?: string | null // ISO
+  data_conclusao?: string | null // ISO
+  quilometragem: number
+  status: ManutencaoStatus
+  custo?: number | null
+  responsavel?: string | null
+  oficina?: string | null
+  observacoes?: string | null
+  pecas_trocadas?: string | null
   created_at?: string
   updated_at?: string
 }
 
-export type ManutencaoStats = {
-  total: number
-  agendadas: number
-  em_andamento: number
-  concluidas: number
-  canceladas: number
-  custo_total: number
-  custo_medio: number
-  por_tipo: Record<string, number>
-  proximas_30_dias: number
-}
+export interface ManutencaoCreate extends Omit<Manutencao, 'id' | 'created_at' | 'updated_at'> {}
+
+export interface ManutencaoUpdate extends Partial<Omit<Manutencao, 'id' | 'created_at' | 'updated_at'>> {}
 
 /**
- * Busca todas as manutenções
+ * Busca todas as manutenções do banco
  */
 export async function fetchManutencoes(): Promise<Manutencao[]> {
   const { data, error } = await supabase
     .from('manutencoes')
-    .select('*')
-    .order('data_programada', { ascending: false })
+    .select(`
+      *,
+      veiculos (placa)
+    `)
+    .order('data_agendada', { ascending: false })
 
   if (error) {
-    console.error('Erro ao buscar manutenções:', error)
-    throw error
+    console.error('[fetchManutencoes] Erro:', error.message)
+    return []
   }
-  return data || []
+
+  return (data || []).map(m => ({
+    ...m,
+    veiculo_placa: m.veiculos?.placa || 'N/A'
+  }))
 }
 
 /**
- * Busca uma manutenção por ID
+ * Busca uma manutenção específica por ID
  */
 export async function fetchManutencaoById(id: string): Promise<Manutencao | null> {
   const { data, error } = await supabase
     .from('manutencoes')
-    .select('*')
+    .select(`
+      *,
+      veiculos (placa)
+    `)
     .eq('id', id)
     .single()
 
   if (error) {
-    console.error('Erro ao buscar manutenção:', error)
-    throw error
+    console.error('[fetchManutencaoById] Erro:', error.message)
+    return null
   }
-  return data
+
+  return {
+    ...data,
+    veiculo_placa: data.veiculos?.placa || 'N/A'
+  }
+}
+
+/**
+ * Busca manutenções de um veículo específico
+ */
+export async function fetchManutencoesByVeiculo(veiculoId: string): Promise<Manutencao[]> {
+  const { data, error } = await supabase
+    .from('manutencoes')
+    .select(`
+      *,
+      veiculos (placa)
+    `)
+    .eq('veiculo_id', veiculoId)
+    .order('data_agendada', { ascending: false })
+
+  if (error) {
+    console.error('[fetchManutencoesByVeiculo] Erro:', error.message)
+    return []
+  }
+
+  return (data || []).map(m => ({
+    ...m,
+    veiculo_placa: m.veiculos?.placa || 'N/A'
+  }))
 }
 
 /**
  * Cria uma nova manutenção
  */
-export async function createManutencao(manutencao: Omit<Manutencao, 'id' | 'created_at' | 'updated_at'>): Promise<Manutencao | null> {
+export async function createManutencao(manutencao: ManutencaoCreate): Promise<Manutencao | null> {
+  const payload = {
+    ...manutencao,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }
+
   const { data, error } = await supabase
     .from('manutencoes')
-    .insert(manutencao)
-    .select()
+    .insert(payload)
+    .select(`
+      *,
+      veiculos (placa)
+    `)
     .single()
 
   if (error) {
-    console.error('Erro ao criar manutenção:', error)
-    throw error
+    console.error('[createManutencao] Erro:', error.message)
+    return null
   }
-  return data
+
+  return {
+    ...data,
+    veiculo_placa: data.veiculos?.placa || 'N/A'
+  }
 }
 
 /**
  * Atualiza uma manutenção existente
  */
-export async function updateManutencao(id: string, updates: Partial<Manutencao>): Promise<Manutencao | null> {
-  const { data, error } = await supabase
+export async function updateManutencao(id: string, updates: ManutencaoUpdate): Promise<boolean> {
+  const payload = {
+    ...updates,
+    updated_at: new Date().toISOString(),
+  }
+
+  const { error } = await supabase
     .from('manutencoes')
-    .update(updates)
+    .update(payload)
     .eq('id', id)
-    .select()
-    .single()
 
   if (error) {
-    console.error('Erro ao atualizar manutenção:', error)
-    throw error
+    console.error('[updateManutencao] Erro:', error.message)
+    return false
   }
-  return data
+
+  return true
 }
 
 /**
- * Deleta uma manutenção
+ * Exclui uma manutenção
  */
 export async function deleteManutencao(id: string): Promise<boolean> {
   const { error } = await supabase
@@ -112,165 +160,73 @@ export async function deleteManutencao(id: string): Promise<boolean> {
     .eq('id', id)
 
   if (error) {
-    console.error('Erro ao deletar manutenção:', error)
-    throw error
+    console.error('[deleteManutencao] Erro:', error.message)
+    return false
   }
+
   return true
 }
 
 /**
- * Busca estatísticas de manutenções
+ * Calcula estatísticas de manutenções
  */
-export async function fetchManutencoesStats(): Promise<ManutencaoStats> {
-  const { data, error } = await supabase
-    .from('manutencoes')
-    .select('*')
+export async function calcularEstatisticasManutencoes() {
+  const manutencoes = await fetchManutencoes()
 
-  if (error) {
-    console.error('Erro ao buscar estatísticas:', error)
-    throw error
-  }
+  const total = manutencoes.length
+  const pendentes = manutencoes.filter(m => m.status === 'Pendente' || m.status === 'Atrasada').length
+  const emAndamento = manutencoes.filter(m => m.status === 'Em Andamento').length
+  const concluidas = manutencoes.filter(m => m.status === 'Concluída').length
 
-  const total = data?.length || 0
-  const agendadas = data?.filter(m => m.status === 'Agendada').length || 0
-  const em_andamento = data?.filter(m => m.status === 'Em Andamento').length || 0
-  const concluidas = data?.filter(m => m.status === 'Concluída').length || 0
-  const canceladas = data?.filter(m => m.status === 'Cancelada').length || 0
+  const custoTotal = manutencoes
+    .filter(m => m.custo)
+    .reduce((acc, m) => acc + (m.custo || 0), 0)
 
-  const custo_total = data?.reduce((sum, m) => sum + (m.custo || 0), 0) || 0
-  const custo_medio = concluidas > 0 ? custo_total / concluidas : 0
-
-  // Agrupar por tipo
-  const por_tipo: Record<string, number> = {}
-  data?.forEach(m => {
-    por_tipo[m.tipo] = (por_tipo[m.tipo] || 0) + 1
-  })
-
-  // Manutenções programadas nos próximos 30 dias
-  const hoje = new Date()
-  const daquiA30Dias = new Date()
-  daquiA30Dias.setDate(hoje.getDate() + 30)
-
-  const proximas_30_dias = data?.filter(m => {
-    if (!m.data_programada || m.status === 'Concluída' || m.status === 'Cancelada') return false
-    const dataProgramada = new Date(m.data_programada)
-    return dataProgramada >= hoje && dataProgramada <= daquiA30Dias
-  }).length || 0
+  const custoMedio = total > 0 ? custoTotal / total : 0
 
   return {
     total,
-    agendadas,
-    em_andamento,
+    pendentes,
+    emAndamento,
     concluidas,
-    canceladas,
-    custo_total,
-    custo_medio,
-    por_tipo,
-    proximas_30_dias
+    custoTotal,
+    custoMedio,
   }
 }
 
 /**
- * Busca manutenções por veículo
+ * Busca manutenções por período
  */
-export async function fetchManutencoesByVeiculo(veiculoId: string): Promise<Manutencao[]> {
+export async function fetchManutencoesByPeriodo(dataInicio: string, dataFim: string): Promise<Manutencao[]> {
   const { data, error } = await supabase
     .from('manutencoes')
-    .select('*')
-    .eq('veiculo_id', veiculoId)
-    .order('data_programada', { ascending: false })
+    .select(`
+      *,
+      veiculos (placa)
+    `)
+    .gte('data_agendada', dataInicio)
+    .lte('data_agendada', dataFim)
+    .order('data_agendada', { ascending: false })
 
   if (error) {
-    console.error('Erro ao buscar manutenções por veículo:', error)
-    throw error
+    console.error('[fetchManutencoesByPeriodo] Erro:', error.message)
+    return []
   }
-  return data || []
+
+  return (data || []).map(m => ({
+    ...m,
+    veiculo_placa: m.veiculos?.placa || 'N/A'
+  }))
 }
 
 /**
- * Busca manutenções por tipo
+ * Subscreve mudanças em tempo real
  */
-export async function fetchManutencoesByTipo(tipo: Manutencao['tipo']): Promise<Manutencao[]> {
-  const { data, error } = await supabase
-    .from('manutencoes')
-    .select('*')
-    .eq('tipo', tipo)
-    .order('data_programada', { ascending: false })
+export function subscribeManutencoes(onChange: () => void) {
+  const channel = supabase
+    .channel('manutencoes-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'manutencoes' }, () => onChange())
+    .subscribe()
 
-  if (error) {
-    console.error('Erro ao buscar manutenções por tipo:', error)
-    throw error
-  }
-  return data || []
-}
-
-/**
- * Busca manutenções por status
- */
-export async function fetchManutencoesByStatus(status: Manutencao['status']): Promise<Manutencao[]> {
-  const { data, error } = await supabase
-    .from('manutencoes')
-    .select('*')
-    .eq('status', status)
-    .order('data_programada', { ascending: false })
-
-  if (error) {
-    console.error('Erro ao buscar manutenções por status:', error)
-    throw error
-  }
-  return data || []
-}
-
-/**
- * Busca manutenções agendadas (próximas)
- */
-export async function fetchManutencoesAgendadas(dias: number = 30): Promise<Manutencao[]> {
-  const hoje = new Date()
-  const dataLimite = new Date()
-  dataLimite.setDate(hoje.getDate() + dias)
-
-  const { data, error } = await supabase
-    .from('manutencoes')
-    .select('*')
-    .eq('status', 'Agendada')
-    .gte('data_programada', hoje.toISOString().split('T')[0])
-    .lte('data_programada', dataLimite.toISOString().split('T')[0])
-    .order('data_programada', { ascending: true })
-
-  if (error) {
-    console.error('Erro ao buscar manutenções agendadas:', error)
-    throw error
-  }
-  return data || []
-}
-
-/**
- * Busca manutenções atrasadas
- */
-export async function fetchManutencoesAtrasadas(): Promise<Manutencao[]> {
-  const hoje = new Date().toISOString().split('T')[0]
-
-  const { data, error } = await supabase
-    .from('manutencoes')
-    .select('*')
-    .in('status', ['Agendada', 'Em Andamento'])
-    .lt('data_programada', hoje)
-    .order('data_programada', { ascending: true })
-
-  if (error) {
-    console.error('Erro ao buscar manutenções atrasadas:', error)
-    throw error
-  }
-  return data || []
-}
-
-/**
- * Atualiza status de uma manutenção
- */
-export async function updateManutencaoStatus(id: string, status: Manutencao['status'], dataRealizada?: string): Promise<Manutencao | null> {
-  const updates: Partial<Manutencao> = { status }
-  if (dataRealizada && status === 'Concluída') {
-    updates.data_realizada = dataRealizada
-  }
-  return updateManutencao(id, updates)
+  return () => supabase.removeChannel(channel)
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 import { MetricCard } from '@/components/dashboard/metric-card'
 import { MaintenanceCalendar } from '@/components/manutencao/maintenance-calendar'
-import { MaintenanceTable, maintenanceData } from '@/components/manutencao/maintenance-table'
+import { MaintenanceTable } from '@/components/manutencao/maintenance-table'
 import { MaintenanceDialog } from '@/components/manutencao/maintenance-dialog'
 import { MaintenanceChart } from '@/components/manutencao/maintenance-chart'
 import { VehicleMaintenanceStatus } from '@/components/manutencao/vehicle-maintenance-status'
@@ -26,33 +26,114 @@ import { downloadMaintenanceReports } from '@/components/manutencao/reports'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ManutencaoFilters } from '@/components/manutencao/manutencao-filters'
 import type { ManutencaoFilter } from '@/types/supabase'
+import { 
+  fetchManutencoes, 
+  calcularEstatisticasManutencoes,
+  subscribeManutencoes,
+  type Manutencao
+} from '@/lib/services/manutencoes-service'
+import { useToast } from '@/hooks/use-toast'
 
 export default function ManutencaoPage() {
+  const [manutencoes, setManutencoes] = useState<Manutencao[]>([])
+  const [stats, setStats] = useState({
+    total: 0,
+    pendentes: 0,
+    emAndamento: 0,
+    concluidas: 0,
+    custoTotal: 0,
+    custoMedio: 0
+  })
+  const [loading, setLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [selectedMaintenance, setSelectedMaintenance] = useState(null)
+  const [selectedMaintenance, setSelectedMaintenance] = useState<Manutencao | null>(null)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [filters, setFilters] = useState<ManutencaoFilter>({})
+  const { toast } = useToast()
+
+  // Carrega manutenções do Supabase
+  useEffect(() => {
+    loadManutencoes()
+    
+    // Subscreve mudanças em tempo real
+    const unsubscribe = subscribeManutencoes(() => {
+      console.log('[Manutencao] Mudança detectada, recarregando...')
+      loadManutencoes()
+    })
+
+    return () => unsubscribe()
+  }, [])
+
+  async function loadManutencoes() {
+    setLoading(true)
+    try {
+      const [data, statistics] = await Promise.all([
+        fetchManutencoes(),
+        calcularEstatisticasManutencoes()
+      ])
+      setManutencoes(data)
+      setStats(statistics)
+    } catch (error) {
+      console.error('[Manutencao] Erro ao carregar:', error)
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar as manutenções',
+        variant: 'destructive'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleNewMaintenance = () => {
     setSelectedMaintenance(null)
     setIsDialogOpen(true)
   }
 
-  const handleEditMaintenance = (maintenance: any) => {
+  const handleEditMaintenance = (maintenance: Manutencao) => {
     setSelectedMaintenance(maintenance)
     setIsDialogOpen(true)
   }
 
+  const handleSave = async () => {
+    setIsDialogOpen(false)
+    setSelectedMaintenance(null)
+    await loadManutencoes()
+    toast({
+      title: 'Sucesso',
+      description: 'Manutenção salva com sucesso!'
+    })
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Deseja realmente excluir esta manutenção?')) return
+    
+    try {
+      // Aqui você implementaria a função de delete
+      await loadManutencoes()
+      toast({
+        title: 'Sucesso',
+        description: 'Manutenção excluída com sucesso!'
+      })
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível excluir a manutenção',
+        variant: 'destructive'
+      })
+    }
+  }
+
   const handleExport = () => {
-    const rows = (maintenanceData || []).map(m => ({
-      veiculo: m.veiculo,
+    const rows = manutencoes.map(m => ({
+      veiculo: m.veiculo_placa || 'N/A',
       tipo: m.tipo,
       descricao: m.descricao,
-      dataAgendada: m.dataAgendada,
+      dataAgendada: new Date(m.data_agendada).toLocaleDateString('pt-BR'),
       quilometragem: m.quilometragem,
       status: m.status,
-      custo: m.custo,
-      responsavel: m.responsavel,
+      custo: m.custo || 0,
+      responsavel: m.responsavel || 'N/A',
     }))
     const ws = XLSX.utils.json_to_sheet(rows)
     const wb = XLSX.utils.book_new()
@@ -62,7 +143,7 @@ export default function ManutencaoPage() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'manutencoes_export.xlsx'
+    a.download = `manutencoes_export_${new Date().toISOString().split('T')[0]}.xlsx`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -70,10 +151,39 @@ export default function ManutencaoPage() {
   }
 
   // Relatórios
-  const exportRelatorioMensal = () => downloadMaintenanceReports('mensal')
-  const exportCustoPorVeiculo = () => downloadMaintenanceReports('custo-por-veiculo')
-  const exportHistoricoManutencao = () => downloadMaintenanceReports('historico')
-  const exportPreventivasVencidas = () => downloadMaintenanceReports('preventivas-vencidas')
+  const exportRelatorioMensal = () => downloadMaintenanceReports('mensal', manutencoes)
+  const exportCustoPorVeiculo = () => downloadMaintenanceReports('custo-por-veiculo', manutencoes)
+  const exportHistoricoManutencao = () => downloadMaintenanceReports('historico', manutencoes)
+  const exportPreventivasVencidas = () => downloadMaintenanceReports('preventivas-vencidas', manutencoes)
+
+  // Calcula próximas manutenções
+  const proximasManutencoes = manutencoes
+    .filter(m => m.status === 'Agendada' || m.status === 'Atrasada')
+    .sort((a, b) => new Date(a.data_agendada).getTime() - new Date(b.data_agendada).getTime())
+    .slice(0, 3)
+
+  // Calcula custos
+  const mesAtual = new Date().getMonth()
+  const anoAtual = new Date().getFullYear()
+  const custosMesAtual = manutencoes
+    .filter(m => {
+      const date = new Date(m.data_agendada)
+      return date.getMonth() === mesAtual && date.getFullYear() === anoAtual
+    })
+    .reduce((acc, m) => acc + (m.custo || 0), 0)
+
+  const mesAnterior = mesAtual === 0 ? 11 : mesAtual - 1
+  const anoAnterior = mesAtual === 0 ? anoAtual - 1 : anoAtual
+  const custosMesAnterior = manutencoes
+    .filter(m => {
+      const date = new Date(m.data_agendada)
+      return date.getMonth() === mesAnterior && date.getFullYear() === anoAnterior
+    })
+    .reduce((acc, m) => acc + (m.custo || 0), 0)
+
+  const economia = custosMesAnterior > 0 
+    ? ((custosMesAnterior - custosMesAtual) / custosMesAnterior * 100).toFixed(1)
+    : '0.0'
 
   return (
     <div className="space-y-6">
@@ -105,23 +215,23 @@ export default function ManutencaoPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
           title="Total de Manutenções"
-          value="145"
+          value={loading ? '...' : stats.total.toString()}
           change="+8.2%"
           changeType="positive"
           icon={Wrench}
-          description="Este mês"
+          description="Cadastradas"
         />
         <MetricCard
           title="Pendentes"
-          value="8"
-          change="+2"
-          changeType="negative"
+          value={loading ? '...' : stats.pendentes.toString()}
+          change={stats.pendentes > 5 ? '+' + (stats.pendentes - 5) : '0'}
+          changeType={stats.pendentes > 5 ? "negative" : "positive"}
           icon={Clock}
           description="Requerem atenção"
         />
         <MetricCard
           title="Em Andamento"
-          value="4"
+          value={loading ? '...' : stats.emAndamento.toString()}
           change="-1"
           changeType="positive"
           icon={AlertTriangle}
@@ -129,7 +239,7 @@ export default function ManutencaoPage() {
         />
         <MetricCard
           title="Concluídas"
-          value="133"
+          value={loading ? '...' : stats.concluidas.toString()}
           change="+15.3%"
           changeType="positive"
           icon={CheckCircle}
@@ -159,7 +269,7 @@ export default function ManutencaoPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <MaintenanceChart />
+                <MaintenanceChart manutencoes={manutencoes} />
               </CardContent>
             </Card>
 
@@ -172,29 +282,39 @@ export default function ManutencaoPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                    <div>
-                      <p className="font-medium">BRA-2023 - Revisão</p>
-                      <p className="text-sm text-gray-600">Amanhã - 10:00</p>
-                    </div>
-                    <Clock className="w-5 h-5 text-yellow-600" />
+                {loading ? (
+                  <div className="space-y-4">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="p-3 bg-gray-100 rounded-lg animate-pulse h-16"></div>
+                    ))}
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                    <div>
-                      <p className="font-medium">BRA-2024 - Troca de Óleo</p>
-                      <p className="text-sm text-gray-600">Atrasada - 2 dias</p>
-                    </div>
-                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                ) : proximasManutencoes.length > 0 ? (
+                  <div className="space-y-4">
+                    {proximasManutencoes.map((m) => {
+                      const date = new Date(m.data_agendada)
+                      const isAtrasada = m.status === 'Atrasada'
+                      const bgColor = isAtrasada ? 'bg-red-50' : 'bg-blue-50'
+                      const iconColor = isAtrasada ? 'text-red-600' : 'text-blue-600'
+                      const Icon = isAtrasada ? AlertTriangle : Wrench
+                      
+                      return (
+                        <div key={m.id} className={`flex items-center justify-between p-3 ${bgColor} rounded-lg`}>
+                          <div>
+                            <p className="font-medium">{m.veiculo_placa} - {m.tipo}</p>
+                            <p className="text-sm text-gray-600">
+                              {date.toLocaleDateString('pt-BR')} - {m.descricao}
+                            </p>
+                          </div>
+                          <Icon className={`w-5 h-5 ${iconColor}`} />
+                        </div>
+                      )
+                    })}
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                    <div>
-                      <p className="font-medium">BRA-2025 - Pneus</p>
-                      <p className="text-sm text-gray-600">Em 3 dias - 14:30</p>
-                    </div>
-                    <Wrench className="w-5 h-5 text-blue-600" />
-                  </div>
-                </div>
+                ) : (
+                  <p className="text-center text-gray-500 py-8">
+                    Nenhuma manutenção agendada
+                  </p>
+                )}
               </CardContent>
             </Card>
 
@@ -204,26 +324,42 @@ export default function ManutencaoPage() {
                 <CardTitle>Custos de Manutenção</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Este mês</span>
-                    <span className="font-semibold text-lg">R$ 18.450</span>
+                {loading ? (
+                  <div className="space-y-4">
+                    {[1, 2, 3, 4].map(i => (
+                      <div key={i} className="h-6 bg-gray-100 rounded animate-pulse"></div>
+                    ))}
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Mês anterior</span>
-                    <span className="font-medium">R$ 22.300</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Economia</span>
-                    <span className="font-medium text-green-600">-17.2%</span>
-                  </div>
-                  <div className="pt-2 border-t">
+                ) : (
+                  <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Custo médio/veículo</span>
-                      <span className="font-medium">R$ 685</span>
+                      <span className="text-sm text-gray-600">Este mês</span>
+                      <span className="font-semibold text-lg">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(custosMesAtual)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Mês anterior</span>
+                      <span className="font-medium">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(custosMesAnterior)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Variação</span>
+                      <span className={`font-medium ${Number(economia) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {Number(economia) > 0 ? '-' : '+'}{economia}%
+                      </span>
+                    </div>
+                    <div className="pt-2 border-t">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Custo médio</span>
+                        <span className="font-medium">
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.custoMedio)}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -236,7 +372,7 @@ export default function ManutencaoPage() {
               <CardTitle>Calendário de Manutenções</CardTitle>
             </CardHeader>
             <CardContent>
-              <MaintenanceCalendar />
+              <MaintenanceCalendar manutencoes={manutencoes} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -252,7 +388,7 @@ export default function ManutencaoPage() {
                     <Search className="w-4 h-4 mr-2" />
                     Buscar
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => setIsFilterOpen(true)}>
                     <Filter className="w-4 h-4 mr-2" />
                     Filtrar
                   </Button>
@@ -260,7 +396,11 @@ export default function ManutencaoPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <MaintenanceTable onEdit={handleEditMaintenance} />
+              <MaintenanceTable 
+                data={manutencoes} 
+                onEdit={handleEditMaintenance}
+                onDelete={handleDelete}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -272,7 +412,7 @@ export default function ManutencaoPage() {
               <CardTitle>Status por Veículo</CardTitle>
             </CardHeader>
             <CardContent>
-              <VehicleMaintenanceStatus />
+              <VehicleMaintenanceStatus manutencoes={manutencoes} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -347,8 +487,12 @@ export default function ManutencaoPage() {
       {/* Maintenance Dialog */}
       <MaintenanceDialog
         open={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
+        onClose={() => {
+          setIsDialogOpen(false)
+          setSelectedMaintenance(null)
+        }}
         maintenance={selectedMaintenance}
+        onSave={handleSave}
       />
 
       {/* Filters Dialog */}

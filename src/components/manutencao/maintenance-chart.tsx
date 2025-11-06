@@ -1,60 +1,63 @@
 'use client'
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { Manutencao } from '@/lib/services/manutencoes-service'
+import { useMemo } from 'react'
 
-// Mock data - substituir por dados do Supabase
-const data = [
-  {
-    mes: 'Jan',
-    preventiva: 12,
-    corretiva: 8,
-    revisao: 15,
-    oleo: 20,
-    pneus: 5
-  },
-  {
-    mes: 'Fev',
-    preventiva: 15,
-    corretiva: 6,
-    revisao: 18,
-    oleo: 22,
-    pneus: 8
-  },
-  {
-    mes: 'Mar',
-    preventiva: 18,
-    corretiva: 10,
-    revisao: 20,
-    oleo: 25,
-    pneus: 12
-  },
-  {
-    mes: 'Abr',
-    preventiva: 14,
-    corretiva: 5,
-    revisao: 16,
-    oleo: 19,
-    pneus: 7
-  },
-  {
-    mes: 'Mai',
-    preventiva: 20,
-    corretiva: 12,
-    revisao: 22,
-    oleo: 28,
-    pneus: 15
-  },
-  {
-    mes: 'Jun',
-    preventiva: 16,
-    corretiva: 8,
-    revisao: 19,
-    oleo: 24,
-    pneus: 10
-  }
-]
+interface MaintenanceChartProps {
+  manutencoes?: Manutencao[]
+}
 
-export function MaintenanceChart() {
+export function MaintenanceChart({ manutencoes = [] }: MaintenanceChartProps) {
+  // Agrupa manutenções por mês e tipo
+  const data = useMemo(() => {
+    const now = new Date()
+    const last6Months = []
+    
+    // Gera os últimos 6 meses
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const month = date.toLocaleDateString('pt-BR', { month: 'short' })
+      last6Months.push({
+        mes: month.charAt(0).toUpperCase() + month.slice(1),
+        month: date.getMonth(),
+        year: date.getFullYear(),
+        preventiva: 0,
+        corretiva: 0,
+        revisao: 0,
+        oleo: 0,
+        pneus: 0,
+        outros: 0
+      })
+    }
+
+    // Conta manutenções por tipo e mês
+    manutencoes.forEach(m => {
+      const date = new Date(m.data_agendada)
+      const monthData = last6Months.find(
+        d => d.month === date.getMonth() && d.year === date.getFullYear()
+      )
+      
+      if (monthData) {
+        const tipo = m.tipo.toLowerCase().replace(/\s/g, '')
+        if (tipo.includes('preventiva')) {
+          monthData.preventiva++
+        } else if (tipo.includes('corretiva')) {
+          monthData.corretiva++
+        } else if (tipo.includes('revisao') || tipo.includes('revisão')) {
+          monthData.revisao++
+        } else if (tipo.includes('oleo') || tipo.includes('óleo')) {
+          monthData.oleo++
+        } else if (tipo.includes('pneu')) {
+          monthData.pneus++
+        } else {
+          monthData.outros++
+        }
+      }
+    })
+
+    return last6Months
+  }, [manutencoes])
   return (
     <div className="h-80">
       <ResponsiveContainer width="100%" height="100%">
@@ -111,6 +114,13 @@ export function MaintenanceChart() {
             stackId="maintenance"
             fill="#8b5cf6" 
             name="Pneus"
+            radius={[0, 0, 0, 0]}
+          />
+          <Bar 
+            dataKey="outros" 
+            stackId="maintenance"
+            fill="#6b7280" 
+            name="Outros"
             radius={[4, 4, 0, 0]}
           />
         </BarChart>

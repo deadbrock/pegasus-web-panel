@@ -3,16 +3,13 @@
 import { Calendar } from '@/components/ui/calendar'
 import { Badge } from '@/components/ui/badge'
 import { useState } from 'react'
+import { Manutencao } from '@/lib/services/manutencoes-service'
 
-// Mock data - substituir por dados do Supabase
-const maintenanceDates = {
-  '2024-01-15': [{ tipo: 'Preventiva', veiculo: 'BRA-2023' }],
-  '2024-01-18': [{ tipo: 'Troca de Óleo', veiculo: 'BRA-2025' }],
-  '2024-01-22': [{ tipo: 'Preventiva', veiculo: 'BRA-2021' }],
-  '2024-01-25': [{ tipo: 'Revisão', veiculo: 'BRA-2024' }]
+interface MaintenanceCalendarProps {
+  manutencoes?: Manutencao[]
 }
 
-export function MaintenanceCalendar() {
+export function MaintenanceCalendar({ manutencoes = [] }: MaintenanceCalendarProps) {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
 
   const getDateKey = (date: Date) => {
@@ -21,12 +18,23 @@ export function MaintenanceCalendar() {
 
   const hasMaintenanceOnDate = (date: Date) => {
     const dateKey = getDateKey(date)
-    return maintenanceDates[dateKey as keyof typeof maintenanceDates]
+    return manutencoes.some(m => m.data_agendada.startsWith(dateKey))
   }
 
   const getMaintenanceForDate = (date: Date) => {
     const dateKey = getDateKey(date)
-    return maintenanceDates[dateKey as keyof typeof maintenanceDates] || []
+    return manutencoes.filter(m => m.data_agendada.startsWith(dateKey))
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Agendada': return 'bg-blue-50 border-blue-200'
+      case 'Em Andamento': return 'bg-yellow-50 border-yellow-200'
+      case 'Pendente': return 'bg-gray-50 border-gray-200'
+      case 'Concluída': return 'bg-green-50 border-green-200'
+      case 'Atrasada': return 'bg-red-50 border-red-200'
+      default: return 'bg-gray-50 border-gray-200'
+    }
   }
 
   return (
@@ -58,17 +66,26 @@ export function MaintenanceCalendar() {
           
           {getMaintenanceForDate(selectedDate).length > 0 ? (
             <div className="space-y-3">
-              {getMaintenanceForDate(selectedDate).map((maintenance, index) => (
-                <div key={index} className="p-3 border rounded-lg bg-blue-50">
+              {getMaintenanceForDate(selectedDate).map((maintenance) => (
+                <div 
+                  key={maintenance.id} 
+                  className={`p-3 border rounded-lg ${getStatusColor(maintenance.status)}`}
+                >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">{maintenance.veiculo}</p>
+                      <p className="font-medium">{maintenance.veiculo_placa || 'N/A'}</p>
                       <p className="text-sm text-gray-600">{maintenance.tipo}</p>
+                      <p className="text-xs text-gray-500 mt-1">{maintenance.descricao}</p>
                     </div>
                     <Badge variant="outline">
-                      Agendada
+                      {maintenance.status}
                     </Badge>
                   </div>
+                  {maintenance.responsavel && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      Responsável: {maintenance.responsavel}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>

@@ -12,82 +12,76 @@ import {
   Calendar,
   Eye
 } from 'lucide-react'
-import { toast } from '@/hooks/use-toast'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { VehicleScheduleDialog } from './vehicle-schedule-dialog'
 import { VehicleDetailsDialog } from '@/components/veiculos/vehicle-details-dialog'
+import { fetchVeiculos } from '@/lib/services/veiculos-service'
+import { Manutencao } from '@/lib/services/manutencoes-service'
 
-// Mock data temporário - será substituído por dados reais do Supabase
-const vehiclesData = [
-  {
-    id: 1,
-    placa: 'BRA-2023',
-    marca: 'Volkswagen',
-    modelo: 'Constellation',
-    tipo: 'Caminhão',
-    ano: 2023,
-    cor: 'Branco',
-    combustivel: 'Diesel',
-    capacidade: 15000,
-    kmTotal: 45000,
-    status: 'Ativo',
-    ultimaManutencao: '2024-12-15'
-  },
-  {
-    id: 2,
-    placa: 'BRA-2024',
-    marca: 'Mercedes-Benz',
-    modelo: 'Actros',
-    tipo: 'Caminhão',
-    ano: 2024,
-    cor: 'Branco',
-    combustivel: 'Diesel',
-    capacidade: 18000,
-    kmTotal: 32000,
-    status: 'Ativo',
-    ultimaManutencao: '2025-01-05'
-  },
-  {
-    id: 3,
-    placa: 'BRA-2025',
-    marca: 'Scania',
-    modelo: 'R450',
-    tipo: 'Caminhão',
-    ano: 2025,
-    cor: 'Vermelho',
-    combustivel: 'Diesel',
-    capacidade: 20000,
-    kmTotal: 28500,
-    status: 'Em Manutenção',
-    ultimaManutencao: '2024-11-20'
-  }
-]
+interface VehicleMaintenanceStatusProps {
+  manutencoes?: Manutencao[]
+}
 
-// Deriva informações do cadastro de veículos para exibir detalhes consistentes
-const vehiclesStatus = (vehiclesData || []).map(v => ({
-  id: v.id,
-  placa: v.placa,
-  modelo: `${v.marca} ${v.modelo}`,
-  km: v.kmTotal,
-  proximaManutencao: Math.round((v.kmTotal || 0) / 10000 + 1) * 10000,
-  status: v.status === 'Em Manutenção' ? 'Próximo do Vencimento' : (v.status === 'Inativo' ? 'Atrasada' : 'Em Dia'),
-  ultimaManutencao: v.ultimaManutencao,
-  proximaData: new Date().toISOString().slice(0,10),
-  pendentes: v.status === 'Em Manutenção' ? 1 : 0,
-  concluidas: 5,
-  marca: v.marca,
-  tipo: v.tipo,
-  ano: v.ano,
-  cor: v.cor,
-  combustivel: v.combustivel,
-  capacidade: v.capacidade,
-}))
-
-export function VehicleMaintenanceStatus() {
+export function VehicleMaintenanceStatus({ manutencoes = [] }: VehicleMaintenanceStatusProps) {
+  const [vehicles, setVehicles] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [scheduleOpen, setScheduleOpen] = useState(false)
-  const [selectedVehicle, setSelectedVehicle] = useState<{ id: number | string; placa: string; modelo: string } | null>(null)
+  const [selectedVehicle, setSelectedVehicle] = useState<{ id: string; placa: string; modelo: string } | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [detailsVehicle, setDetailsVehicle] = useState<any | null>(null)
+
+  // Carrega veículos do Supabase
+  useEffect(() => {
+    async function load() {
+      setLoading(true)
+      const data = await fetchVeiculos()
+      setVehicles(data)
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  // Calcula estatísticas de manutenção para cada veículo
+  const vehiclesWithStats = vehicles.map(v => {
+    const vehicleManutencoes = manutencoes.filter(m => m.veiculo_id === v.id)
+    const pendentes = vehicleManutencoes.filter(m => 
+      m.status === 'Pendente' || m.status === 'Atrasada' || m.status === 'Agendada'
+    ).length
+    const concluidas = vehicleManutencoes.filter(m => m.status === 'Concluída').length
+    
+    // Última manutenção
+    const ultimasManutencoes = vehicleManutencoes
+      .filter(m => m.data_conclusao)
+      .sort((a, b) => new Date(b.data_conclusao!).getTime() - new Date(a.data_conclusao!).getTime())
+    
+    const ultimaManutencao = ultimasManutencoes[0]?.data_conclusao || v.created_at || new Date().toISOString()
+    
+    // Próxima manutenção programada
+    const proximasAgendadas = vehicleManutencoes
+      .filter(m => m.status === 'Agendada')
+      .sort((a, b) => new Date(a.data_agendada).getTime() - new Date(b.data_agendada).getTime())
+    
+    const proximaData = proximasAgendadas[0]?.data_agendada || new Date().toISOString()
+    
+    // Status baseado em pendências
+    let status: 'Em Dia' | 'Próximo do Vencimento' | 'Atrasada' = 'Em Dia'
+    if (pendentes > 2) {
+      status = 'Atrasada'
+    } else if (pendentes > 0) {
+      status = 'Próximo do Vencimento'
+    }
+    
+    return {
+      ...v,
+      pendentes,
+      concluidas,
+      ultimaManutencao,
+      proximaData,
+      maintenanceStatus: status,
+      proximaManutencao: 50000 // KM estimado para próxima manutenção
+    }
+  })
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline', color: string }> = {
       'Em Dia': { variant: 'default', color: 'bg-green-500' },
@@ -128,9 +122,38 @@ export function VehicleMaintenanceStatus() {
     return new Date(dateString).toLocaleDateString('pt-BR')
   }
 
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[1, 2, 3].map(i => (
+          <Card key={i} className="animate-pulse">
+            <CardHeader className="pb-3">
+              <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="h-4 bg-gray-200 rounded"></div>
+              <div className="h-4 bg-gray-200 rounded"></div>
+              <div className="h-4 bg-gray-200 rounded"></div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    )
+  }
+
+  if (vehiclesWithStats.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <Truck className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+        <p className="text-gray-600">Nenhum veículo cadastrado</p>
+        <p className="text-sm text-gray-500 mt-1">Cadastre veículos no módulo Frota</p>
+      </div>
+    )
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {vehiclesStatus.map((vehicle) => (
+      {vehiclesWithStats.map((vehicle) => (
         <Card key={vehicle.id} className="relative">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -138,29 +161,36 @@ export function VehicleMaintenanceStatus() {
                 <Truck className="w-6 h-6 text-blue-600" />
                 <div>
                   <CardTitle className="text-lg">{vehicle.placa}</CardTitle>
-                  <p className="text-sm text-gray-600">{vehicle.modelo}</p>
+                  <p className="text-sm text-gray-600">{vehicle.marca} {vehicle.modelo}</p>
                 </div>
               </div>
-              {getStatusIcon(vehicle.status)}
+              {getStatusIcon(vehicle.maintenanceStatus)}
             </div>
           </CardHeader>
           
           <CardContent className="space-y-4">
             {/* Status Badge */}
             <div className="flex justify-center">
-              {getStatusBadge(vehicle.status)}
+              {getStatusBadge(vehicle.maintenanceStatus)}
             </div>
 
             {/* Quilometragem Progress */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Quilometragem</span>
-                <span>{vehicle.km.toLocaleString()} / {vehicle.proximaManutencao.toLocaleString()} km</span>
+                <span>
+                  {vehicle.quilometragem_atual ? 
+                    `${vehicle.quilometragem_atual.toLocaleString()} km` : 
+                    'N/A'
+                  }
+                </span>
               </div>
-              <Progress 
-                value={getKmProgress(vehicle.km, vehicle.proximaManutencao)} 
-                className="h-2"
-              />
+              {vehicle.quilometragem_atual && (
+                <Progress 
+                  value={getKmProgress(vehicle.quilometragem_atual, vehicle.proximaManutencao)} 
+                  className="h-2"
+                />
+              )}
             </div>
 
             {/* Datas */}
@@ -194,20 +224,7 @@ export function VehicleMaintenanceStatus() {
                 size="sm"
                 className="flex-1"
                 onClick={() => {
-                  const full = vehiclesData.find(v => v.placa === vehicle.placa)
-                  setDetailsVehicle(full ?? {
-                    placa: vehicle.placa,
-                    marca: vehicle.modelo.split(' ')[0],
-                    modelo: vehicle.modelo.split(' ').slice(1).join(' '),
-                    tipo: vehicle.tipo,
-                    ano: vehicle.ano,
-                    cor: vehicle.cor,
-                    combustivel: vehicle.combustivel,
-                    capacidade: vehicle.capacidade,
-                    kmTotal: vehicle.km,
-                    status: vehicle.status,
-                    ultimaManutencao: vehicle.ultimaManutencao,
-                  })
+                  setDetailsVehicle(vehicle)
                   setDetailsOpen(true)
                 }}
               >
@@ -219,7 +236,11 @@ export function VehicleMaintenanceStatus() {
                 size="sm"
                 className="flex-1"
                 onClick={() => {
-                  setSelectedVehicle({ id: vehicle.id, placa: vehicle.placa, modelo: vehicle.modelo })
+                  setSelectedVehicle({ 
+                    id: vehicle.id, 
+                    placa: vehicle.placa, 
+                    modelo: `${vehicle.marca} ${vehicle.modelo}` 
+                  })
                   setScheduleOpen(true)
                 }}
               >
