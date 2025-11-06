@@ -22,7 +22,7 @@ import {
 import { MetricCard } from '@/components/dashboard/metric-card'
 import { DriversTable } from '@/components/motoristas/drivers-table'
 import { DriverDialog } from '@/components/motoristas/driver-dialog'
-import { fetchDrivers, createDriver, updateDriver, DriverRecord } from '@/services/driversService'
+import { fetchDrivers, createDriver, updateDriver, subscribeDrivers, DriverRecord } from '@/services/driversService'
 import { useToast } from '@/hooks/use-toast'
 import { DriverStatusChart } from '@/components/motoristas/driver-status-chart'
 import { DriverLicenseChart } from '@/components/motoristas/driver-license-chart'
@@ -44,7 +44,9 @@ export default function MotoristasPage() {
   const { toast } = useToast()
 
   const load = async () => {
+    console.log('[Motoristas] Carregando motoristas...')
     const rows = await fetchDrivers()
+    console.log('[Motoristas] Motoristas carregados:', rows.length)
     setDrivers(rows)
     
     // Calcular estatísticas
@@ -61,6 +63,18 @@ export default function MotoristasPage() {
 
   useEffect(() => {
     load()
+    
+    // Subscrever mudanças em tempo real
+    console.log('[Motoristas] Iniciando subscription...')
+    const unsubscribe = subscribeDrivers(() => {
+      console.log('[Motoristas] Mudança detectada, recarregando...')
+      load()
+    })
+
+    return () => {
+      console.log('[Motoristas] Limpando subscription...')
+      unsubscribe()
+    }
   }, [])
 
   const handleNewDriver = () => {
