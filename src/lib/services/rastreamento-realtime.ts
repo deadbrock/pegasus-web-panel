@@ -3,9 +3,10 @@ import { supabase } from '@/lib/supabaseClient'
 export type VehicleRow = {
   id: string
   placa?: string
-  motorista_id?: string
-  motorista_nome?: string
+  marca?: string
   modelo?: string
+  tipo?: string
+  ano?: number
   status?: string | null
   latitude?: number | null
   longitude?: number | null
@@ -15,7 +16,7 @@ export type VehicleRow = {
 export async function fetchVeiculos(): Promise<VehicleRow[]> {
   const { data, error } = await supabase
     .from('veiculos')
-    .select('id, placa, motorista_id, modelo, status, latitude, longitude, ultima_atualizacao')
+    .select('id, placa, marca, modelo, tipo, ano, status')
   if (error) {
     console.warn('fetchVeiculos rastreamento:', error.message)
     return []

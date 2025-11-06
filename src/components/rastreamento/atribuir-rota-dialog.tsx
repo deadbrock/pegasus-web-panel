@@ -30,7 +30,10 @@ type Motorista = {
 type Veiculo = {
   id: string
   placa: string
+  marca?: string
   modelo: string
+  tipo?: string
+  ano?: number
   status: string
 }
 
@@ -62,8 +65,8 @@ export function AtribuirRotaDialog({ open, onClose, rota, onSuccess }: AtribuirR
       // Buscar veículos disponíveis
       const { data: veiculosData, error: veiculosError } = await supabase
         .from('veiculos')
-        .select('id, placa, modelo, status')
-        .in('status', ['Disponível', 'Ativo'])
+        .select('id, placa, marca, modelo, tipo, ano, status')
+        .eq('status', 'Ativo')
         .order('placa')
 
       if (veiculosError) throw veiculosError
@@ -251,7 +254,7 @@ export function AtribuirRotaDialog({ open, onClose, rota, onSuccess }: AtribuirR
                         <div className="flex flex-col">
                           <span className="font-medium">{veiculo.placa}</span>
                           <span className="text-xs text-gray-500">
-                            {veiculo.modelo} • {veiculo.status}
+                            {veiculo.marca} {veiculo.modelo} • {veiculo.tipo || 'Veículo'} {veiculo.ano ? `(${veiculo.ano})` : ''}
                           </span>
                         </div>
                       </SelectItem>
