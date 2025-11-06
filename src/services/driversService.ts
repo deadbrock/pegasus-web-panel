@@ -11,9 +11,13 @@ export interface DriverRecord {
   email?: string | null
   endereco?: string | null
   status?: DriverStatus
+  // Campos do banco de dados:
+  categoria_cnh?: string | null
+  validade_cnh?: string | null // ISO
+  data_admissao?: string | null // ISO
+  data_nascimento?: string | null // ISO
+  observacoes?: string | null
   // Campos apenas de UI (não garantidos no schema):
-  categoria?: string | null
-  validadeCnh?: string | null // ISO
   ultimaViagem?: string | null // ISO
   totalViagens?: number | null
   pontuacao?: number | null
@@ -31,9 +35,13 @@ function mapRowFromDb(row: any): DriverRecord {
     email: row.email ?? null,
     endereco: row.endereco ?? null,
     status: (row.status as DriverStatus) ?? 'Ativo',
-    // UI-only fallbacks (mock/undefined until schema includes):
-    categoria: row.categoria ?? null,
-    validadeCnh: row.validade_cnh ?? null,
+    // Campos do banco de dados:
+    categoria_cnh: row.categoria_cnh ?? null,
+    validade_cnh: row.validade_cnh ?? null,
+    data_admissao: row.data_admissao ?? null,
+    data_nascimento: row.data_nascimento ?? null,
+    observacoes: row.observacoes ?? null,
+    // UI-only fallbacks:
     ultimaViagem: null,
     totalViagens: null,
     pontuacao: null,
