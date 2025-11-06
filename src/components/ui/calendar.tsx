@@ -1,10 +1,9 @@
 "use client"
 
 import * as React from "react"
-import { DayPicker, CaptionProps } from "react-day-picker"
+import { DayPicker, CaptionProps, useNavigation, useDayPicker } from "react-day-picker"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { ptBR } from "date-fns/locale"
-import { format } from "date-fns"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
@@ -18,36 +17,38 @@ import {
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>
 
-// Componente customizado para o caption com seletores de mês/ano
+// Caption customizado com seletores de mês/ano (sem duplicação de rótulos)
 function CustomCaption({ displayMonth }: CaptionProps) {
-  const [month, setMonth] = React.useState(displayMonth.getMonth())
-  const [year, setYear] = React.useState(displayMonth.getFullYear())
+  const { goToMonth } = useNavigation()
+  const { fromYear, toYear } = useDayPicker()
+
+  const currentMonth = displayMonth.getMonth()
+  const currentYear = displayMonth.getFullYear()
 
   const months = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
   ]
 
-  // Gerar anos (10 anos atrás até 10 anos à frente)
-  const currentYear = new Date().getFullYear()
-  const years = Array.from({ length: 21 }, (_, i) => currentYear - 10 + i)
+  const startYear = (typeof fromYear === "number" ? fromYear : fromYear?.getFullYear()) ?? currentYear - 10
+  const endYear = (typeof toYear === "number" ? toYear : toYear?.getFullYear()) ?? currentYear + 10
+  const years = Array.from({ length: endYear - startYear + 1 }, (_, i) => startYear + i)
 
   return (
-    <div className="flex justify-center items-center gap-2 mb-4">
+    <div className="flex justify-center items-center gap-2 mb-2">
       <Select
-        value={month.toString()}
+        value={String(currentMonth)}
         onValueChange={(value) => {
-          setMonth(parseInt(value))
-          const newDate = new Date(year, parseInt(value), 1)
-          displayMonth.setMonth(parseInt(value))
+          const month = parseInt(value, 10)
+          goToMonth(new Date(currentYear, month, 1))
         }}
       >
-        <SelectTrigger className="w-[130px] h-8">
-          <SelectValue>{months[month]}</SelectValue>
+        <SelectTrigger className="w-[140px] h-8">
+          <SelectValue>{months[currentMonth]}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           {months.map((m, i) => (
-            <SelectItem key={i} value={i.toString()}>
+            <SelectItem key={i} value={String(i)}>
               {m}
             </SelectItem>
           ))}
@@ -55,45 +56,24 @@ function CustomCaption({ displayMonth }: CaptionProps) {
       </Select>
 
       <Select
-        value={year.toString()}
+        value={String(currentYear)}
         onValueChange={(value) => {
-          setYear(parseInt(value))
-          const newDate = new Date(parseInt(value), month, 1)
-          displayMonth.setFullYear(parseInt(value))
+          const year = parseInt(value, 10)
+          goToMonth(new Date(year, currentMonth, 1))
         }}
       >
-        <SelectTrigger className="w-[100px] h-8">
-          <SelectValue>{year}</SelectValue>
+        <SelectTrigger className="w-[110px] h-8">
+          <SelectValue>{currentYear}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           {years.map((y) => (
-            <SelectItem key={y} value={y.toString()}>
+            <SelectItem key={y} value={String(y)}>
               {y}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
     </div>
-  )
-}
-
-// Componente para formatar os nomes dos dias da semana
-function CustomHead() {
-  const diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
-  
-  return (
-    <thead>
-      <tr className="flex">
-        {diasSemana.map((dia, i) => (
-          <th
-            key={i}
-            className="text-muted-foreground rounded-md w-10 font-medium text-[0.8rem] text-center"
-          >
-            {dia}
-          </th>
-        ))}
-      </tr>
-    </thead>
   )
 }
 
@@ -112,7 +92,7 @@ function Calendar({
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4",
         caption: "flex justify-center pt-1 relative items-center",
-        caption_label: "text-sm font-medium capitalize",
+        caption_label: "hidden", // evitamos rótulo padrão para não duplicar com o caption customizado
         nav: "space-x-1 flex items-center",
         nav_button: cn(
           buttonVariants({ variant: "outline" }),
@@ -143,22 +123,15 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        Head: CustomHead,
+        Caption: CustomCaption,
       }}
       formatters={{
+        // Garantir nomes curtos e capitalizados em PT-BR
         formatWeekdayName: (date) => {
           const dias = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
           return dias[date.getDay()]
         },
-        formatCaption: (date) => {
-          const meses = [
-            "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-            "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
-          ]
-          return `${meses[date.getMonth()]} ${date.getFullYear()}`
-        }
       }}
-      captionLayout="dropdown"
       fromYear={new Date().getFullYear() - 10}
       toYear={new Date().getFullYear() + 10}
       {...props}
