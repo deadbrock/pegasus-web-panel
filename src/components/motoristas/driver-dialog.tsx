@@ -103,27 +103,58 @@ export function DriverDialog({ open, onClose, driver, onSave }: DriverDialogProp
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validações manuais
+    if (!formData.nome.trim()) {
+      alert('Nome é obrigatório!')
+      return
+    }
+    
+    if (!formData.cpf.trim()) {
+      alert('CPF é obrigatório!')
+      return
+    }
+    
+    if (!formData.cnh.trim()) {
+      alert('CNH é obrigatória!')
+      return
+    }
+    
+    if (!formData.categoria_cnh) {
+      alert('Categoria da CNH é obrigatória!')
+      return
+    }
+    
+    if (!formData.validadeCnh) {
+      alert('Validade da CNH é obrigatória!')
+      return
+    }
+    
     setIsSubmitting(true)
 
     try {
       const payload = {
-        nome: formData.nome,
-        cpf: formData.cpf,
-        cnh: formData.cnh,
+        nome: formData.nome.trim(),
+        cpf: formData.cpf.trim(),
+        cnh: formData.cnh.trim(),
         categoria_cnh: formData.categoria_cnh,
-        validade_cnh: formData.validadeCnh ? formData.validadeCnh.toISOString().split('T')[0] : null,
-        telefone: formData.telefone || null,
-        email: formData.email || null,
-        endereco: [formData.endereco, formData.cidade, formData.estado, formData.cep].filter(Boolean).join(', '),
+        validade_cnh: formData.validadeCnh.toISOString().split('T')[0],
+        telefone: formData.telefone?.trim() || null,
+        email: formData.email?.trim() || null,
+        endereco: [formData.endereco, formData.cidade, formData.estado, formData.cep].filter(Boolean).join(', ') || null,
         data_admissao: formData.dataAdmissao ? formData.dataAdmissao.toISOString().split('T')[0] : null,
         data_nascimento: null,
         status: formData.status,
-        observacoes: formData.observacoes || null,
+        observacoes: formData.observacoes?.trim() || null,
       }
+      
+      console.log('[DriverDialog] Enviando payload:', payload)
+      
       if (onSave) await onSave(payload)
       onClose()
     } catch (error) {
-      console.error('Erro ao salvar motorista:', error)
+      console.error('[DriverDialog] Erro ao salvar motorista:', error)
+      alert('Erro ao salvar motorista. Verifique os dados e tente novamente.')
     } finally {
       setIsSubmitting(false)
     }
