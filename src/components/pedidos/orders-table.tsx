@@ -131,6 +131,7 @@ export function OrdersTable({ onEdit, data }: OrdersTableProps) {
     console.log('[OrdersTable] supervisor_id:', pedido.supervisor_id)
     console.log('[OrdersTable] numero_pedido:', pedido.numero_pedido)
     console.log('[OrdersTable] contrato_id:', pedido.contrato_id)
+    console.log('[OrdersTable] supervisor_nome:', pedido.supervisor_nome)
     
     // Se for rejeição, abrir dialog primeiro
     if (novoStatus === 'Rejeitado') {
@@ -143,31 +144,35 @@ export function OrdersTable({ onEdit, data }: OrdersTableProps) {
     setUpdatingStatus(pedido.id)
     try {
       // Verificar se é pedido mobile (do app) ou web (painel)
-      // Pedidos mobile têm: supervisor_id, numero_pedido ou contrato_id
-      const isPedidoMobile = pedido.supervisor_id || pedido.contrato_id || pedido.supervisor_nome
+      // Pedidos mobile SEMPRE têm supervisor_id (não pode ser null/undefined)
+      // Pedidos web não têm supervisor_id
+      // Vamos tentar atualizar como pedido mobile primeiro, se falhar, é pedido web
+      const isPedidoMobile = !!pedido.supervisor_id || !!pedido.supervisor_nome || !!pedido.numero_pedido
       
       console.log('[OrdersTable] isPedidoMobile:', isPedidoMobile)
+      console.log('[OrdersTable] Verificação detalhada:', {
+        hasSupervisorId: !!pedido.supervisor_id,
+        hasSupervisorNome: !!pedido.supervisor_nome,
+        hasNumeroPedido: !!pedido.numero_pedido,
+        hasContratoId: !!pedido.contrato_id,
+        pedidoId: pedido.id
+      })
       
-      if (isPedidoMobile) {
-        console.log('[OrdersTable] Atualizando pedido mobile...')
-        const success = await updatePedidoMobileStatus(pedido.id, novoStatus as any)
-        if (success) {
-          toast({
-            title: 'Status atualizado!',
-            description: `Pedido ${pedido.numero_pedido || pedido.numero} → ${novoStatus}`,
-          })
-          // Recarregar página
-          setTimeout(() => window.location.reload(), 1000)
-        } else {
-          toast({
-            title: 'Erro',
-            description: 'Não foi possível atualizar o status.',
-            variant: 'destructive'
-          })
-        }
+      // Tentar atualizar como pedido mobile primeiro
+      console.log('[OrdersTable] Tentando atualizar pedido mobile...')
+      const success = await updatePedidoMobileStatus(pedido.id, novoStatus as any)
+      
+      if (success) {
+        console.log('[OrdersTable] Status atualizado com sucesso!')
+        toast({
+          title: 'Status atualizado!',
+          description: `Pedido ${pedido.numero_pedido || pedido.numero || pedido.id} → ${novoStatus}`,
+        })
+        // Recarregar página
+        setTimeout(() => window.location.reload(), 1000)
       } else {
-        // Pedido web
-        console.log('[OrdersTable] Pedido web detectado')
+        // Se falhou, pode ser pedido web ou erro na atualização
+        console.log('[OrdersTable] Falha ao atualizar - pode ser pedido web')
         toast({
           title: 'Funcionalidade em desenvolvimento',
           description: 'Atualização de pedidos web em breve.',
@@ -175,9 +180,11 @@ export function OrdersTable({ onEdit, data }: OrdersTableProps) {
       }
     } catch (error) {
       console.error('Erro ao atualizar status:', error)
+      // Se der erro, pode ser que o pedido não exista na tabela pedidos_supervisores
+      // Tentar verificar se é pedido web
       toast({
         title: 'Erro',
-        description: 'Não foi possível atualizar o status.',
+        description: 'Não foi possível atualizar o status. Verifique se é um pedido mobile válido.',
         variant: 'destructive'
       })
     } finally {
