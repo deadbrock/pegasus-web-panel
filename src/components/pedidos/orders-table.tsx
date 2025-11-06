@@ -369,7 +369,6 @@ export function OrdersTable({ onEdit, data }: OrdersTableProps) {
                     <SelectItem value="Pendente">📋 Pendente</SelectItem>
                     <SelectItem value="Aprovado">✅ Aprovado</SelectItem>
                     <SelectItem value="Em Separação">📦 Em Separação</SelectItem>
-                    <SelectItem value="Separado">✅ Separado</SelectItem>
                     <SelectItem value="Saiu para Entrega">🚚 Saiu para Entrega</SelectItem>
                     <SelectItem value="Entregue">✅ Entregue</SelectItem>
                     <SelectItem value="Rejeitado">❌ Rejeitado</SelectItem>
