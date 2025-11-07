@@ -1,10 +1,13 @@
 "use client"
 import React, { useEffect, useState } from 'react'
-import { apiFetch } from '@/lib/api'
-import { supabase } from '@/lib/supabaseClient'
-
-
-type Documento = { id: number; titulo: string; tipo: string; arquivo_url: string; usuario_id: number }
+import { 
+	fetchDocumentos, 
+	createDocumento, 
+	uploadDocumento, 
+	subscribeDocumentos,
+	type Documento 
+} from '@/lib/services/documentos-service'
+import { useToast } from '@/hooks/use-toast'
 
 export default function DocumentosPage() {
 	const [docs, setDocs] = useState<Documento[]>([])
@@ -12,49 +15,87 @@ export default function DocumentosPage() {
 	const [error, setError] = useState<string | null>(null)
 	const [tipo, setTipo] = useState<string>('')
 	const [titulo, setTitulo] = useState('')
-	const [tipoNovo, setTipoNovo] = useState('financeiro')
+	const [tipoNovo, setTipoNovo] = useState<'financeiro' | 'fiscal' | 'logistica' | 'outro'>('financeiro')
 	const [file, setFile] = useState<File | null>(null)
 	const [uploading, setUploading] = useState(false)
+	const { toast } = useToast()
 
 	const load = async () => {
 		setLoading(true)
 		setError(null)
 		try {
-			const url = tipo ? `documentos?tipo=${encodeURIComponent(tipo)}` : 'documentos'
-			const res = await apiFetch(url)
-			const data = await res.json()
+			const data = await fetchDocumentos(tipo || undefined)
 			setDocs(data)
 		} catch (e: any) {
 			setError(e?.message || 'Erro ao carregar documentos')
+			toast({
+				title: 'Erro',
+				description: 'Não foi possível carregar os documentos',
+				variant: 'destructive'
+			})
 		} finally {
 			setLoading(false)
 		}
 	}
 
-	useEffect(() => { load() }, [tipo])
+	useEffect(() => { 
+		load()
+		
+		// Subscrever mudanças em tempo real
+		const unsubscribe = subscribeDocumentos(() => {
+			console.log('[Documentos] Mudança detectada, recarregando...')
+			load()
+		})
+		
+		return () => unsubscribe()
+	}, [tipo])
 
 	const onUpload = async () => {
-		if (!file || !titulo) return
+		if (!file || !titulo) {
+			toast({
+				title: 'Erro',
+				description: 'Preencha o título e selecione um arquivo',
+				variant: 'destructive'
+			})
+			return
+		}
+		
 		setUploading(true)
 		setError(null)
 		try {
-			const path = `${Date.now()}_${file.name}`
-			const { error: upErr } = await supabase.storage.from('documentos').upload(path, file, { upsert: false })
-			if (upErr) throw upErr
-			const { data: pub } = supabase.storage.from('documentos').getPublicUrl(path)
-			const arquivo_url = pub.publicUrl
-			const res = await apiFetch('documentos', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ titulo, tipo: tipoNovo, arquivo_url })
+			// Upload do arquivo
+			const arquivo_url = await uploadDocumento(file)
+			if (!arquivo_url) {
+				throw new Error('Falha ao fazer upload do arquivo')
+			}
+
+			// Criar registro no banco
+			const created = await createDocumento({
+				titulo,
+				tipo: tipoNovo,
+				arquivo_url
 			})
-			if (!res.ok) throw new Error('Falha ao registrar documento')
+
+			if (!created) {
+				throw new Error('Falha ao registrar documento')
+			}
+
+			toast({
+				title: 'Sucesso',
+				description: 'Documento enviado com sucesso!'
+			})
+
 			setTitulo('')
 			setTipoNovo('financeiro')
 			setFile(null)
 			await load()
 		} catch (e: any) {
 			setError(e?.message || 'Erro ao enviar documento')
+			toast({
+				title: 'Erro',
+				description: e?.message || 'Erro ao enviar documento',
+				variant: 'destructive'
+			})
 		} finally {
 			setUploading(false)
 		}
