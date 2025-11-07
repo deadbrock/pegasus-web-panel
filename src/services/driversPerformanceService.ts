@@ -56,9 +56,9 @@ export async function fetchDriverPerformance(motoristaId: string): Promise<Drive
     const viagensAtrasadas = rotas?.filter(r => r.status === 'Atrasada').length || 0
     const viagensEmAndamento = rotas?.filter(r => r.status === 'Em Rota').length || 0
 
-    // Calcular pontualidade (entregas no prazo)
-    let pontualidade = 100
-    if (totalViagens > 0) {
+    // Calcular pontualidade (entregas no prazo) - apenas se tiver viagens entregues
+    let pontualidade = 0
+    if (viagensEntregues > 0) {
       const entreguesNoPrazo = rotas?.filter(r => {
         if (r.status !== 'Entregue' || !r.data_entrega || !r.data_prevista_entrega) return false
         const dataEntrega = new Date(r.data_entrega)
@@ -66,31 +66,35 @@ export async function fetchDriverPerformance(motoristaId: string): Promise<Drive
         return dataEntrega <= dataPrevista
       }).length || 0
       
-      pontualidade = viagensEntregues > 0 
-        ? Math.round((entreguesNoPrazo / viagensEntregues) * 100) 
-        : 100
+      pontualidade = Math.round((entreguesNoPrazo / viagensEntregues) * 100)
     }
 
-    // Segurança: 100% se não houver viagens atrasadas, senão calcula proporção
+    // Segurança: % de viagens sem atrasos (apenas se tiver viagens)
     const seguranca = totalViagens > 0 
       ? Math.round(((totalViagens - viagensAtrasadas) / totalViagens) * 100)
-      : 100
+      : 0
 
-    // Eficiência: taxa de conclusão
+    // Eficiência: taxa de conclusão (apenas se tiver viagens)
     const eficiencia = totalViagens > 0 
       ? Math.round((viagensEntregues / totalViagens) * 100)
-      : 100
+      : 0
 
-    // Satisfação: mock por enquanto (pode ser implementado com feedback de clientes)
-    const satisfacao = 95
+    // Satisfação: calculada baseada em viagens sem problemas
+    // Se não houver viagens, retorna 0
+    // Se houver viagens, calcula: (entregas no prazo + sem atrasos) / 2
+    const satisfacao = totalViagens > 0
+      ? Math.round((pontualidade + seguranca) / 2)
+      : 0
 
-    // Pontuação geral (média ponderada)
-    const pontuacao = Math.round(
-      (pontualidade * 0.3) + 
-      (seguranca * 0.3) + 
-      (eficiencia * 0.25) + 
-      (satisfacao * 0.15)
-    )
+    // Pontuação geral (média ponderada) - apenas se tiver viagens
+    const pontuacao = totalViagens > 0 
+      ? Math.round(
+          (pontualidade * 0.3) + 
+          (seguranca * 0.3) + 
+          (eficiencia * 0.25) + 
+          (satisfacao * 0.15)
+        )
+      : 0
 
     return {
       motorista_id: motoristaId,
