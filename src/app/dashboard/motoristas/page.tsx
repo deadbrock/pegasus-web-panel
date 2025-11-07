@@ -140,7 +140,7 @@ export default function MotoristasPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
           title="Total de Motoristas"
-          value={stats?.total.toString() || '0'}
+          value={stats?.total?.toString() || '0'}
           change={stats && stats.total > 0 ? `${stats.total} cadastrados` : '-'}
           changeType="positive"
           icon={Users}
@@ -148,24 +148,32 @@ export default function MotoristasPage() {
         />
         <MetricCard
           title="Motoristas Ativos"
-          value={stats?.ativos.toString() || '0'}
-          change={stats && stats.ativos > 0 ? `${Math.round((stats.ativos / stats.total) * 100)}% da frota` : '-'}
+          value={stats?.ativos?.toString() || '0'}
+          change={stats && stats.ativos > 0 && stats.total > 0 
+            ? `${Math.round((stats.ativos / stats.total) * 100)}% da frota` 
+            : '-'}
           changeType="positive"
           icon={UserCheck}
           description="Aptos para dirigir"
         />
         <MetricCard
           title="CNH Vencendo"
-          value={stats?.cnhVencendo.toString() || '0'}
-          change={stats && stats.cnhVencidas > 0 ? `${stats.cnhVencidas} vencidas` : 'Nenhuma vencida'}
+          value={stats?.cnhVencendo?.toString() || '0'}
+          change={stats && stats.cnhVencidas && stats.cnhVencidas > 0 
+            ? `${stats.cnhVencidas} vencidas` 
+            : 'Nenhuma vencida'}
           changeType={stats && stats.cnhVencendo > 0 ? 'negative' : 'positive'}
           icon={AlertTriangle}
           description="Próximas ao vencimento"
         />
         <MetricCard
           title="Performance Média"
-          value={stats ? `${Math.round(stats.performance.pontuacaoMedia)}%` : '-'}
-          change={stats ? `${stats.performance.pontualidade}% pontualidade` : '-'}
+          value={stats && stats.performance?.pontuacaoMedia !== undefined 
+            ? `${Math.round(stats.performance.pontuacaoMedia)}%` 
+            : '0%'}
+          change={stats && stats.performance?.pontualidade !== undefined 
+            ? `${stats.performance.pontualidade}% pontualidade` 
+            : 'Sem dados'}
           changeType="positive"
           icon={Award}
           description="Pontuação geral"
