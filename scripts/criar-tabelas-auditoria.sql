@@ -1,10 +1,3 @@
-// Executa SQL para o módulo de Auditoria
-// Requer DATABASE_URL em process.env
-
-const { Client, defaults } = require('pg')
-defaults.ssl = { rejectUnauthorized: false }
-
-const sql = `
 -- ============================================================================
 -- TABELAS: auditoria_logs e auditoria_tasks
 -- DESCRIÇÃO: Sistema de auditoria e logs de atividades do sistema
@@ -98,66 +91,39 @@ ON auditoria_tasks FOR DELETE
 TO authenticated
 USING (true);
 
--- Habilitar realtime
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_publication_tables 
-    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'auditoria_logs'
-  ) THEN
-    EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE public.auditoria_logs';
-  END IF;
-END$$;
+-- Verificar estrutura
+SELECT 
+  '✅ TABELA auditoria_logs' AS status,
+  column_name, 
+  data_type, 
+  is_nullable
+FROM information_schema.columns
+WHERE table_name = 'auditoria_logs'
+ORDER BY ordinal_position;
 
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_publication_tables 
-    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'auditoria_tasks'
-  ) THEN
-    EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE public.auditoria_tasks';
-  END IF;
-END$$;
-`
+SELECT 
+  '✅ TABELA auditoria_tasks' AS status,
+  column_name, 
+  data_type, 
+  is_nullable
+FROM information_schema.columns
+WHERE table_name = 'auditoria_tasks'
+ORDER BY ordinal_position;
 
-async function main() {
-  let connStr = process.env.DATABASE_URL || process.argv[2]
-  if (!connStr) {
-    console.error('DATABASE_URL não definido')
-    process.exit(1)
-  }
-  // Evitar erro de certificado autoassinado
-  connStr = connStr.replace('sslmode=require', 'sslmode=no-verify')
-  const client = new Client({ connectionString: connStr, ssl: { rejectUnauthorized: false } })
-  try {
-    await client.connect()
-    console.log('✅ Conectado ao banco de dados')
-    await client.query('set statement_timeout = 0;')
-    await client.query(sql)
-    console.log('✅ SQL aplicado com sucesso (auditoria_logs e auditoria_tasks)')
-    
-    // Verificar estrutura
-    const result = await client.query(`
-      SELECT 
-        table_name,
-        COUNT(*) as total_colunas
-      FROM information_schema.columns
-      WHERE table_name IN ('auditoria_logs', 'auditoria_tasks')
-      GROUP BY table_name
-      ORDER BY table_name
-    `)
-    
-    console.log('\n📊 ESTRUTURA DAS TABELAS:')
-    result.rows.forEach(row => {
-      console.log(`   ${row.table_name}: ${row.total_colunas} colunas`)
-    })
-    
-  } finally {
-    await client.end().catch(() => {})
-  }
-}
+-- Verificar políticas RLS
+SELECT 
+  '✅ POLÍTICAS RLS auditoria_logs' AS info,
+  policyname,
+  cmd
+FROM pg_policies
+WHERE tablename = 'auditoria_logs';
 
-main().catch((e) => {
-  console.error('❌ Falha ao aplicar SQL:', e.message)
-  process.exit(1)
-})
+SELECT 
+  '✅ POLÍTICAS RLS auditoria_tasks' AS info,
+  policyname,
+  cmd
+FROM pg_policies
+WHERE tablename = 'auditoria_tasks';
+
+SELECT '✅ SCRIPT CONCLUÍDO' AS status;
+
