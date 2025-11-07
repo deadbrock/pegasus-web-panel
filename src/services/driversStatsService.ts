@@ -15,6 +15,7 @@ export type DriverStats = {
     emDia: number
   }
   performance: {
+    pontuacaoMedia: number // Média das pontuações dos motoristas
     pontualidade: number
     seguranca: number
     eficiencia: number
@@ -87,6 +88,7 @@ export function calcularEstatisticasMotoristas(drivers: DriverRecord[]): DriverS
   }
   
   // Performance média - calculada dos dados reais dos motoristas
+  let somaPontuacao = 0
   let somaPontualidade = 0
   let somaSeguranca = 0
   let somaEficiencia = 0
@@ -95,6 +97,7 @@ export function calcularEstatisticasMotoristas(drivers: DriverRecord[]): DriverS
   
   drivers.forEach(driver => {
     if (driver.pontuacao && driver.pontuacao > 0) {
+      somaPontuacao += driver.pontuacao || 0
       somaPontualidade += driver.pontualidade || 0
       somaSeguranca += driver.seguranca || 0
       somaEficiencia += driver.eficiencia || 0
@@ -104,6 +107,7 @@ export function calcularEstatisticasMotoristas(drivers: DriverRecord[]): DriverS
   })
   
   const performance = {
+    pontuacaoMedia: countComPerformance > 0 ? Math.round(somaPontuacao / countComPerformance) : 0,
     pontualidade: countComPerformance > 0 ? Math.round(somaPontualidade / countComPerformance) : 0,
     seguranca: countComPerformance > 0 ? Math.round(somaSeguranca / countComPerformance) : 0,
     eficiencia: countComPerformance > 0 ? Math.round(somaEficiencia / countComPerformance) : 0,

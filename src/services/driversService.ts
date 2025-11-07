@@ -15,6 +15,9 @@ export interface DriverRecord {
   // Campos do banco de dados:
   categoria_cnh?: string | null
   validade_cnh?: string | null // ISO
+  validade_exame_medico?: string | null // ISO
+  validade_certidao_antecedentes?: string | null // ISO
+  validade_curso_defensiva?: string | null // ISO
   data_admissao?: string | null // ISO
   data_nascimento?: string | null // ISO
   observacoes?: string | null
@@ -43,6 +46,9 @@ function mapRowFromDb(row: any, performance?: DriverPerformanceData): DriverReco
     // Campos do banco de dados:
     categoria_cnh: row.categoria_cnh ?? null,
     validade_cnh: row.validade_cnh ?? null,
+    validade_exame_medico: row.validade_exame_medico ?? null,
+    validade_certidao_antecedentes: row.validade_certidao_antecedentes ?? null,
+    validade_curso_defensiva: row.validade_curso_defensiva ?? null,
     data_admissao: row.data_admissao ?? null,
     data_nascimento: row.data_nascimento ?? null,
     observacoes: row.observacoes ?? null,

@@ -22,23 +22,28 @@ export function DriverDocumentsStatus({ statusSummary, drivers = [] }: DriverDoc
   // Mapear motoristas para dados de documentos
   const documentsData = drivers.map(driver => {
     const hoje = new Date()
-    const validade_cnh = driver.validade_cnh ? new Date(driver.validade_cnh) : null
-    const diasCnh = validade_cnh 
-      ? Math.ceil((validade_cnh.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24))
-      : 999
+    
+    // Função auxiliar para calcular status e dias
+    const calcularStatus = (dataValidade: string | null | undefined) => {
+      if (!dataValidade) return { status: 'Pendente', dias: 999 }
+      const validade = new Date(dataValidade)
+      const dias = Math.ceil((validade.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24))
+      const status = dias < 0 ? 'Vencida' : dias <= 30 ? 'Vencendo' : 'Em Dia'
+      return { status, dias }
+    }
+    
+    const cnh = calcularStatus((driver as any).validade_cnh)
+    const exameMedico = calcularStatus((driver as any).validade_exame_medico)
+    const certidaoAntecedentes = calcularStatus((driver as any).validade_certidao_antecedentes)
+    const cursoDefensiva = calcularStatus((driver as any).validade_curso_defensiva)
     
     return {
       id: driver.id,
       motorista: driver.nome,
-      cnh: {
-        status: diasCnh < 0 ? 'Vencida' : diasCnh <= 30 ? 'Vencendo' : validade_cnh ? 'Em Dia' : 'Pendente',
-        dias: diasCnh,
-        validade: driver.validade_cnh
-      },
-      // Documentos futuros (podem ser adicionados na tabela motoristas)
-      exameMedico: { status: 'Pendente', dias: 999, validade: null },
-      certidaoAntecedentes: { status: 'Pendente', dias: 999, validade: null },
-      cursoDefensiva: { status: 'Pendente', dias: 999, validade: null }
+      cnh: { ...cnh, validade: (driver as any).validade_cnh },
+      exameMedico: { ...exameMedico, validade: (driver as any).validade_exame_medico },
+      certidaoAntecedentes: { ...certidaoAntecedentes, validade: (driver as any).validade_certidao_antecedentes },
+      cursoDefensiva: { ...cursoDefensiva, validade: (driver as any).validade_curso_defensiva }
     }
   })
   

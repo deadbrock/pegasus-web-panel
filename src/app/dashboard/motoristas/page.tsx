@@ -164,7 +164,7 @@ export default function MotoristasPage() {
         />
         <MetricCard
           title="Performance Média"
-          value={stats ? `${stats.performance.satisfacao}%` : '-'}
+          value={stats ? `${Math.round(stats.performance.pontuacaoMedia)}%` : '-'}
           change={stats ? `${stats.performance.pontualidade}% pontualidade` : '-'}
           changeType="positive"
           icon={Award}
