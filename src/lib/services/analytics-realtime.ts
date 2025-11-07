@@ -324,7 +324,7 @@ export async function getDriversPerformanceRange(start: Date, end: Date): Promis
       console.log('[Analytics] Sem rotas, buscando todos motoristas ativos')
       const { data: todosMotoristas, error: errorTodos } = await supabase
         .from('motoristas')
-        .select('id, nome, pontuacao')
+        .select('id, nome, pontualidade, seguranca, eficiencia, satisfacao')
         .eq('status', 'Ativo')
         .limit(10)
 
@@ -333,11 +333,20 @@ export async function getDriversPerformanceRange(start: Date, end: Date): Promis
         return []
       }
 
-      return (todosMotoristas || []).map(m => ({
-        name: m.nome,
-        entregas: 0,
-        pontuacao: m.pontuacao || 0
-      }))
+      return (todosMotoristas || []).map(m => {
+        // Calcular pontuação média ponderada
+        const pontualidade = m.pontualidade || 0
+        const seguranca = m.seguranca || 0
+        const eficiencia = m.eficiencia || 0
+        const satisfacao = m.satisfacao || 0
+        const pontuacao = (pontualidade * 0.3 + seguranca * 0.3 + eficiencia * 0.25 + satisfacao * 0.15)
+        
+        return {
+          name: m.nome,
+          entregas: 0,
+          pontuacao: Math.round(pontuacao)
+        }
+      })
     }
 
     // Buscar dados dos motoristas
@@ -346,7 +355,7 @@ export async function getDriversPerformanceRange(start: Date, end: Date): Promis
 
     const { data: motoristas, error: errorMotoristas } = await supabase
       .from('motoristas')
-      .select('id, nome, pontuacao')
+      .select('id, nome, pontualidade, seguranca, eficiencia, satisfacao')
       .in('id', motoristasIds)
 
     if (errorMotoristas) {
@@ -360,10 +369,17 @@ export async function getDriversPerformanceRange(start: Date, end: Date): Promis
     const stats: Record<string, { nome: string; entregas: number; pontuacao: number }> = {}
 
     for (const motorista of motoristas || []) {
+      // Calcular pontuação média ponderada
+      const pontualidade = motorista.pontualidade || 0
+      const seguranca = motorista.seguranca || 0
+      const eficiencia = motorista.eficiencia || 0
+      const satisfacao = motorista.satisfacao || 0
+      const pontuacao = (pontualidade * 0.3 + seguranca * 0.3 + eficiencia * 0.25 + satisfacao * 0.15)
+      
       stats[motorista.id] = {
         nome: motorista.nome,
         entregas: 0,
-        pontuacao: motorista.pontuacao || 0
+        pontuacao: Math.round(pontuacao)
       }
     }
 

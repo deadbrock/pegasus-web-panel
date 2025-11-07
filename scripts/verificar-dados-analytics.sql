@@ -18,8 +18,7 @@ FROM rotas_entrega;
 SELECT 
   '👤 MOTORISTAS' AS info,
   COUNT(*) AS total,
-  COUNT(CASE WHEN status = 'Ativo' THEN 1 END) AS ativos,
-  COUNT(CASE WHEN pontuacao IS NOT NULL THEN 1 END) AS com_pontuacao
+  COUNT(CASE WHEN status = 'Ativo' THEN 1 END) AS ativos
 FROM motoristas;
 
 -- 3. Verificar manutenções
@@ -56,12 +55,11 @@ SELECT
   '🚗 MOTORISTAS COM ROTAS' AS info,
   m.nome,
   COUNT(r.id) AS total_rotas,
-  COUNT(CASE WHEN r.status = 'Entregue' THEN 1 END) AS entregas_completas,
-  m.pontuacao
+  COUNT(CASE WHEN r.status = 'Entregue' THEN 1 END) AS entregas_completas
 FROM motoristas m
 LEFT JOIN rotas_entrega r ON r.motorista_id = m.id
 WHERE m.status = 'Ativo'
-GROUP BY m.id, m.nome, m.pontuacao
+GROUP BY m.id, m.nome
 ORDER BY total_rotas DESC
 LIMIT 10;
 
