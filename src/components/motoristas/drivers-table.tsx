@@ -114,14 +114,43 @@ export function DriversTable({ onEdit, onView, data }: DriversTableProps) {
                   <span className="font-mono text-sm">{driver.cnh}</span>
                 </div>
               </TableCell>
-              <TableCell>{getCategoryBadge(driver.categoria)}</TableCell>
               <TableCell>
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-gray-500" />
-                  <span className="text-sm">{formatDate(driver.validadeCnh)}</span>
-                </div>
+                {driver.categoria_cnh ? getCategoryBadge(driver.categoria_cnh) : <span className="text-gray-400 text-sm">N/A</span>}
               </TableCell>
-              <TableCell>{getStatusBadge(driver.status, driver.validadeCnh)}</TableCell>
+              <TableCell>
+                {driver.validade_cnh ? (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-gray-500" />
+                    <div className="flex flex-col">
+                      <span className="text-sm">{formatDate(driver.validade_cnh)}</span>
+                      {(() => {
+                        const hoje = new Date()
+                        const vencimento = new Date(driver.validade_cnh)
+                        const diasParaVencer = Math.ceil((vencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24))
+                        
+                        if (diasParaVencer < 0) {
+                          return <span className="text-xs text-red-600 font-medium">Vencida há {Math.abs(diasParaVencer)} dias</span>
+                        } else if (diasParaVencer <= 30) {
+                          return (
+                            <div className="flex items-center gap-1">
+                              <AlertTriangle className="w-3 h-3 text-orange-500" />
+                              <span className="text-xs text-orange-600 font-medium">Vence em {diasParaVencer} dias</span>
+                            </div>
+                          )
+                        }
+                        return null
+                      })()}
+                    </div>
+                  </div>
+                ) : (
+                  <span className="text-gray-400 text-sm">N/A</span>
+                )}
+              </TableCell>
+              <TableCell>
+                {driver.validade_cnh ? getStatusBadge(driver.status || 'Ativo', driver.validade_cnh) : (
+                  <Badge variant="secondary">Sem CNH</Badge>
+                )}
+              </TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
                   <span className={`font-medium ${getPerformanceColor(driver.pontuacao)}`}>
