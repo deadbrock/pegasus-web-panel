@@ -24,27 +24,33 @@ CREATE INDEX IF NOT EXISTS idx_documentos_usuario_id ON documentos(usuario_id);
 -- RLS Policies
 ALTER TABLE documentos ENABLE ROW LEVEL SECURITY;
 
+-- Remover policies existentes se houver
+DROP POLICY IF EXISTS "Usuarios podem ver documentos" ON documentos;
+DROP POLICY IF EXISTS "Usuarios podem criar documentos" ON documentos;
+DROP POLICY IF EXISTS "Usuarios podem atualizar documentos" ON documentos;
+DROP POLICY IF EXISTS "Usuarios podem deletar documentos" ON documentos;
+
 -- Policy: Permitir leitura para todos os usuários autenticados
-CREATE POLICY IF NOT EXISTS "Usuários podem ver documentos"
+CREATE POLICY "Usuarios podem ver documentos"
 ON documentos FOR SELECT
 TO authenticated
 USING (true);
 
 -- Policy: Permitir inserção para todos os usuários autenticados
-CREATE POLICY IF NOT EXISTS "Usuários podem criar documentos"
+CREATE POLICY "Usuarios podem criar documentos"
 ON documentos FOR INSERT
 TO authenticated
 WITH CHECK (true);
 
 -- Policy: Permitir atualização para todos os usuários autenticados
-CREATE POLICY IF NOT EXISTS "Usuários podem atualizar documentos"
+CREATE POLICY "Usuarios podem atualizar documentos"
 ON documentos FOR UPDATE
 TO authenticated
 USING (true)
 WITH CHECK (true);
 
 -- Policy: Permitir exclusão para todos os usuários autenticados
-CREATE POLICY IF NOT EXISTS "Usuários podem deletar documentos"
+CREATE POLICY "Usuarios podem deletar documentos"
 ON documentos FOR DELETE
 TO authenticated
 USING (true);
