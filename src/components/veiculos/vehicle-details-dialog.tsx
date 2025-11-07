@@ -1,6 +1,6 @@
 "use client"
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
@@ -40,6 +40,9 @@ export function VehicleDetailsDialog({ open, onClose, vehicle }: VehicleDetailsD
           <DialogTitle>
             Detalhes do Veículo • <span className="font-mono">{vehicle.placa}</span>
           </DialogTitle>
+          <DialogDescription>
+            Informações completas do veículo {vehicle.marca} {vehicle.modelo}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -83,15 +86,25 @@ export function VehicleDetailsDialog({ open, onClose, vehicle }: VehicleDetailsD
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <div className="text-xs text-gray-500">KM Total</div>
-              <div className="font-medium">{vehicle.kmTotal.toLocaleString()} km</div>
+              <div className="font-medium">
+                {vehicle.kmTotal !== null && vehicle.kmTotal !== undefined 
+                  ? `${Number(vehicle.kmTotal).toLocaleString('pt-BR')} km`
+                  : '-'}
+              </div>
             </div>
             <div>
               <div className="text-xs text-gray-500">Capacidade</div>
-              <div className="font-medium">{vehicle.capacidade.toLocaleString()} kg</div>
+              <div className="font-medium">
+                {vehicle.capacidade !== null && vehicle.capacidade !== undefined 
+                  ? `${Number(vehicle.capacidade).toLocaleString('pt-BR')} kg`
+                  : '-'}
+              </div>
             </div>
             <div>
               <div className="text-xs text-gray-500">Última Manutenção</div>
-              <div className="font-medium">{formatDate(vehicle.ultimaManutencao)}</div>
+              <div className="font-medium">
+                {vehicle.ultimaManutencao ? formatDate(vehicle.ultimaManutencao) : '-'}
+              </div>
             </div>
           </div>
 

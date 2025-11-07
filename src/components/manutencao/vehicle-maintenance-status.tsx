@@ -179,15 +179,15 @@ export function VehicleMaintenanceStatus({ manutencoes = [] }: VehicleMaintenanc
               <div className="flex justify-between text-sm">
                 <span>Quilometragem</span>
                 <span>
-                  {vehicle.quilometragem_atual ? 
-                    `${vehicle.quilometragem_atual.toLocaleString()} km` : 
+                  {vehicle.quilometragem_atual !== null && vehicle.quilometragem_atual !== undefined ? 
+                    `${Number(vehicle.quilometragem_atual).toLocaleString('pt-BR')} km` : 
                     'N/A'
                   }
                 </span>
               </div>
-              {vehicle.quilometragem_atual && (
+              {vehicle.quilometragem_atual !== null && vehicle.quilometragem_atual !== undefined && (
                 <Progress 
-                  value={getKmProgress(vehicle.quilometragem_atual, vehicle.proximaManutencao)} 
+                  value={getKmProgress(Number(vehicle.quilometragem_atual), vehicle.proximaManutencao)} 
                   className="h-2"
                 />
               )}
