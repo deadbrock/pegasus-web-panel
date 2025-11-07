@@ -52,6 +52,8 @@ interface NovaAuditoria {
 export default function AuditoriaPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [isNewAuditDialogOpen, setIsNewAuditDialogOpen] = useState(false)
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false)
+  const [selectedLog, setSelectedLog] = useState<AuditoriaLog | null>(null)
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
   const [logs, setLogs] = useState<AuditoriaLog[]>([])
@@ -217,6 +219,11 @@ export default function AuditoriaPage() {
       critica: 'bg-red-100 text-red-800'
     }
     return colors[prioridade as keyof typeof colors] || 'bg-gray-100 text-gray-800'
+  }
+
+  const handleViewDetails = (log: AuditoriaLog) => {
+    setSelectedLog(log)
+    setIsDetailsDialogOpen(true)
   }
 
   if (loading) {
@@ -557,7 +564,11 @@ export default function AuditoriaPage() {
                         {log.ip && <span>IP: {log.ip}</span>}
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleViewDetails(log)}
+                    >
                       <Eye className="w-4 h-4" />
                     </Button>
                   </div>
@@ -567,6 +578,151 @@ export default function AuditoriaPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog de Detalhes do Log */}
+      <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Eye className="w-5 h-5" />
+              <span>Detalhes do Log</span>
+            </DialogTitle>
+            <DialogDescription>
+              Informações completas sobre esta atividade
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedLog && (
+            <div className="space-y-6 py-4">
+              {/* Badges de Status */}
+              <div className="flex items-center space-x-2">
+                {getAcaoBadge(selectedLog.acao)}
+                {getStatusBadge(selectedLog.status)}
+              </div>
+
+              {/* Informações Principais */}
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">ID do Log</Label>
+                    <p className="text-sm font-mono bg-gray-50 p-2 rounded mt-1 break-all">
+                      {selectedLog.id}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Módulo</Label>
+                    <p className="text-sm font-semibold mt-1">{selectedLog.modulo}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Ação Executada</Label>
+                  <p className="text-sm font-semibold mt-1">{selectedLog.acao}</p>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Descrição</Label>
+                  <p className="text-sm mt-1 bg-gray-50 p-3 rounded">
+                    {selectedLog.descricao || 'Sem descrição'}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Usuário</Label>
+                    <p className="text-sm mt-1 flex items-center">
+                      <User className="w-3 h-3 mr-1" />
+                      {selectedLog.usuario}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Endereço IP</Label>
+                    <p className="text-sm mt-1 font-mono">
+                      {selectedLog.ip || 'Não registrado'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Data/Hora</Label>
+                    <p className="text-sm mt-1 flex items-center">
+                      <Calendar className="w-3 h-3 mr-1" />
+                      {new Date(selectedLog.timestamp).toLocaleString('pt-BR', {
+                        dateStyle: 'short',
+                        timeStyle: 'medium'
+                      })}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Criado em</Label>
+                    <p className="text-sm mt-1">
+                      {new Date(selectedLog.created_at).toLocaleString('pt-BR', {
+                        dateStyle: 'short',
+                        timeStyle: 'medium'
+                      })}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Detalhes JSON */}
+                {selectedLog.detalhes && Object.keys(selectedLog.detalhes).length > 0 && (
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Detalhes Adicionais</Label>
+                    <div className="mt-2 bg-gray-900 text-gray-100 p-4 rounded font-mono text-xs overflow-x-auto">
+                      <pre>{JSON.stringify(selectedLog.detalhes, null, 2)}</pre>
+                    </div>
+                  </div>
+                )}
+
+                {/* Informações Técnicas */}
+                <div className="border-t pt-4 mt-4">
+                  <Label className="text-sm font-medium text-gray-500 mb-3 block">
+                    Informações Técnicas
+                  </Label>
+                  <div className="grid grid-cols-1 gap-2 text-xs bg-gray-50 p-3 rounded">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Status:</span>
+                      <span className="font-semibold">{selectedLog.status}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Timestamp Unix:</span>
+                      <span className="font-mono">
+                        {new Date(selectedLog.timestamp).getTime()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Tempo Decorrido:</span>
+                      <span>
+                        {(() => {
+                          const diff = Date.now() - new Date(selectedLog.timestamp).getTime()
+                          const minutes = Math.floor(diff / 60000)
+                          const hours = Math.floor(minutes / 60)
+                          const days = Math.floor(hours / 24)
+                          
+                          if (days > 0) return `${days} dia(s) atrás`
+                          if (hours > 0) return `${hours} hora(s) atrás`
+                          if (minutes > 0) return `${minutes} minuto(s) atrás`
+                          return 'Agora mesmo'
+                        })()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end pt-4 border-t">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsDetailsDialogOpen(false)}
+            >
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
