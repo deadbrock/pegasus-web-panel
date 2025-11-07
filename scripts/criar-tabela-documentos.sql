@@ -19,7 +19,16 @@ CREATE TABLE IF NOT EXISTS documentos (
 -- Índices
 CREATE INDEX IF NOT EXISTS idx_documentos_tipo ON documentos(tipo);
 CREATE INDEX IF NOT EXISTS idx_documentos_created_at ON documentos(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_documentos_usuario_id ON documentos(usuario_id);
+-- Índice de usuario_id só se a coluna existir
+DO $$ 
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'documentos' AND column_name = 'usuario_id'
+  ) THEN
+    CREATE INDEX IF NOT EXISTS idx_documentos_usuario_id ON documentos(usuario_id);
+  END IF;
+END $$;
 
 -- RLS Policies
 ALTER TABLE documentos ENABLE ROW LEVEL SECURITY;
