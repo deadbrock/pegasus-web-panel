@@ -152,26 +152,30 @@ export function DriversTable({ onEdit, onView, data }: DriversTableProps) {
                 )}
               </TableCell>
               <TableCell>
-                <div className="flex items-center gap-2">
-                  <span className={`font-medium ${getPerformanceColor(driver.pontuacao)}`}>
-                    {driver.pontuacao}%
-                  </span>
-                  <div className="w-16 bg-gray-200 rounded-full h-2">
-                    <div 
-                      className={`h-2 rounded-full ${
-                        driver.pontuacao >= 90 ? 'bg-green-500' :
-                        driver.pontuacao >= 80 ? 'bg-yellow-500' : 'bg-red-500'
-                      }`}
-                      style={{ width: `${driver.pontuacao}%` }}
-                    />
+                {driver.pontuacao !== undefined && driver.pontuacao !== null && driver.pontuacao > 0 ? (
+                  <div className="flex items-center gap-2">
+                    <span className={`font-medium ${getPerformanceColor(driver.pontuacao)}`}>
+                      {driver.pontuacao}%
+                    </span>
+                    <div className="w-16 bg-gray-200 rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full ${
+                          driver.pontuacao >= 90 ? 'bg-green-500' :
+                          driver.pontuacao >= 80 ? 'bg-yellow-500' : 'bg-red-500'
+                        }`}
+                        style={{ width: `${driver.pontuacao}%` }}
+                      />
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <span className="text-gray-400 text-sm">Sem dados</span>
+                )}
               </TableCell>
               <TableCell>
                 <div>
-                  <p className="font-medium">{driver.totalViagens}</p>
+                  <p className="font-medium">{driver.totalViagens || 0}</p>
                   <p className="text-sm text-gray-500">
-                    Última: {formatDate(driver.ultimaViagem)}
+                    {driver.ultimaViagem ? `Última: ${formatDate(driver.ultimaViagem)}` : 'Nenhuma viagem'}
                   </p>
                 </div>
               </TableCell>

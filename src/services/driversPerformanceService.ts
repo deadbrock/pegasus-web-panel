@@ -46,8 +46,8 @@ export async function fetchDriverPerformance(motoristaId: string): Promise<Drive
 
     const totalViagens = rotas?.length || 0
     
-    // Última viagem (mais recente)
-    const ultimaViagem = rotas && rotas.length > 0 
+    // Última viagem (mais recente) - apenas se houver rotas válidas
+    const ultimaViagem = rotas && rotas.length > 0 && rotas[0].data_criacao
       ? rotas[0].data_criacao 
       : null
 
