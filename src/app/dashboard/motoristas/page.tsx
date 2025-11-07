@@ -316,7 +316,7 @@ export default function MotoristasPage() {
               <CardTitle>Status dos Documentos</CardTitle>
             </CardHeader>
             <CardContent>
-              <DriverDocumentsStatus statusSummary={stats?.documentosStatus} />
+              <DriverDocumentsStatus statusSummary={stats?.documentosStatus} drivers={drivers} />
             </CardContent>
           </Card>
         </TabsContent>

@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Calendar, FileText, AlertTriangle, CheckCircle, Upload } from 'lucide-react'
+import { DriverRecord } from '@/services/driversService'
 
 type DocumentosStatusType = {
   vencidos: number
@@ -14,10 +15,33 @@ type DocumentosStatusType = {
 
 type DriverDocumentsStatusProps = {
   statusSummary?: DocumentosStatusType
+  drivers?: DriverRecord[]
 }
 
-export function DriverDocumentsStatus({ statusSummary }: DriverDocumentsStatusProps) {
-  const documentsData: any[] = [] // Pode ser expandido para exibir tabela completa de documentos
+export function DriverDocumentsStatus({ statusSummary, drivers = [] }: DriverDocumentsStatusProps) {
+  // Mapear motoristas para dados de documentos
+  const documentsData = drivers.map(driver => {
+    const hoje = new Date()
+    const validade_cnh = driver.validade_cnh ? new Date(driver.validade_cnh) : null
+    const diasCnh = validade_cnh 
+      ? Math.ceil((validade_cnh.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24))
+      : 999
+    
+    return {
+      id: driver.id,
+      motorista: driver.nome,
+      cnh: {
+        status: diasCnh < 0 ? 'Vencida' : diasCnh <= 30 ? 'Vencendo' : validade_cnh ? 'Em Dia' : 'Pendente',
+        dias: diasCnh,
+        validade: driver.validade_cnh
+      },
+      // Documentos futuros (podem ser adicionados na tabela motoristas)
+      exameMedico: { status: 'Pendente', dias: 999, validade: null },
+      certidaoAntecedentes: { status: 'Pendente', dias: 999, validade: null },
+      cursoDefensiva: { status: 'Pendente', dias: 999, validade: null }
+    }
+  })
+  
   const summary = statusSummary || { vencidos: 0, vencendo: 0, pendentes: 0, emDia: 0 }
   const getStatusBadge = (status: string, dias: number) => {
     if (status === 'Vencida' || dias < 0) {

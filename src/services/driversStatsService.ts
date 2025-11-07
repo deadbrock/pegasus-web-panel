@@ -37,8 +37,11 @@ export function calcularEstatisticasMotoristas(drivers: DriverRecord[]): DriverS
   let cnhVencidas = 0
   
   drivers.forEach(driver => {
-    const vencimento = new Date(driver.validadeCnh || '')
-    const diasParaVencer = Math.ceil((vencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24))
+    // Usar validade_cnh (campo correto do banco)
+    const validade = driver.validade_cnh ? new Date(driver.validade_cnh) : null
+    const diasParaVencer = validade 
+      ? Math.ceil((validade.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24))
+      : 999
     
     if (driver.status === 'Ativo') {
       ativos++
@@ -46,10 +49,13 @@ export function calcularEstatisticasMotoristas(drivers: DriverRecord[]): DriverS
       inativos++
     }
     
-    if (diasParaVencer < 0) {
-      cnhVencidas++
-    } else if (diasParaVencer <= 30) {
-      cnhVencendo++
+    // Contar CNHs apenas se houver validade cadastrada
+    if (validade) {
+      if (diasParaVencer < 0) {
+        cnhVencidas++
+      } else if (diasParaVencer <= 30) {
+        cnhVencendo++
+      }
     }
   })
   
@@ -131,8 +137,12 @@ export function buscarAlertasDocumentos(drivers: DriverRecord[]) {
   }> = []
   
   drivers.forEach(driver => {
-    const vencimento = new Date(driver.validadeCnh || '')
-    const diasParaVencer = Math.ceil((vencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24))
+    // Usar validade_cnh (campo correto do banco)
+    const validade = driver.validade_cnh ? new Date(driver.validade_cnh) : null
+    
+    if (!validade) return // Ignorar motoristas sem validade cadastrada
+    
+    const diasParaVencer = Math.ceil((validade.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24))
     
     if (diasParaVencer < 0) {
       alertas.push({
