@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient'
+import { fetchDriverPerformance, type DriverPerformanceData } from './driversPerformanceService'
 
 export type DriverStatus = 'Ativo' | 'Inativo'
 
@@ -17,15 +18,19 @@ export interface DriverRecord {
   data_admissao?: string | null // ISO
   data_nascimento?: string | null // ISO
   observacoes?: string | null
-  // Campos apenas de UI (não garantidos no schema):
+  // Campos calculados dinamicamente de rotas_entrega:
   ultimaViagem?: string | null // ISO
-  totalViagens?: number | null
-  pontuacao?: number | null
+  totalViagens?: number
+  pontuacao?: number
+  pontualidade?: number
+  seguranca?: number
+  eficiencia?: number
+  satisfacao?: number
   created_at?: string
   updated_at?: string
 }
 
-function mapRowFromDb(row: any): DriverRecord {
+function mapRowFromDb(row: any, performance?: DriverPerformanceData): DriverRecord {
   return {
     id: row.id,
     nome: row.nome,
@@ -41,10 +46,14 @@ function mapRowFromDb(row: any): DriverRecord {
     data_admissao: row.data_admissao ?? null,
     data_nascimento: row.data_nascimento ?? null,
     observacoes: row.observacoes ?? null,
-    // UI-only fallbacks:
-    ultimaViagem: null,
-    totalViagens: null,
-    pontuacao: null,
+    // Dados de performance (calculados de rotas_entrega):
+    ultimaViagem: performance?.ultimaViagem ?? null,
+    totalViagens: performance?.totalViagens ?? 0,
+    pontuacao: performance?.pontuacao ?? 0,
+    pontualidade: performance?.pontualidade ?? 0,
+    seguranca: performance?.seguranca ?? 0,
+    eficiencia: performance?.eficiencia ?? 0,
+    satisfacao: performance?.satisfacao ?? 0,
     created_at: row.created_at,
     updated_at: row.updated_at,
   }
@@ -91,7 +100,16 @@ export async function fetchDrivers(): Promise<DriverRecord[]> {
     console.warn('fetchDrivers error:', error.message)
     return []
   }
-  return (data || []).map(mapRowFromDb)
+  
+  // Buscar performance de cada motorista
+  const driversWithPerformance = await Promise.all(
+    (data || []).map(async (row) => {
+      const performance = row.id ? await fetchDriverPerformance(row.id) : null
+      return mapRowFromDb(row, performance || undefined)
+    })
+  )
+  
+  return driversWithPerformance
 }
 
 export async function createDriver(d: DriverRecord): Promise<DriverRecord | null> {

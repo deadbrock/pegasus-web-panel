@@ -50,18 +50,53 @@ export function DriverDetailsDialog({ open, onClose, driver }: DriverDetailsDial
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <div className="text-xs text-gray-500">Categoria</div>
-              <div className="font-medium">{driver.categoria || '-'}</div>
+              <div className="text-xs text-gray-500">Categoria CNH</div>
+              <div className="font-medium">{driver.categoria_cnh || '-'}</div>
             </div>
             <div>
               <div className="text-xs text-gray-500">Validade CNH</div>
-              <div className="font-medium">{driver.validadeCnh ? new Date(driver.validadeCnh).toLocaleDateString('pt-BR') : '-'}</div>
+              <div className="font-medium">
+                {driver.validade_cnh ? new Date(driver.validade_cnh).toLocaleDateString('pt-BR') : '-'}
+              </div>
             </div>
             <div>
               <div className="text-xs text-gray-500">Data Admissão</div>
-              <div className="font-medium">{driver.dataAdmissao ? new Date(driver.dataAdmissao).toLocaleDateString('pt-BR') : '-'}</div>
+              <div className="font-medium">
+                {driver.data_admissao ? new Date(driver.data_admissao).toLocaleDateString('pt-BR') : '-'}
+              </div>
             </div>
           </div>
+
+          <div className="border-t pt-4">
+            <h3 className="font-semibold mb-3">Dados de Performance</h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <div className="text-xs text-gray-500">Total de Viagens</div>
+                <div className="font-medium text-lg">{driver.totalViagens || 0}</div>
+              </div>
+              <div>
+                <div className="text-xs text-gray-500">Última Viagem</div>
+                <div className="font-medium">
+                  {driver.ultimaViagem ? new Date(driver.ultimaViagem).toLocaleDateString('pt-BR') : '-'}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs text-gray-500">Pontuação Geral</div>
+                <div className="font-medium text-lg">{driver.pontuacao || 0}%</div>
+              </div>
+              <div>
+                <div className="text-xs text-gray-500">Pontualidade</div>
+                <div className="font-medium text-lg">{driver.pontualidade || 0}%</div>
+              </div>
+            </div>
+          </div>
+
+          {driver.observacoes && (
+            <div className="border-t pt-4">
+              <div className="text-xs text-gray-500">Observações</div>
+              <div className="font-medium">{driver.observacoes}</div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

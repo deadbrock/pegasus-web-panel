@@ -172,6 +172,9 @@ export async function finalizarEntrega(rotaId: string): Promise<RotaEntrega | nu
       .from('pedidos_supervisores')
       .update({ status: 'Entregue' })
       .eq('id', data.pedido_id)
+    
+    // Log da entrega concluída (a performance será calculada dinamicamente)
+    console.log(`[Rotas] Entrega concluída - Rota: ${rotaId}, Motorista: ${data.motorista_id}`)
   }
 
   return data

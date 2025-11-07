@@ -56,7 +56,7 @@ export function calcularEstatisticasMotoristas(drivers: DriverRecord[]): DriverS
   // Contar por categoria
   const categorias: Record<string, number> = {}
   drivers.forEach(driver => {
-    const cat = driver.categoria || 'N/A'
+    const cat = driver.categoria_cnh || 'N/A'
     categorias[cat] = (categorias[cat] || 0) + 1
   })
   
@@ -80,14 +80,28 @@ export function calcularEstatisticasMotoristas(drivers: DriverRecord[]): DriverS
     emDia: total - cnhVencidas - cnhVencendo
   }
   
-  // Performance média - calculada dos motoristas (se disponível)
-  // Por enquanto, calcula baseado na taxa de documentos em dia
-  const taxaDocumentosEmDia = total > 0 ? Math.round(((total - cnhVencidas) / total) * 100) : 0
+  // Performance média - calculada dos dados reais dos motoristas
+  let somaPontualidade = 0
+  let somaSeguranca = 0
+  let somaEficiencia = 0
+  let somaSatisfacao = 0
+  let countComPerformance = 0
+  
+  drivers.forEach(driver => {
+    if (driver.pontuacao && driver.pontuacao > 0) {
+      somaPontualidade += driver.pontualidade || 0
+      somaSeguranca += driver.seguranca || 0
+      somaEficiencia += driver.eficiencia || 0
+      somaSatisfacao += driver.satisfacao || 0
+      countComPerformance++
+    }
+  })
+  
   const performance = {
-    pontualidade: total > 0 ? taxaDocumentosEmDia : 0,
-    seguranca: total > 0 ? taxaDocumentosEmDia : 0,
-    eficiencia: total > 0 ? Math.round((ativos / total) * 100) : 0,
-    satisfacao: total > 0 ? taxaDocumentosEmDia : 0
+    pontualidade: countComPerformance > 0 ? Math.round(somaPontualidade / countComPerformance) : 0,
+    seguranca: countComPerformance > 0 ? Math.round(somaSeguranca / countComPerformance) : 0,
+    eficiencia: countComPerformance > 0 ? Math.round(somaEficiencia / countComPerformance) : 0,
+    satisfacao: countComPerformance > 0 ? Math.round(somaSatisfacao / countComPerformance) : 0
   }
   
   return {
@@ -151,16 +165,16 @@ export function buscarAlertasDocumentos(drivers: DriverRecord[]) {
 }
 
 /**
- * Retorna os motoristas com melhor performance (mock por enquanto)
+ * Retorna os motoristas com melhor performance (dados reais)
  */
 export function buscarMelhoresPerformances(drivers: DriverRecord[]) {
-  // Mock data - pode ser expandido com dados reais de performance
   const performances = drivers
-    .filter(d => d.status === 'Ativo')
+    .filter(d => d.status === 'Ativo' && d.pontuacao && d.pontuacao > 0)
+    .sort((a, b) => (b.pontuacao || 0) - (a.pontuacao || 0))
     .slice(0, 3)
-    .map((d, i) => ({
+    .map(d => ({
       nome: d.nome,
-      pontuacao: 96 - (i * 2) // Mock
+      pontuacao: d.pontuacao || 0
     }))
   
   return performances
