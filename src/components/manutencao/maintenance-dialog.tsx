@@ -92,9 +92,13 @@ export function MaintenanceDialog({ open, onClose, maintenance, onSave }: Mainte
         tipo: maintenance.tipo || '',
         descricao: maintenance.descricao || '',
         dataAgendada: maintenance.data_agendada ? new Date(maintenance.data_agendada) : undefined,
-        quilometragem: maintenance.quilometragem?.toString() || '',
+        quilometragem: maintenance.quilometragem !== null && maintenance.quilometragem !== undefined 
+          ? maintenance.quilometragem.toString() 
+          : '',
         status: maintenance.status || 'Pendente',
-        custo: maintenance.custo?.toString() || '',
+        custo: maintenance.custo !== null && maintenance.custo !== undefined 
+          ? maintenance.custo.toString() 
+          : '',
         responsavel: maintenance.responsavel || '',
         observacoes: maintenance.observacoes || ''
       })
