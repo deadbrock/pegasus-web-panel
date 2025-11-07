@@ -1,48 +1,23 @@
 'use client'
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { useEffect, useState } from 'react'
+import { getDriversPerformanceRange } from '@/lib/services/analytics-realtime'
 
-// Mock data - substituir por dados do Supabase
-const data = [
-  {
-    name: 'João Silva',
-    entregas: 45,
-    pontuacao: 92,
-    eficiencia: 88
-  },
-  {
-    name: 'Maria Santos',
-    entregas: 52,
-    pontuacao: 96,
-    eficiencia: 94
-  },
-  {
-    name: 'Pedro Costa',
-    entregas: 38,
-    pontuacao: 85,
-    eficiencia: 82
-  },
-  {
-    name: 'Ana Oliveira',
-    entregas: 41,
-    pontuacao: 89,
-    eficiencia: 87
-  },
-  {
-    name: 'Carlos Lima',
-    entregas: 47,
-    pontuacao: 91,
-    eficiencia: 89
-  },
-  {
-    name: 'Luiza Alves',
-    entregas: 35,
-    pontuacao: 86,
-    eficiencia: 85
-  }
-]
+interface Props { from?: Date; to?: Date }
 
-export function PerformanceChart() {
+export function PerformanceChart({ from, to }: Props) {
+  const [data, setData] = useState<any[]>([])
+
+  useEffect(() => {
+    const loadData = async () => {
+      const start = from || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      const end = to || new Date()
+      const result = await getDriversPerformanceRange(start, end)
+      setData(result)
+    }
+    loadData()
+  }, [from?.toString(), to?.toString()])
   return (
     <div className="h-80">
       <ResponsiveContainer width="100%" height="100%">

@@ -2,7 +2,7 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
 import { useEffect, useState } from 'react'
-import { getRouteStatus, getRouteStatusRange } from '@/lib/services/analytics-service'
+import { getRouteStatusRange } from '@/lib/services/analytics-realtime'
 const palette = ['#f59e0b','#10b981','#3b82f6','#ef4444','#8b5cf6']
 
 const RADIAN = Math.PI / 180
@@ -41,8 +41,13 @@ interface Props { from?: Date; to?: Date }
 export function RouteStatusChart({ from, to }: Props) {
   const [data, setData] = useState<any[]>([])
   useEffect(() => {
-    if (from && to) getRouteStatusRange(from, to).then(setData)
-    else getRouteStatus().then(setData)
+    const loadData = async () => {
+      const start = from || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      const end = to || new Date()
+      const result = await getRouteStatusRange(start, end)
+      setData(result)
+    }
+    loadData()
   }, [from?.toString(), to?.toString()])
   return (
     <div className="h-80">

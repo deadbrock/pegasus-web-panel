@@ -2,18 +2,27 @@
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
 import { useEffect, useState } from 'react'
-import { getDeliveryEvolution, getDeliveryEvolutionRange } from '@/lib/services/analytics-service'
+import { getDeliveryEvolutionRange } from '@/lib/services/analytics-realtime'
 
 interface Props { from?: Date; to?: Date }
 
 export function DeliveryEvolutionChart({ from, to }: Props) {
   const [data, setData] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  
   useEffect(() => {
-    if (from && to) {
-      getDeliveryEvolutionRange(from, to).then(setData)
-    } else {
-      getDeliveryEvolution(30).then(setData)
+    const loadData = async () => {
+      setLoading(true)
+      try {
+        const start = from || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+        const end = to || new Date()
+        const result = await getDeliveryEvolutionRange(start, end)
+        setData(result)
+      } finally {
+        setLoading(false)
+      }
     }
+    loadData()
   }, [from?.toString(), to?.toString()])
   return (
     <div className="h-80">

@@ -2,7 +2,7 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
 import { useEffect, useState } from 'react'
-import { getCostsByCategory, getCostsByCategoryRange } from '@/lib/services/analytics-service'
+import { getCostsByCategoryRange } from '@/lib/services/analytics-realtime'
 const pal = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6']
 
 const RADIAN = Math.PI / 180
@@ -38,8 +38,13 @@ interface Props { from?: Date; to?: Date }
 export function CostsCategoryChart({ from, to }: Props) {
   const [data, setData] = useState<any[]>([])
   useEffect(() => {
-    if (from && to) getCostsByCategoryRange(from, to).then(setData)
-    else getCostsByCategory().then(setData)
+    const loadData = async () => {
+      const start = from || new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+      const end = to || new Date()
+      const result = await getCostsByCategoryRange(start, end)
+      setData(result)
+    }
+    loadData()
   }, [from?.toString(), to?.toString()])
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
