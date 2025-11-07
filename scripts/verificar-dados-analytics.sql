@@ -37,8 +37,8 @@ SELECT
   COUNT(*) AS total,
   COUNT(CASE WHEN status = 'Entregue' THEN 1 END) AS entregues,
   COUNT(CASE WHEN status = 'Aprovado' THEN 1 END) AS aprovados,
-  MIN(data_pedido) AS primeiro_pedido,
-  MAX(data_pedido) AS ultimo_pedido
+  MIN(created_at) AS primeiro_pedido,
+  MAX(created_at) AS ultimo_pedido
 FROM pedidos_supervisores;
 
 -- 5. Verificar rotas por status
