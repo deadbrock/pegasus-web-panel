@@ -42,14 +42,24 @@ export async function calcularEstatisticasAnalytics(
   periodoAnterior: { inicio: Date; fim: Date }
 ): Promise<AnalyticsStats> {
   try {
+    console.log('[Analytics] Buscando dados do período:', {
+      inicio: periodoAtual.inicio.toISOString(),
+      fim: periodoAtual.fim.toISOString()
+    })
+
     // Buscar rotas do período atual
     const { data: rotasAtuais, error: errorAtual } = await supabase
       .from('rotas_entrega')
-      .select('status, data_criacao')
+      .select('status, data_criacao, motorista_id')
       .gte('data_criacao', periodoAtual.inicio.toISOString())
       .lte('data_criacao', periodoAtual.fim.toISOString())
 
-    if (errorAtual) throw errorAtual
+    if (errorAtual) {
+      console.error('[Analytics] Erro ao buscar rotas atuais:', errorAtual)
+      throw errorAtual
+    }
+
+    console.log('[Analytics] Rotas encontradas:', rotasAtuais?.length || 0)
 
     // Buscar rotas do período anterior
     const { data: rotasAnteriores, error: errorAnterior } = await supabase
@@ -95,15 +105,23 @@ export async function calcularEstatisticasAnalytics(
     const custoAnterior = custosAnteriores?.reduce((sum, m) => sum + (Number(m.custo) || 0), 0) || 0
 
     // Buscar motoristas ativos (que fizeram entregas no período)
-    const { data: motoristasData } = await supabase
+    const { data: motoristasData, error: errorMotoristas } = await supabase
       .from('rotas_entrega')
       .select('motorista_id')
       .gte('data_criacao', periodoAtual.inicio.toISOString())
       .lte('data_criacao', periodoAtual.fim.toISOString())
       .not('motorista_id', 'is', null)
 
+    if (errorMotoristas) {
+      console.error('[Analytics] Erro ao buscar motoristas:', errorMotoristas)
+    }
+
+    console.log('[Analytics] Rotas com motoristas:', motoristasData?.length || 0)
+
     const motoristasUnicos = new Set(motoristasData?.map(r => r.motorista_id) || [])
     const motoristasAtivos = motoristasUnicos.size
+
+    console.log('[Analytics] Motoristas únicos ativos:', motoristasAtivos)
 
     const { data: motoristasAnterioresData } = await supabase
       .from('rotas_entrega')
@@ -282,6 +300,11 @@ export async function getCostsByCategoryRange(start: Date, end: Date): Promise<P
  */
 export async function getDriversPerformanceRange(start: Date, end: Date): Promise<DriverPerformance[]> {
   try {
+    console.log('[Analytics] Buscando performance de motoristas:', {
+      inicio: start.toISOString(),
+      fim: end.toISOString()
+    })
+
     const { data: rotas, error: errorRotas } = await supabase
       .from('rotas_entrega')
       .select('motorista_id, status, data_criacao')
@@ -289,16 +312,49 @@ export async function getDriversPerformanceRange(start: Date, end: Date): Promis
       .lte('data_criacao', end.toISOString())
       .not('motorista_id', 'is', null)
 
-    if (errorRotas) throw errorRotas
+    if (errorRotas) {
+      console.error('[Analytics] Erro ao buscar rotas para performance:', errorRotas)
+      throw errorRotas
+    }
+
+    console.log('[Analytics] Rotas encontradas para performance:', rotas?.length || 0)
+
+    // Se não houver rotas, buscar todos os motoristas ativos
+    if (!rotas || rotas.length === 0) {
+      console.log('[Analytics] Sem rotas, buscando todos motoristas ativos')
+      const { data: todosMotoristas, error: errorTodos } = await supabase
+        .from('motoristas')
+        .select('id, nome, pontuacao')
+        .eq('status', 'Ativo')
+        .limit(10)
+
+      if (errorTodos) {
+        console.error('[Analytics] Erro ao buscar motoristas:', errorTodos)
+        return []
+      }
+
+      return (todosMotoristas || []).map(m => ({
+        name: m.nome,
+        entregas: 0,
+        pontuacao: m.pontuacao || 0
+      }))
+    }
 
     // Buscar dados dos motoristas
     const motoristasIds = [...new Set(rotas?.map(r => r.motorista_id) || [])]
+    console.log('[Analytics] IDs de motoristas únicos:', motoristasIds.length)
+
     const { data: motoristas, error: errorMotoristas } = await supabase
       .from('motoristas')
       .select('id, nome, pontuacao')
       .in('id', motoristasIds)
 
-    if (errorMotoristas) throw errorMotoristas
+    if (errorMotoristas) {
+      console.error('[Analytics] Erro ao buscar dados de motoristas:', errorMotoristas)
+      throw errorMotoristas
+    }
+
+    console.log('[Analytics] Motoristas encontrados:', motoristas?.length || 0)
 
     // Calcular performance por motorista
     const stats: Record<string, { nome: string; entregas: number; pontuacao: number }> = {}
@@ -319,7 +375,7 @@ export async function getDriversPerformanceRange(start: Date, end: Date): Promis
       }
     }
 
-    return Object.values(stats)
+    const resultado = Object.values(stats)
       .map(v => ({
         name: v.nome,
         entregas: v.entregas,
@@ -327,6 +383,10 @@ export async function getDriversPerformanceRange(start: Date, end: Date): Promis
       }))
       .sort((a, b) => b.entregas - a.entregas)
       .slice(0, 10) // Top 10 motoristas
+
+    console.log('[Analytics] Performance calculada:', resultado.length, 'motoristas')
+
+    return resultado
   } catch (error) {
     console.error('[getDriversPerformanceRange] Erro:', error)
     return []
