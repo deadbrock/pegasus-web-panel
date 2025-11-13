@@ -99,6 +99,15 @@ const moduleGroups: ModuleGroup[] = [
       { name: 'Forecast', path: '/dashboard/forecast', icon: TrendingUp },
       { name: 'Planejamento', path: '/dashboard/planejamento', icon: ClipboardList },
     ]
+  },
+  {
+    id: 'admin',
+    name: 'ADMINISTRAÇÃO',
+    icon: Settings,
+    modules: [
+      { name: 'Supervisores', path: '/dashboard/supervisores', icon: Users },
+      { name: 'Configurações', path: '/dashboard/configuracoes', icon: Settings },
+    ]
   }
 ]
 

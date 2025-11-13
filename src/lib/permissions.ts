@@ -198,6 +198,13 @@ export const ALL_MODULES: ModulePermission[] = [
     icon: 'Settings',
     path: '/dashboard/configuracoes',
     allowedRoles: ['admin', 'diretor', 'financeiro', 'gestor']
+  },
+  {
+    id: 'supervisores',
+    name: 'Supervisores',
+    icon: 'Users',
+    path: '/dashboard/supervisores',
+    allowedRoles: ['admin', 'diretor', 'logistica']
   }
 ];
 

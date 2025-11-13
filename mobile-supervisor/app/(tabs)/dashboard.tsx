@@ -112,9 +112,9 @@ export default function DashboardScreen() {
       >
         <View style={styles.headerContent}>
           <View>
-            <RNText style={styles.greeting}>Olá,</RNText>
-            <RNText style={styles.userName}>{userName}!</RNText>
-            <RNText style={styles.headerSubtitle}>Bem-vindo ao sistema</RNText>
+            <RNText style={styles.greeting}>Bem-vindo,</RNText>
+            <RNText style={styles.userName}>{userName}</RNText>
+            <RNText style={styles.headerSubtitle}>Sistema Pegasus Supervisor</RNText>
           </View>
           <View style={styles.avatarContainer}>
             <MaterialCommunityIcons name="account-circle" size={56} color={colors.white} />
