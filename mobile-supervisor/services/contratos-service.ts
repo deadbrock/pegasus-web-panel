@@ -78,13 +78,15 @@ export async function fetchTodosContratos(supervisorId: string): Promise<Contrat
 
 /**
  * Busca um contrato específico por ID
+ * 🔒 SEGURANÇA: Verifica se o contrato pertence ao supervisor
  */
-export async function fetchContratoById(contratoId: string): Promise<Contrato | null> {
+export async function fetchContratoById(contratoId: string, supervisorId: string): Promise<Contrato | null> {
   try {
     const { data, error } = await supabase
       .from('contratos_supervisores')
       .select('*')
       .eq('id', contratoId)
+      .eq('supervisor_id', supervisorId) // 🔒 Filtro de segurança
       .single()
 
     if (error) throw error
@@ -132,9 +134,11 @@ export async function criarContrato(
 
 /**
  * Atualiza um contrato existente
+ * 🔒 SEGURANÇA: Verifica se o contrato pertence ao supervisor antes de atualizar
  */
 export async function atualizarContrato(
   contratoId: string,
+  supervisorId: string,
   formData: ContratoFormData
 ): Promise<{ success: boolean; contrato?: Contrato; message: string }> {
   try {
@@ -142,6 +146,7 @@ export async function atualizarContrato(
       .from('contratos_supervisores')
       .update(formData)
       .eq('id', contratoId)
+      .eq('supervisor_id', supervisorId) // 🔒 Filtro de segurança
       .select()
       .single()
 
@@ -163,13 +168,15 @@ export async function atualizarContrato(
 
 /**
  * Desativa um contrato (soft delete)
+ * 🔒 SEGURANÇA: Verifica se o contrato pertence ao supervisor antes de desativar
  */
-export async function desativarContrato(contratoId: string): Promise<{ success: boolean; message: string }> {
+export async function desativarContrato(contratoId: string, supervisorId: string): Promise<{ success: boolean; message: string }> {
   try {
     const { error } = await supabase
       .from('contratos_supervisores')
       .update({ ativo: false })
       .eq('id', contratoId)
+      .eq('supervisor_id', supervisorId) // 🔒 Filtro de segurança
 
     if (error) throw error
 
@@ -188,13 +195,15 @@ export async function desativarContrato(contratoId: string): Promise<{ success: 
 
 /**
  * Reativa um contrato
+ * 🔒 SEGURANÇA: Verifica se o contrato pertence ao supervisor antes de reativar
  */
-export async function reativarContrato(contratoId: string): Promise<{ success: boolean; message: string }> {
+export async function reativarContrato(contratoId: string, supervisorId: string): Promise<{ success: boolean; message: string }> {
   try {
     const { error } = await supabase
       .from('contratos_supervisores')
       .update({ ativo: true })
       .eq('id', contratoId)
+      .eq('supervisor_id', supervisorId) // 🔒 Filtro de segurança
 
     if (error) throw error
 

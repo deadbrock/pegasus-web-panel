@@ -525,7 +525,7 @@ export default function PedidosScreen() {
   return (
     <View style={styles.container}>
       {/* Filtros */}
-      <View style={styles.filterContainer}>
+      <View style={[styles.filterContainer, { paddingTop: insets.top + 10 }]}>
         <Chip
           selected={filter === 'todos'}
           onPress={() => setFilter('todos')}
@@ -603,7 +603,7 @@ export default function PedidosScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-        contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 100 + insets.bottom : 140 }}
+        contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 100 + insets.bottom : 130 }}
       >
         {pedidos.length === 0 ? (
           <View style={styles.emptyContainer}>

@@ -4,9 +4,11 @@ import { List, Divider, Text, Avatar, Button, ActivityIndicator, Dialog, Portal,
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors, spacing, typography, borderRadius, shadows } from '../../styles/theme'
 
 export default function PerfilScreen() {
+  const insets = useSafeAreaInsets()
   const [loading, setLoading] = useState(true)
   const [userName, setUserName] = useState('Supervisor')
   const [userEmail, setUserEmail] = useState('')
@@ -324,9 +326,12 @@ export default function PerfilScreen() {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      contentContainerStyle={{ paddingBottom: 130 }}
+    >
       {/* Header do Perfil */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
         <Avatar.Text 
           size={80} 
           label={userName.substring(0, 2).toUpperCase()} 

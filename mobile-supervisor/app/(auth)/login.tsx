@@ -59,7 +59,7 @@ export default function LoginScreen() {
 
   return (
     <LinearGradient
-      colors={[colors.primary, colors.primaryDark]}
+      colors={['#1e40af', '#0f172a', '#1e3a8a']}
       style={styles.gradient}
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}

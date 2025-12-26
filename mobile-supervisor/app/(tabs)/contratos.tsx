@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView, RefreshControl, Alert, TouchableOpacity }
 import { Text, FAB, Card, Chip, Dialog, Portal, TextInput, Button, ActivityIndicator } from 'react-native-paper'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import {
   fetchContratosAtivos,
   criarContrato,
@@ -18,6 +19,7 @@ import {
 import { colors, spacing, typography, borderRadius, shadows } from '../../styles/theme'
 
 export default function ContratosScreen() {
+  const insets = useSafeAreaInsets()
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [contratos, setContratos] = useState<Contrato[]>([])
@@ -112,7 +114,7 @@ export default function ContratosScreen() {
           text: 'Desativar',
           style: 'destructive',
           onPress: async () => {
-            const resultado = await desativarContrato(contrato.id)
+            const resultado = await desativarContrato(contrato.id, supervisorId)
             
             if (resultado.success) {
               Alert.alert('Sucesso', resultado.message)
@@ -160,7 +162,7 @@ export default function ContratosScreen() {
 
       if (contratoEditando) {
         // Editar contrato existente
-        resultado = await atualizarContrato(contratoEditando.id, formData)
+        resultado = await atualizarContrato(contratoEditando.id, supervisorId, formData)
       } else {
         // Criar novo contrato
         resultado = await criarContrato(supervisorId, formData)
@@ -209,7 +211,7 @@ export default function ContratosScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
         <View>
           <Text style={styles.headerTitle}>Meus Contratos</Text>
           <Text style={styles.headerSubtitle}>{contratos.length} {contratos.length === 1 ? 'contrato' : 'contratos'} cadastrado(s)</Text>
@@ -220,6 +222,7 @@ export default function ContratosScreen() {
       {/* Lista de Contratos */}
       <ScrollView
         style={styles.scrollView}
+        contentContainerStyle={{ paddingBottom: 130 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }

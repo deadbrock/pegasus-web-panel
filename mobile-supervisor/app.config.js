@@ -4,11 +4,11 @@ module.exports = {
     slug: "pegasus-supervisor",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/logo-original.png",
+    icon: "./assets/icon.png",
     userInterfaceStyle: "automatic",
     splash: {
-      image: "./assets/logo-original.png",
-      backgroundColor: "#a2122a",
+      image: "./assets/splash.png",
+      backgroundColor: "#1e3a8a",
       resizeMode: "contain"
     },
     assetBundlePatterns: [
@@ -26,8 +26,8 @@ module.exports = {
       package: "com.pegasus.supervisor",
       versionCode: 1,
       adaptiveIcon: {
-        foregroundImage: "./assets/logo-original.png",
-        backgroundColor: "#a2122a"
+        foregroundImage: "./assets/adaptive-icon.png",
+        backgroundColor: "#1e3a8a"
       },
       permissions: [
         "ACCESS_FINE_LOCATION",
@@ -36,8 +36,10 @@ module.exports = {
       ]
     },
     web: {
-      bundler: "metro"
+      bundler: "metro",
+      favicon: "./assets/icon.png"
     },
+    platforms: ["ios", "android"],
     plugins: [
       "expo-router",
       [

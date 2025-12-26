@@ -27,11 +27,73 @@ let Notifications: any = null
 //   Notifications = null
 // }
 
-// Configurações do período
-export const PERIODO_CONFIG = {
+// =====================================================
+// CONFIGURAÇÃO DINÂMICA DO BANCO DE DADOS
+// =====================================================
+
+type ConfiguracaoPeriodo = {
+  id: string
+  nome: string
+  ativo: boolean
+  dia_inicio?: number
+  dia_fim?: number
+  dias_semana_permitidos: number[]
+  horario_inicio?: string
+  horario_fim?: string
+  max_pedidos_por_periodo?: number
+  requer_autorizacao_apos: number
+  permitir_urgentes: boolean
+  mensagem_bloqueio: string
+}
+
+let configuracaoCache: ConfiguracaoPeriodo | null = null
+let ultimaBuscaConfig: number = 0
+const CACHE_DURACAO = 5 * 60 * 1000 // 5 minutos
+
+/**
+ * Busca configuração ativa do banco de dados
+ */
+async function buscarConfiguracaoAtiva(): Promise<ConfiguracaoPeriodo | null> {
+  try {
+    // Verificar cache
+    const agora = Date.now()
+    if (configuracaoCache && (agora - ultimaBuscaConfig) < CACHE_DURACAO) {
+      return configuracaoCache
+    }
+
+    // Buscar do banco
+    const { data, error } = await supabase
+      .from('configuracoes_periodo_pedidos')
+      .select('*')
+      .eq('ativo', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // Nenhuma configuração encontrada
+        console.log('ℹ️ Nenhuma configuração de período ativa')
+        return null
+      }
+      throw error
+    }
+
+    configuracaoCache = data
+    ultimaBuscaConfig = agora
+    console.log('✅ Configuração de período carregada:', data.nome)
+    return data
+  } catch (error) {
+    console.error('Erro ao buscar configuração de período:', error)
+    return null
+  }
+}
+
+// Configurações padrão (fallback se não houver configuração no banco)
+export const PERIODO_CONFIG_PADRAO = {
   DIA_INICIO: 15,
   DIA_FIM: 23,
-  DIAS_ALERTA: 2, // Avisar 2 dias antes do fim (dia 21)
+  DIAS_ALERTA: 2,
 }
 
 // =====================================================
@@ -58,36 +120,95 @@ export type StatusPeriodo = {
 
 /**
  * Verifica se está no período permitido para fazer pedidos
+ * NOVA VERSÃO: Busca configuração dinâmica do banco de dados
  */
-export function verificarPeriodoPedidos(): StatusPeriodo {
+export async function verificarPeriodoPedidos(): Promise<StatusPeriodo> {
+  // Buscar configuração do banco
+  const config = await buscarConfiguracaoAtiva()
+  
   // Usar data de teste se configurada, senão usar data real
   const agora = DATA_TESTE_OVERRIDE || new Date()
   const diaAtual = agora.getDate()
   const mesAtual = agora.getMonth() + 1 // 0-11 -> 1-12
   const anoAtual = agora.getFullYear()
+  const diaSemanaAtual = agora.getDay() // 0=Domingo, 1=Segunda, etc
+  const horaAtual = `${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`
   
-  // Log para debug (ajuda a ver qual data está sendo usada)
+  // Log para debug
   if (DATA_TESTE_OVERRIDE) {
     console.log('🧪 MODO DE TESTE ATIVADO - Simulando:', agora.toLocaleDateString('pt-BR'))
   }
 
-  const dentrooPeriodo = diaAtual >= PERIODO_CONFIG.DIA_INICIO && diaAtual <= PERIODO_CONFIG.DIA_FIM
-  const diasRestantes = dentrooPeriodo ? PERIODO_CONFIG.DIA_FIM - diaAtual : 0
-  const alertaProximo = dentrooPeriodo && diasRestantes <= PERIODO_CONFIG.DIAS_ALERTA
+  // Se não há configuração, usar valores padrão
+  if (!config) {
+    console.log('ℹ️ Usando configuração padrão (nenhuma configuração ativa no banco)')
+    const dentrooPeriodo = diaAtual >= PERIODO_CONFIG_PADRAO.DIA_INICIO && diaAtual <= PERIODO_CONFIG_PADRAO.DIA_FIM
+    const diasRestantes = dentrooPeriodo ? PERIODO_CONFIG_PADRAO.DIA_FIM - diaAtual : 0
+    const alertaProximo = dentrooPeriodo && diasRestantes <= PERIODO_CONFIG_PADRAO.DIAS_ALERTA
 
-  let mensagem = ''
-  if (!dentrooPeriodo) {
-    if (diaAtual < PERIODO_CONFIG.DIA_INICIO) {
-      const diasAteAbrir = PERIODO_CONFIG.DIA_INICIO - diaAtual
-      mensagem = `⏳ Período de pedidos abre em ${diasAteAbrir} ${diasAteAbrir === 1 ? 'dia' : 'dias'} (dia ${PERIODO_CONFIG.DIA_INICIO})`
-    } else {
-      mensagem = `🔒 Período de pedidos encerrado. Próximo período: dia ${PERIODO_CONFIG.DIA_INICIO} do próximo mês`
+    return {
+      dentrooPeriodo,
+      diaAtual,
+      mesAtual,
+      anoAtual,
+      diasRestantes,
+      mensagem: dentrooPeriodo ? 
+        `✅ Período aberto até dia ${PERIODO_CONFIG_PADRAO.DIA_FIM}` : 
+        `🔒 Período de pedidos: dia ${PERIODO_CONFIG_PADRAO.DIA_INICIO} ao ${PERIODO_CONFIG_PADRAO.DIA_FIM}`,
+      alertaProximo,
     }
-  } else {
+  }
+
+  // ========================================
+  // VALIDAÇÕES COM CONFIGURAÇÃO DO BANCO
+  // ========================================
+
+  let dentrooPeriodo = true
+  let mensagem = ''
+
+  // 1. Verificar dia do mês
+  if (config.dia_inicio && config.dia_fim) {
+    if (diaAtual < config.dia_inicio || diaAtual > config.dia_fim) {
+      dentrooPeriodo = false
+      if (diaAtual < config.dia_inicio) {
+        const diasAteAbrir = config.dia_inicio - diaAtual
+        mensagem = `⏳ Período abre em ${diasAteAbrir} ${diasAteAbrir === 1 ? 'dia' : 'dias'} (dia ${config.dia_inicio})`
+      } else {
+        mensagem = config.mensagem_bloqueio || '🔒 Período de pedidos encerrado'
+      }
+    }
+  }
+
+  // 2. Verificar dia da semana
+  if (dentrooPeriodo && config.dias_semana_permitidos && config.dias_semana_permitidos.length > 0) {
+    if (!config.dias_semana_permitidos.includes(diaSemanaAtual)) {
+      dentrooPeriodo = false
+      const diasNomes = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
+      mensagem = `🚫 Pedidos não permitidos aos ${diasNomes[diaSemanaAtual]}s`
+    }
+  }
+
+  // 3. Verificar horário
+  if (dentrooPeriodo && config.horario_inicio && config.horario_fim) {
+    const horarioInicio = config.horario_inicio.slice(0, 5)
+    const horarioFim = config.horario_fim.slice(0, 5)
+    
+    if (horaAtual < horarioInicio || horaAtual > horarioFim) {
+      dentrooPeriodo = false
+      mensagem = `🕐 Pedidos permitidos entre ${horarioInicio} e ${horarioFim}`
+    }
+  }
+
+  // Calcular dias restantes e alerta
+  const diasRestantes = (dentrooPeriodo && config.dia_fim) ? config.dia_fim - diaAtual : 0
+  const alertaProximo = dentrooPeriodo && diasRestantes <= 2
+
+  // Mensagem de sucesso se dentro do período
+  if (dentrooPeriodo) {
     if (alertaProximo) {
-      mensagem = `⚠️ ATENÇÃO: Restam apenas ${diasRestantes} ${diasRestantes === 1 ? 'dia' : 'dias'} para fazer pedidos!`
+      mensagem = `⚠️ ATENÇÃO: Restam ${diasRestantes} ${diasRestantes === 1 ? 'dia' : 'dias'} para fazer pedidos!`
     } else {
-      mensagem = `✅ Período aberto. Você tem até o dia ${PERIODO_CONFIG.DIA_FIM} para fazer pedidos (${diasRestantes} dias restantes)`
+      mensagem = `✅ Período aberto até dia ${config.dia_fim} (${diasRestantes} dias restantes)`
     }
   }
 
@@ -99,6 +220,50 @@ export function verificarPeriodoPedidos(): StatusPeriodo {
     diasRestantes,
     mensagem,
     alertaProximo,
+  }
+}
+
+/**
+ * Versão síncrona para compatibilidade (usa cache)
+ * DEPRECATED: Use verificarPeriodoPedidos() assíncrona
+ */
+export function verificarPeriodoPedidosSync(): StatusPeriodo {
+  const agora = DATA_TESTE_OVERRIDE || new Date()
+  const diaAtual = agora.getDate()
+  const mesAtual = agora.getMonth() + 1
+  const anoAtual = agora.getFullYear()
+  
+  // Usar configuração em cache se disponível
+  const config = configuracaoCache
+  
+  if (!config) {
+    // Fallback para configuração padrão
+    const dentrooPeriodo = diaAtual >= PERIODO_CONFIG_PADRAO.DIA_INICIO && diaAtual <= PERIODO_CONFIG_PADRAO.DIA_FIM
+    const diasRestantes = dentrooPeriodo ? PERIODO_CONFIG_PADRAO.DIA_FIM - diaAtual : 0
+    
+    return {
+      dentrooPeriodo,
+      diaAtual,
+      mesAtual,
+      anoAtual,
+      diasRestantes,
+      mensagem: dentrooPeriodo ? '✅ Período aberto' : '🔒 Período encerrado',
+      alertaProximo: false,
+    }
+  }
+
+  const dentrooPeriodo = (config.dia_inicio && config.dia_fim) ? 
+    (diaAtual >= config.dia_inicio && diaAtual <= config.dia_fim) : true
+  const diasRestantes = (dentrooPeriodo && config.dia_fim) ? config.dia_fim - diaAtual : 0
+
+  return {
+    dentrooPeriodo,
+    diaAtual,
+    mesAtual,
+    anoAtual,
+    diasRestantes,
+    mensagem: dentrooPeriodo ? '✅ Período aberto' : (config.mensagem_bloqueio || '🔒 Período encerrado'),
+    alertaProximo: diasRestantes <= 2,
   }
 }
 
