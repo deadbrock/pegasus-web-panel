@@ -1,21 +1,28 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// Cliente Supabase com service_role key (permissões de admin)
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
+// Função para obter cliente Supabase Admin com validação
+function getSupabaseAdmin() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Variáveis de ambiente NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY são obrigatórias')
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false
     }
-  }
-)
+  })
+}
 
 // GET - Listar supervisores
 export async function GET() {
   try {
+    const supabaseAdmin = getSupabaseAdmin()
+    
     // Buscar usuários com role 'supervisor'
     const { data: users, error: usersError } = await supabaseAdmin.auth.admin.listUsers()
 
@@ -66,6 +73,8 @@ export async function GET() {
 // POST - Criar supervisor
 export async function POST(request: Request) {
   try {
+    const supabaseAdmin = getSupabaseAdmin()
+    
     const body = await request.json()
     const { nome, email, senha } = body
 
@@ -116,6 +125,8 @@ export async function POST(request: Request) {
 // PATCH - Atualizar status do supervisor
 export async function PATCH(request: Request) {
   try {
+    const supabaseAdmin = getSupabaseAdmin()
+    
     const body = await request.json()
     const { supervisorId, status } = body
 

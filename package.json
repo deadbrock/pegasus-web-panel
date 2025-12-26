@@ -14,6 +14,7 @@
     "deploy:vercel": "vercel --prod",
     "deploy:netlify": "npm run build && netlify deploy --prod --dir=out",
     "postinstall": "next telemetry disable",
+    "check-env": "node ./scripts/check-env.js",
     "apply:supabase": "node ./scripts/apply_supabase_sql.js",
     "apply:custos": "node ./scripts/apply_costs_sql.js",
     "apply:auditoria": "node ./scripts/apply_auditoria_sql.js",
