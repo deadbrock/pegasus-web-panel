@@ -195,6 +195,13 @@ export async function calcularEstatisticasManutencoes() {
 }
 
 /**
+ * Alias para compatibilidade com outros serviços
+ */
+export async function fetchManutencoesStats() {
+  return calcularEstatisticasManutencoes()
+}
+
+/**
  * Busca manutenções por período
  */
 export async function fetchManutencoesByPeriodo(dataInicio: string, dataFim: string): Promise<Manutencao[]> {

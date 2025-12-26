@@ -43,38 +43,16 @@ export default function SupervisoresPage() {
     try {
       setLoading(true)
 
-      // Buscar usuários com role 'supervisor'
-      const { data: users, error: usersError } = await supabase.auth.admin.listUsers()
+      // Buscar supervisores via API (usa service_role key)
+      const response = await fetch('/api/supervisores')
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erro ao buscar supervisores')
+      }
 
-      if (usersError) throw usersError
-
-      // Filtrar apenas supervisores
-      const supervisoresList = users.users
-        .filter(user => user.user_metadata?.role === 'supervisor')
-        .map(user => ({
-          id: user.id,
-          email: user.email || '',
-          nome: user.user_metadata?.name || user.email?.split('@')[0] || 'Supervisor',
-          status: (user.user_metadata?.status || 'ativo') as 'ativo' | 'inativo',
-          created_at: user.created_at
-        }))
-
-      // Buscar contagem de pedidos de cada supervisor
-      const supervisoresComPedidos = await Promise.all(
-        supervisoresList.map(async (supervisor) => {
-          const { count } = await supabase
-            .from('pedidos_supervisores')
-            .select('*', { count: 'exact', head: true })
-            .eq('supervisor_id', supervisor.id)
-
-          return {
-            ...supervisor,
-            total_pedidos: count || 0
-          }
-        })
-      )
-
-      setSupervisores(supervisoresComPedidos)
+      const { supervisores: supervisoresData } = await response.json()
+      setSupervisores(supervisoresData)
     } catch (error: any) {
       console.error('Erro ao carregar supervisores:', error)
       toast({
@@ -129,19 +107,24 @@ export default function SupervisoresPage() {
     setIsSubmitting(true)
 
     try {
-      // Criar usuário no Supabase Auth
-      const { data: newUser, error: signUpError } = await supabase.auth.admin.createUser({
-        email: formData.email,
-        password: formData.senha,
-        email_confirm: true,
-        user_metadata: {
-          name: formData.nome,
-          role: 'supervisor',
-          status: 'ativo'
-        }
+      // Criar usuário via API (usa service_role key)
+      const response = await fetch('/api/supervisores', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          nome: formData.nome,
+          email: formData.email,
+          senha: formData.senha
+        })
       })
 
-      if (signUpError) throw signUpError
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao criar supervisor')
+      }
 
       toast({
         title: '✅ Supervisor criado!',
@@ -158,7 +141,7 @@ export default function SupervisoresPage() {
       console.error('Erro ao criar supervisor:', error)
       
       let mensagemErro = error.message
-      if (error.message?.includes('User already registered')) {
+      if (error.message?.includes('User already registered') || error.message?.includes('already')) {
         mensagemErro = 'Este email já está cadastrado no sistema'
       }
 
@@ -176,11 +159,23 @@ export default function SupervisoresPage() {
     const newStatus = currentStatus === 'ativo' ? 'inativo' : 'ativo'
 
     try {
-      const { error } = await supabase.auth.admin.updateUserById(supervisorId, {
-        user_metadata: { status: newStatus }
+      // Atualizar status via API (usa service_role key)
+      const response = await fetch('/api/supervisores', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          supervisorId,
+          status: newStatus
+        })
       })
 
-      if (error) throw error
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao atualizar status')
+      }
 
       toast({
         title: 'Status atualizado',

@@ -125,7 +125,7 @@ export async function deletePedido(id: string): Promise<boolean> {
 export async function fetchPedidosStats(): Promise<PedidoStats> {
   const { data, error } = await supabase
     .from('pedidos')
-    .select('status, valor, peso, data_entrega, data_entrega_prevista')
+    .select('status, valor, data_entrega, data_entrega_prevista')
 
   if (error) {
     console.error('Erro ao buscar estatísticas:', error)
@@ -140,7 +140,8 @@ export async function fetchPedidosStats(): Promise<PedidoStats> {
   const atrasados = data?.filter(p => p.status === 'Atrasado').length || 0
 
   const valor_total = data?.reduce((sum, p) => sum + (p.valor || 0), 0) || 0
-  const peso_total = data?.reduce((sum, p) => sum + (p.peso || 0), 0) || 0
+  // Removido peso_total pois a coluna peso não existe na tabela pedidos
+  const peso_total = 0
 
   // Calcular taxa de entrega no prazo
   const entreguesData = data?.filter(p => p.status === 'Entregue' && p.data_entrega && p.data_entrega_prevista) || []
