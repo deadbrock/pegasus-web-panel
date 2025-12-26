@@ -106,6 +106,7 @@ const moduleGroups: ModuleGroup[] = [
     icon: Settings,
     modules: [
       { name: 'Supervisores', path: '/dashboard/supervisores', icon: Users },
+      { name: 'Período de Pedidos', path: '/dashboard/configuracoes-periodo', icon: Calendar },
       { name: 'Configurações', path: '/dashboard/configuracoes', icon: Settings },
     ]
   }

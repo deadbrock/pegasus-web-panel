@@ -26,6 +26,8 @@ function getBreadcrumbFromPath(path: string): string {
     '/dashboard/documentos': 'Documentos',
     '/dashboard/gamificacao': 'Gamificação',
     '/dashboard/relatorios': 'Relatórios',
+    '/dashboard/supervisores': 'Supervisores',
+    '/dashboard/configuracoes-periodo': 'Período de Pedidos',
     '/dashboard/configuracoes': 'Configurações',
   }
   
