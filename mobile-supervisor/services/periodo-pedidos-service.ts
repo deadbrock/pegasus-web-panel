@@ -285,7 +285,7 @@ async function obterUltimaNotificacao(): Promise<string | null> {
  */
 export async function verificarEEnviarNotificacao(): Promise<void> {
   try {
-    const status = verificarPeriodoPedidos()
+    const status = await verificarPeriodoPedidos() // ✅ ADICIONADO AWAIT
     const hoje = new Date().toISOString().split('T')[0] // YYYY-MM-DD
     const ultimaNotificacao = await obterUltimaNotificacao()
 
@@ -314,11 +314,15 @@ export async function verificarEEnviarNotificacao(): Promise<void> {
       return
     }
 
-    // Cenário 3: Primeiro dia do período (dia 15)
-    if (status.diaAtual === PERIODO_CONFIG.DIA_INICIO) {
+    // Cenário 3: Primeiro dia do período
+    const config = await buscarConfiguracaoAtiva()
+    const diaInicio = config?.dia_inicio || PERIODO_CONFIG_PADRAO.DIA_INICIO
+    const diaFim = config?.dia_fim || PERIODO_CONFIG_PADRAO.DIA_FIM
+    
+    if (status.diaAtual === diaInicio) {
       await enviarNotificacao(
         '🎉 Período de Pedidos Aberto!',
-        `O período de pedidos está aberto até o dia ${PERIODO_CONFIG.DIA_FIM}. Faça seus pedidos agora!`
+        `O período de pedidos está aberto até o dia ${diaFim}. Faça seus pedidos agora!`
       )
       await salvarUltimaNotificacao(hoje)
       return
@@ -408,7 +412,7 @@ export async function registrarVerificacaoPeriodo(
   foiBloqueado: boolean
 ): Promise<void> {
   try {
-    const status = verificarPeriodoPedidos()
+    const status = await verificarPeriodoPedidos() // ✅ ADICIONADO AWAIT
     
     await supabase.from('log_periodo_pedidos').insert({
       supervisor_id: supervisorId,
@@ -430,13 +434,17 @@ export async function registrarVerificacaoPeriodo(
 /**
  * Obtém datas importantes do mês atual
  */
-export function obterDatasImportantes() {
+export async function obterDatasImportantes() {
   const agora = new Date()
   const ano = agora.getFullYear()
   const mes = agora.getMonth() // 0-11
+  
+  const config = await buscarConfiguracaoAtiva()
+  const diaInicio = config?.dia_inicio || PERIODO_CONFIG_PADRAO.DIA_INICIO
+  const diaFim = config?.dia_fim || PERIODO_CONFIG_PADRAO.DIA_FIM
 
-  const dataInicio = new Date(ano, mes, PERIODO_CONFIG.DIA_INICIO)
-  const dataFim = new Date(ano, mes, PERIODO_CONFIG.DIA_FIM, 23, 59, 59)
+  const dataInicio = new Date(ano, mes, diaInicio)
+  const dataFim = new Date(ano, mes, diaFim, 23, 59, 59)
 
   return {
     dataInicio,
@@ -448,16 +456,16 @@ export function obterDatasImportantes() {
 /**
  * Formata mensagem amigável sobre o período
  */
-export function obterMensagemPeriodo(): string {
-  const status = verificarPeriodoPedidos()
+export async function obterMensagemPeriodo(): Promise<string> {
+  const status = await verificarPeriodoPedidos()
   return status.mensagem
 }
 
 /**
  * Verifica período e retorna erro se estiver bloqueado
  */
-export function validarPeriodoOuErro(): { ok: boolean; erro?: string } {
-  const status = verificarPeriodoPedidos()
+export async function validarPeriodoOuErro(): Promise<{ ok: boolean; erro?: string }> {
+  const status = await verificarPeriodoPedidos()
   
   if (!status.dentrooPeriodo) {
     return {

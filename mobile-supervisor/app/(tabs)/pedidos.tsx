@@ -75,7 +75,7 @@ export default function PedidosScreen() {
       await configurarNotificacoes()
       
       // Verificar período de pedidos
-      const status = verificarPeriodoPedidos()
+      const status = await verificarPeriodoPedidos() // ✅ ADICIONADO AWAIT
       setStatusPeriodo(status)
       
       // Verificar se deve enviar notificação
