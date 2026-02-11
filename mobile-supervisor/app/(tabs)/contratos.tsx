@@ -6,6 +6,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import {
   fetchContratosAtivos,
+  fetchContratosAtribuidosLogistica,
+  fetchTodosContratosUnificados,
+  sincronizarConfiguracoes,
   criarContrato,
   atualizarContrato,
   desativarContrato,
@@ -13,7 +16,9 @@ import {
   formatarEnderecoCompleto,
   formatarTelefone,
   formatarCEP,
+  formatarContratoAtribuidoCompleto,
   type Contrato,
+  type ContratoAtribuido,
   type ContratoFormData
 } from '../../services/contratos-service'
 import { colors, spacing, typography, borderRadius, shadows } from '../../styles/theme'
@@ -23,7 +28,9 @@ export default function ContratosScreen() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [contratos, setContratos] = useState<Contrato[]>([])
+  const [contratosAtribuidos, setContratosAtribuidos] = useState<ContratoAtribuido[]>([])
   const [supervisorId, setSupervisorId] = useState('')
+  const [abaAtiva, setAbaAtiva] = useState<'atribuidos' | 'proprios'>('atribuidos')
   
   // Dialog de Cadastro/Edição
   const [dialogVisible, setDialogVisible] = useState(false)
@@ -65,8 +72,19 @@ export default function ContratosScreen() {
       const idToUse = id || supervisorId
       if (!idToUse) return
       
-      const data = await fetchContratosAtivos(idToUse)
-      setContratos(data)
+      // Buscar contratos atribuídos pela logística E contratos próprios
+      const [atribuidos, proprios] = await Promise.all([
+        fetchContratosAtribuidosLogistica(idToUse),
+        fetchContratosAtivos(idToUse)
+      ])
+      
+      setContratosAtribuidos(atribuidos)
+      setContratos(proprios)
+      
+      // Se tem contratos atribuídos, mostrar essa aba por padrão
+      if (atribuidos.length > 0) {
+        setAbaAtiva('atribuidos')
+      }
     } catch (error) {
       console.error('Erro ao carregar contratos:', error)
       Alert.alert('Erro', 'Não foi possível carregar os contratos')
@@ -76,9 +94,20 @@ export default function ContratosScreen() {
     }
   }
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setRefreshing(true)
-    loadContratos()
+    
+    // Também sincronizar configurações
+    try {
+      const resultado = await sincronizarConfiguracoes(supervisorId)
+      if (resultado.success && resultado.contratos) {
+        setContratosAtribuidos(resultado.contratos)
+      }
+    } catch (error) {
+      console.error('Erro ao sincronizar:', error)
+    }
+    
+    await loadContratos()
   }
 
   const handleNovoContrato = () => {
@@ -214,9 +243,31 @@ export default function ContratosScreen() {
       <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
         <View>
           <Text style={styles.headerTitle}>Meus Contratos</Text>
-          <Text style={styles.headerSubtitle}>{contratos.length} {contratos.length === 1 ? 'contrato' : 'contratos'} cadastrado(s)</Text>
+          <Text style={styles.headerSubtitle}>
+            {contratosAtribuidos.length} atribuído(s) • {contratos.length} próprio(s)
+          </Text>
         </View>
         <MaterialCommunityIcons name="file-document-multiple" size={40} color={colors.secondary} />
+      </View>
+
+      {/* Abas: Contratos Atribuídos vs Contratos Próprios */}
+      <View style={styles.tabsContainer}>
+        <TouchableOpacity 
+          style={[styles.tab, abaAtiva === 'atribuidos' && styles.tabAtiva]}
+          onPress={() => setAbaAtiva('atribuidos')}
+        >
+          <Text style={[styles.tabText, abaAtiva === 'atribuidos' && styles.tabTextAtiva]}>
+            📋 Atribuídos ({contratosAtribuidos.length})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tab, abaAtiva === 'proprios' && styles.tabAtiva]}
+          onPress={() => setAbaAtiva('proprios')}
+        >
+          <Text style={[styles.tabText, abaAtiva === 'proprios' && styles.tabTextAtiva]}>
+            📝 Meus Cadastros ({contratos.length})
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Lista de Contratos */}
@@ -227,26 +278,157 @@ export default function ContratosScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       >
-        {contratos.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="file-document-multiple-outline" size={80} color="#9ca3af" />
-            <Text style={styles.emptyTitle}>Nenhum contrato cadastrado</Text>
-            <Text style={styles.emptyText}>
-              Cadastre seus clientes/obras para vincular aos pedidos
-            </Text>
-            <Button 
-              mode="contained" 
-              onPress={handleNovoContrato}
-              style={{ marginTop: spacing.md }}
-              icon="plus"
-              buttonColor={colors.secondary}
-            >
-              Cadastrar Primeiro Contrato
-            </Button>
-          </View>
-        ) : (
-          <View style={styles.listContainer}>
-            {contratos.map((contrato) => (
+        {/* ABA: CONTRATOS ATRIBUÍDOS */}
+        {abaAtiva === 'atribuidos' && (
+          <>
+            {contratosAtribuidos.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <MaterialCommunityIcons name="file-document-alert-outline" size={80} color="#9ca3af" />
+                <Text style={styles.emptyTitle}>Nenhum contrato atribuído</Text>
+                <Text style={styles.emptyText}>
+                  O setor de logística ainda não atribuiu nenhum contrato para você.
+                  {'\n\n'}
+                  Quando um contrato for atribuído, ele aparecerá aqui automaticamente.
+                </Text>
+                <Button 
+                  mode="outlined" 
+                  onPress={handleRefresh}
+                  style={{ marginTop: spacing.md }}
+                  icon="refresh"
+                  buttonColor={colors.gray50}
+                >
+                  Atualizar
+                </Button>
+              </View>
+            ) : (
+              <View style={styles.listContainer}>
+                {/* Banner informativo */}
+                <Card style={[styles.infoBanner, { backgroundColor: '#dbeafe' }]}>
+                  <Card.Content>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <MaterialCommunityIcons name="information" size={20} color="#2563eb" />
+                      <Text style={{ flex: 1, color: '#1e40af', fontSize: 13 }}>
+                        Contratos gerenciados pela logística. Use-os para fazer pedidos no app.
+                      </Text>
+                    </View>
+                  </Card.Content>
+                </Card>
+
+                {/* Lista de contratos atribuídos */}
+                {contratosAtribuidos.map((contrato) => (
+                  <Card key={contrato.id} style={styles.contratoCard}>
+                    <Card.Content>
+                      {/* Nome do Cliente */}
+                      <View style={styles.contratoHeader}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.contratoNome}>{contrato.cliente}</Text>
+                          <Text style={styles.contratoSubtitle}>{contrato.numero_contrato}</Text>
+                          <Chip 
+                            icon="check-circle" 
+                            style={{ backgroundColor: '#dcfce7', alignSelf: 'flex-start', marginTop: 4 }}
+                            textStyle={{ color: '#16a34a', fontSize: 11 }}
+                          >
+                            {contrato.status}
+                          </Chip>
+                        </View>
+                      </View>
+
+                      {/* Tipo */}
+                      {contrato.tipo && (
+                        <View style={styles.infoRow}>
+                          <MaterialCommunityIcons name="tag" size={18} color="#6b7280" />
+                          <Text style={styles.infoText}>{contrato.tipo}</Text>
+                        </View>
+                      )}
+
+                      {/* Teto de Gastos Mensal */}
+                      {contrato.valor_mensal_material && (
+                        <View style={[styles.infoRow, { backgroundColor: '#fef3c7', padding: 8, borderRadius: 8, marginTop: 8 }]}>
+                          <MaterialCommunityIcons name="cash" size={20} color="#d97706" />
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ fontSize: 12, color: '#92400e', fontWeight: '600' }}>
+                              Teto Mensal de Material
+                            </Text>
+                            <Text style={{ fontSize: 18, color: '#92400e', fontWeight: 'bold' }}>
+                              R$ {contrato.valor_mensal_material.toFixed(2)}
+                            </Text>
+                          </View>
+                        </View>
+                      )}
+
+                      {/* Responsável */}
+                      {contrato.responsavel && (
+                        <View style={styles.infoRow}>
+                          <MaterialCommunityIcons name="account" size={18} color="#6b7280" />
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.infoText}>{contrato.responsavel}</Text>
+                            {contrato.telefone_contato && (
+                              <Text style={styles.infoSubtext}>
+                                {contrato.telefone_contato}
+                              </Text>
+                            )}
+                          </View>
+                        </View>
+                      )}
+
+                      {/* Vigência */}
+                      <View style={styles.infoRow}>
+                        <MaterialCommunityIcons name="calendar-range" size={18} color="#6b7280" />
+                        <Text style={styles.infoText}>
+                          {new Date(contrato.data_inicio).toLocaleDateString('pt-BR')} até{' '}
+                          {new Date(contrato.data_fim).toLocaleDateString('pt-BR')}
+                        </Text>
+                      </View>
+
+                      {/* Observações */}
+                      {contrato.observacoes && (
+                        <View style={styles.observacoesBox}>
+                          <Text style={styles.observacoesText} numberOfLines={2}>
+                            💬 {contrato.observacoes}
+                          </Text>
+                        </View>
+                      )}
+
+                      {/* Badge de Atribuição */}
+                      <View style={{ marginTop: spacing.sm, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.gray100 }}>
+                        <Text style={{ fontSize: 11, color: colors.textSecondary, fontStyle: 'italic' }}>
+                          📌 Gerenciado pela logística
+                          {contrato.data_atribuicao && ` • Atribuído em ${new Date(contrato.data_atribuicao).toLocaleDateString('pt-BR')}`}
+                        </Text>
+                      </View>
+                    </Card.Content>
+                  </Card>
+                ))}
+              </View>
+            )}
+          </>
+        )}
+
+        {/* ABA: CONTRATOS PRÓPRIOS */}
+        {abaAtiva === 'proprios' && (
+          <>
+            {contratos.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <MaterialCommunityIcons name="file-document-multiple-outline" size={80} color="#9ca3af" />
+                <Text style={styles.emptyTitle}>Nenhum contrato próprio</Text>
+                <Text style={styles.emptyText}>
+                  Você pode cadastrar seus próprios clientes/obras aqui.
+                  {'\n\n'}
+                  Use a aba "Atribuídos" para ver contratos gerenciados pela logística.
+                </Text>
+                <Button 
+                  mode="contained" 
+                  onPress={handleNovoContrato}
+                  style={{ marginTop: spacing.md }}
+                  icon="plus"
+                  buttonColor={colors.secondary}
+                >
+                  Cadastrar Primeiro Contrato
+                </Button>
+              </View>
+            ) : (
+              <View style={styles.listContainer}>
+                {contratos.map((contrato) => (
               <Card key={contrato.id} style={styles.contratoCard}>
                 <Card.Content>
                   {/* Nome do Contrato */}
@@ -314,14 +496,16 @@ export default function ContratosScreen() {
                     </TouchableOpacity>
                   </View>
                 </Card.Content>
-              </Card>
-            ))}
-          </View>
+                  </Card>
+                ))}
+              </View>
+            )}
+          </>
         )}
       </ScrollView>
 
-      {/* FAB */}
-      {contratos.length > 0 && (
+      {/* FAB - Mostrar apenas na aba de contratos próprios */}
+      {abaAtiva === 'proprios' && (
         <FAB
           icon="plus"
           label="Novo Contrato"
@@ -630,5 +814,40 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginTop: spacing.sm,
     marginBottom: spacing.xs,
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray200,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabAtiva: {
+    borderBottomColor: colors.secondary,
+  },
+  tabText: {
+    fontSize: typography.base,
+    color: colors.textSecondary,
+    fontWeight: typography.medium,
+  },
+  tabTextAtiva: {
+    color: colors.secondary,
+    fontWeight: typography.bold,
+  },
+  contratoSubtitle: {
+    fontSize: typography.sm,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  infoBanner: {
+    marginBottom: spacing.md,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2563eb',
   },
 })

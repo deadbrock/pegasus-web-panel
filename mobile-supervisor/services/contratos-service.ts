@@ -1,5 +1,26 @@
 import { supabase } from './supabase'
 
+// Tipo para contratos ATRIBUÍDOS pela logística (nova estrutura)
+export type ContratoAtribuido = {
+  id: string
+  numero_contrato: string
+  cliente: string
+  tipo: string
+  descricao?: string
+  valor_total: number
+  valor_mensal?: number
+  valor_mensal_material?: number // 💰 Teto de gastos mensal
+  data_inicio: string
+  data_fim: string
+  status: string
+  responsavel?: string
+  email_contato?: string
+  telefone_contato?: string
+  observacoes?: string
+  data_atribuicao?: string
+}
+
+// Tipo para contratos CRIADOS pelo supervisor (estrutura antiga - manter compatibilidade)
 export type Contrato = {
   id: string
   supervisor_id: string
@@ -321,5 +342,178 @@ export function formatarCEP(cep: string): string {
   }
   
   return cep
+}
+
+// =====================================================
+// NOVAS FUNÇÕES: Contratos Atribuídos pela Logística
+// =====================================================
+
+/**
+ * 🆕 Busca contratos ATRIBUÍDOS pela logística ao supervisor
+ * Esta é a nova forma de trabalhar - contratos gerenciados centralmente
+ */
+export async function fetchContratosAtribuidosLogistica(supervisorId: string): Promise<ContratoAtribuido[]> {
+  try {
+    // Buscar via API do painel web
+    const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000'
+    const response = await fetch(`${apiUrl}/api/contratos-supervisor?supervisor_id=${supervisorId}`)
+    
+    if (!response.ok) {
+      throw new Error(`Erro na API: ${response.status}`)
+    }
+
+    const result = await response.json()
+    
+    if (!result.success) {
+      throw new Error(result.error || 'Erro ao buscar contratos')
+    }
+
+    console.log(`✅ ${result.total} contrato(s) atribuído(s) pela logística`)
+    return result.contratos || []
+  } catch (error) {
+    console.error('❌ Erro ao buscar contratos atribuídos:', error)
+    
+    // Fallback: buscar diretamente do Supabase
+    console.log('⚠️ Tentando buscar diretamente do Supabase...')
+    
+    const { data, error: supabaseError } = await supabase
+      .from('contratos')
+      .select(`
+        id,
+        numero_contrato,
+        cliente,
+        tipo,
+        descricao,
+        valor_total,
+        valor_mensal,
+        valor_mensal_material,
+        data_inicio,
+        data_fim,
+        status,
+        responsavel,
+        email_contato,
+        telefone_contato,
+        observacoes,
+        contratos_supervisores_atribuicao!inner(
+          data_atribuicao,
+          ativo
+        )
+      `)
+      .eq('contratos_supervisores_atribuicao.supervisor_id', supervisorId)
+      .eq('contratos_supervisores_atribuicao.ativo', true)
+      .eq('status', 'Ativo')
+      .order('cliente', { ascending: true })
+
+    if (supabaseError) {
+      console.error('❌ Erro no fallback do Supabase:', supabaseError)
+      return []
+    }
+
+    // Transformar dados
+    const contratos = (data || []).map((item: any) => {
+      const { contratos_supervisores_atribuicao, ...contrato } = item
+      return {
+        ...contrato,
+        data_atribuicao: contratos_supervisores_atribuicao?.[0]?.data_atribuicao
+      }
+    })
+
+    console.log(`✅ Fallback: ${contratos.length} contrato(s) encontrado(s)`)
+    return contratos
+  }
+}
+
+/**
+ * 🆕 Busca TODOS os contratos do supervisor (atribuídos + criados por ele)
+ * Retorna uma lista unificada
+ */
+export async function fetchTodosContratosUnificados(supervisorId: string): Promise<{
+  atribuidos: ContratoAtribuido[]
+  proprios: Contrato[]
+  total: number
+}> {
+  const [atribuidos, proprios] = await Promise.all([
+    fetchContratosAtribuidosLogistica(supervisorId),
+    fetchContratosAtivos(supervisorId)
+  ])
+
+  return {
+    atribuidos,
+    proprios,
+    total: atribuidos.length + proprios.length
+  }
+}
+
+/**
+ * 🆕 Sincroniza configurações do painel web (contratos + período)
+ */
+export async function sincronizarConfiguracoes(supervisorId: string): Promise<{
+  success: boolean
+  contratos?: ContratoAtribuido[]
+  periodo_config?: any
+  message: string
+}> {
+  try {
+    const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000'
+    
+    // Sincronizar contratos
+    const responseContratos = await fetch(`${apiUrl}/api/contratos-supervisor`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        supervisor_id: supervisorId,
+        action: 'sync_contratos'
+      })
+    })
+
+    // Sincronizar período
+    const responsePeriodo = await fetch(`${apiUrl}/api/contratos-supervisor`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        supervisor_id: supervisorId,
+        action: 'sync_periodo'
+      })
+    })
+
+    const [contratosData, periodoData] = await Promise.all([
+      responseContratos.json(),
+      responsePeriodo.json()
+    ])
+
+    return {
+      success: true,
+      contratos: contratosData.contratos || [],
+      periodo_config: periodoData.periodo_config,
+      message: '✅ Configurações sincronizadas com sucesso'
+    }
+  } catch (error) {
+    console.error('Erro ao sincronizar configurações:', error)
+    return {
+      success: false,
+      message: '❌ Erro ao sincronizar configurações'
+    }
+  }
+}
+
+/**
+ * 🆕 Formata informações do contrato atribuído para exibição
+ */
+export function formatarContratoAtribuidoCompleto(contrato: ContratoAtribuido): string {
+  const partes: string[] = [contrato.cliente]
+
+  if (contrato.tipo) {
+    partes.push(`Tipo: ${contrato.tipo}`)
+  }
+
+  if (contrato.valor_mensal_material) {
+    partes.push(`💰 Teto mensal: R$ ${contrato.valor_mensal_material.toFixed(2)}`)
+  }
+
+  if (contrato.responsavel) {
+    partes.push(`Responsável: ${contrato.responsavel}`)
+  }
+
+  return partes.join(' | ')
 }
 
