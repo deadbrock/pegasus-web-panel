@@ -8,12 +8,55 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { createContract, updateContract, type ContractRecord } from '@/services/contractsService'
 
+type SupervisorOption = {
+  id: string
+  nome: string
+  email: string
+}
+
 export function ContractDialog({ open, onClose, contract, onSaved }: { open: boolean; onClose: () => void; contract?: ContractRecord | null; onSaved?: () => void }) {
-  const [form, setForm] = useState<ContractRecord>({ nome: '', status: 'Ativo', custo_material: null })
+  const [form, setForm] = useState<ContractRecord>({ nome: '', status: 'Ativo', custo_material: null, supervisor_id: null })
+  const [supervisores, setSupervisores] = useState<SupervisorOption[]>([])
+  const [loadingSupervisores, setLoadingSupervisores] = useState(false)
+
   useEffect(() => {
-    if (contract) setForm(contract)
-    else setForm({ nome: '', status: 'Ativo', custo_material: null })
+    if (contract) {
+      setForm({
+        ...contract,
+        supervisor_id: contract.supervisor_id ?? null,
+      })
+    } else {
+      setForm({ nome: '', status: 'Ativo', custo_material: null, supervisor_id: null })
+    }
   }, [contract, open])
+
+  useEffect(() => {
+    if (!open) return
+    // Carregar supervisores cadastrados para pré-seleção
+    const loadSupervisores = async () => {
+      try {
+        setLoadingSupervisores(true)
+        const response = await fetch('/api/supervisores')
+        if (!response.ok) {
+          console.error('Erro ao buscar supervisores:', await response.text())
+          return
+        }
+        const data = await response.json()
+        const options: SupervisorOption[] = (data.supervisores || []).map((s: any) => ({
+          id: s.id,
+          nome: s.nome,
+          email: s.email,
+        }))
+        setSupervisores(options)
+      } catch (error) {
+        console.error('Erro ao carregar supervisores:', error)
+      } finally {
+        setLoadingSupervisores(false)
+      }
+    }
+
+    loadSupervisores()
+  }, [open])
 
   const set = (k: keyof ContractRecord, v: any) => setForm((p) => ({ ...p, [k]: v }))
 
@@ -73,8 +116,29 @@ export function ContractDialog({ open, onClose, contract, onSaved }: { open: boo
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Responsável</Label>
-            <Input value={form.responsavel || ''} onChange={(e) => set('responsavel', e.target.value)} />
+            <Label>Responsável (Supervisor)</Label>
+            <Select
+              value={form.supervisor_id || ''}
+              onValueChange={(supervisorId) => {
+                const supervisor = supervisores.find((s) => s.id === supervisorId)
+                setForm((prev) => ({
+                  ...prev,
+                  supervisor_id: supervisorId,
+                  responsavel: supervisor?.nome || prev.responsavel || null,
+                }))
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={loadingSupervisores ? 'Carregando supervisores...' : 'Selecione um supervisor'} />
+              </SelectTrigger>
+              <SelectContent>
+                {supervisores.map((sup) => (
+                  <SelectItem key={sup.id} value={sup.id}>
+                    {sup.nome} ({sup.email})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label>Custo de Material</Label>

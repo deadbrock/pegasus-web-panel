@@ -159,3 +159,60 @@ export async function PATCH(request: Request) {
   }
 }
 
+// DELETE - Excluir supervisor
+export async function DELETE(request: Request) {
+  try {
+    const supabaseAdmin = getSupabaseAdmin()
+
+    const body = await request.json()
+    const { supervisorId } = body
+
+    if (!supervisorId) {
+      return NextResponse.json(
+        { error: 'ID do supervisor é obrigatório' },
+        { status: 400 }
+      )
+    }
+
+    // Verificar se existem contratos vinculados (tabela contracts)
+    const { count: contratosCount, error: contratosError } = await supabaseAdmin
+      .from('contracts')
+      .select('*', { count: 'exact', head: true })
+      .eq('supervisor_id', supervisorId)
+
+    if (contratosError) {
+      console.error('Erro ao verificar contratos do supervisor:', contratosError)
+      return NextResponse.json(
+        { error: 'Erro ao verificar contratos vinculados', details: contratosError.message },
+        { status: 500 }
+      )
+    }
+
+    if ((contratosCount || 0) > 0) {
+      return NextResponse.json(
+        { error: 'Não é possível excluir este supervisor. Existem contratos vinculados a ele. Realoque os contratos antes de excluir.' },
+        { status: 400 }
+      )
+    }
+
+    // Deletar usuário do Supabase Auth
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(supervisorId)
+
+    if (error) {
+      console.error('Erro ao excluir supervisor:', error)
+      return NextResponse.json(
+        { error: 'Erro ao excluir supervisor', details: error.message },
+        { status: 400 }
+      )
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error: any) {
+    console.error('Erro ao processar requisição DELETE:', error)
+    return NextResponse.json(
+      { error: 'Erro interno do servidor', details: error.message },
+      { status: 500 }
+    )
+  }
+}
+

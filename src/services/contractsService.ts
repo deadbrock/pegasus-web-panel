@@ -10,7 +10,10 @@ export interface ContractRecord {
   inicio_vigencia?: string | null
   fim_vigencia?: string | null
   status?: 'Ativo' | 'Suspenso' | 'Encerrado'
+  /** Nome do responsável (supervisor) para exibição */
   responsavel?: string | null
+  /** ID do supervisor (auth user id) vinculado ao contrato */
+  supervisor_id?: string | null
   custo_material?: number | null
   created_at?: string
   updated_at?: string

@@ -6,10 +6,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { Plus, UserPlus, Search, Mail, Shield, Trash2, Eye, EyeOff } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { type ContractRecord, updateContract } from '@/services/contractsService'
 
 type Supervisor = {
   id: string
@@ -34,6 +36,11 @@ export default function SupervisoresPage() {
   })
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const [detalhesAberto, setDetalhesAberto] = useState(false)
+  const [supervisorSelecionado, setSupervisorSelecionado] = useState<Supervisor | null>(null)
+  const [contratosSupervisor, setContratosSupervisor] = useState<ContractRecord[]>([])
+  const [loadingDetalhes, setLoadingDetalhes] = useState(false)
 
   useEffect(() => {
     loadSupervisores()
@@ -193,6 +200,109 @@ export default function SupervisoresPage() {
     }
   }
 
+  const carregarDetalhesSupervisor = async (supervisor: Supervisor) => {
+    try {
+      setSupervisorSelecionado(supervisor)
+      setDetalhesAberto(true)
+      setLoadingDetalhes(true)
+
+      const { data, error } = await supabase
+        .from('contracts')
+        .select('*')
+        .eq('supervisor_id', supervisor.id)
+        .order('nome', { ascending: true })
+
+      if (error) throw error
+
+      setContratosSupervisor((data || []) as ContractRecord[])
+    } catch (error: any) {
+      console.error('Erro ao carregar contratos do supervisor:', error)
+      toast({
+        title: 'Erro ao carregar contratos',
+        description: error.message || 'Não foi possível carregar os contratos deste supervisor',
+        variant: 'destructive'
+      })
+    } finally {
+      setLoadingDetalhes(false)
+    }
+  }
+
+  const handleReatribuirContrato = async (contrato: ContractRecord, novoSupervisorId: string) => {
+    if (!novoSupervisorId || !contrato.id) return
+
+    const novoSupervisor = supervisores.find((s) => s.id === novoSupervisorId)
+
+    try {
+      const ok = await updateContract(String(contrato.id), {
+        supervisor_id: novoSupervisorId,
+        responsavel: novoSupervisor?.nome || null
+      })
+
+      if (!ok) {
+        throw new Error('Não foi possível atualizar o contrato')
+      }
+
+      toast({
+        title: 'Contrato atualizado',
+        description: `Contrato agora está vinculado a ${novoSupervisor?.nome || 'outro supervisor'}.`
+      })
+
+      if (supervisorSelecionado) {
+        await carregarDetalhesSupervisor(supervisorSelecionado)
+      }
+    } catch (error: any) {
+      console.error('Erro ao reatribuir contrato:', error)
+      toast({
+        title: 'Erro ao reatribuir contrato',
+        description: error.message || 'Não foi possível reatribuir o contrato',
+        variant: 'destructive'
+      })
+    }
+  }
+
+  const handleDeleteSupervisor = async (supervisor: Supervisor) => {
+    const confirmDelete = window.confirm(
+      `Tem certeza que deseja excluir o supervisor "${supervisor.nome}"?\n\n` +
+      'Esta ação é permanente. Se existirem contratos vinculados a ele, a exclusão será bloqueada.'
+    )
+    if (!confirmDelete) return
+
+    try {
+      const response = await fetch('/api/supervisores', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ supervisorId: supervisor.id })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao excluir supervisor')
+      }
+
+      toast({
+        title: 'Supervisor excluído',
+        description: `${supervisor.nome} foi removido com sucesso.`
+      })
+
+      await loadSupervisores()
+      if (supervisorSelecionado?.id === supervisor.id) {
+        setDetalhesAberto(false)
+        setContratosSupervisor([])
+        setSupervisorSelecionado(null)
+      }
+    } catch (error: any) {
+      console.error('Erro ao excluir supervisor:', error)
+      toast({
+        title: 'Erro ao excluir supervisor',
+        description: error.message,
+        variant: 'destructive'
+      })
+    }
+  }
+
   const filteredSupervisores = supervisores.filter(s =>
     s.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
     s.email.toLowerCase().includes(searchQuery.toLowerCase())
@@ -300,9 +410,25 @@ export default function SupervisoresPage() {
                     <Button
                       variant="outline"
                       size="sm"
+                      onClick={() => carregarDetalhesSupervisor(supervisor)}
+                    >
+                      Detalhes
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => handleToggleStatus(supervisor.id, supervisor.status)}
                     >
                       {supervisor.status === 'ativo' ? 'Desativar' : 'Ativar'}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700"
+                      onClick={() => handleDeleteSupervisor(supervisor)}
+                    >
+                      <Trash2 className="w-4 h-4 mr-1" />
+                      Excluir
                     </Button>
                   </div>
                 </div>
@@ -410,6 +536,91 @@ export default function SupervisoresPage() {
               {isSubmitting ? 'Criando...' : 'Criar Supervisor'}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Detalhes do Supervisor */}
+      <Dialog open={detalhesAberto} onOpenChange={setDetalhesAberto}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Supervisor</DialogTitle>
+            <DialogDescription>
+              Informações do supervisor e contratos vinculados.
+            </DialogDescription>
+          </DialogHeader>
+
+          {supervisorSelecionado && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-semibold text-lg">{supervisorSelecionado.nome}</div>
+                  <div className="text-sm text-gray-500 flex items-center gap-2">
+                    <Mail className="w-3 h-3" />
+                    {supervisorSelecionado.email}
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">
+                    Criado em {new Date(supervisorSelecionado.created_at).toLocaleDateString('pt-BR')}
+                  </div>
+                </div>
+                <Badge variant={supervisorSelecionado.status === 'ativo' ? 'default' : 'secondary'}>
+                  {supervisorSelecionado.status === 'ativo' ? '✓ Ativo' : '✕ Inativo'}
+                </Badge>
+              </div>
+
+              <div className="border-t pt-4 space-y-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm">Contratos Vinculados</CardTitle>
+                    <CardDescription>
+                      Realoque contratos para outros supervisores quando necessário.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {loadingDetalhes ? (
+                      <div className="text-center py-4 text-gray-500">Carregando contratos...</div>
+                    ) : contratosSupervisor.length === 0 ? (
+                      <div className="text-center py-4 text-gray-500">
+                        Nenhum contrato vinculado a este supervisor.
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {contratosSupervisor.map((contrato) => (
+                          <div
+                            key={contrato.id}
+                            className="flex items-center justify-between border rounded-lg p-3"
+                          >
+                            <div>
+                              <div className="font-medium">{contrato.nome}</div>
+                              <div className="text-xs text-gray-500">
+                                {contrato.cidade}/{contrato.estado} • Status: {contrato.status}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Select
+                                value={contrato.supervisor_id || supervisorSelecionado.id}
+                                onValueChange={(value) => handleReatribuirContrato(contrato, value)}
+                              >
+                                <SelectTrigger className="w-48">
+                                  <SelectValue placeholder="Reatribuir para..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {supervisores.map((s) => (
+                                    <SelectItem key={s.id} value={s.id}>
+                                      {s.nome}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
