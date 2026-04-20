@@ -1,8 +1,5 @@
-'use client'
+﻿'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
   DialogContent,
@@ -39,33 +36,28 @@ import {
   Target,
   Zap,
   Eye,
-  Download
+  Download,
+  Minus,
 } from 'lucide-react'
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, LineChart, Line } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
 import { MetricCard } from '@/components/dashboard/metric-card'
 import { useEffect, useState } from 'react'
 import { fetchDashboardKPIs, type DashboardKPIs } from '@/lib/services/dashboard-service'
 import { useRouter } from 'next/navigation'
-
-// Sem dados mock — apenas dados reais do Supabase via fetchDashboardKPIs
+import { cn } from '@/lib/utils'
 
 export default function DashboardPage() {
   const router = useRouter()
   const [kpis, setKpis] = useState<DashboardKPIs | null>(null)
   const now = new Date()
-  const [selectedPeriod, setSelectedPeriod] = useState(`${['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][now.getMonth()]} ${now.getFullYear()}`)
-  const [selectedMonth, setSelectedMonth] = useState(['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][now.getMonth()])
+  const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+  const [selectedPeriod, setSelectedPeriod] = useState(`${months[now.getMonth()]} ${now.getFullYear()}`)
+  const [selectedMonth, setSelectedMonth] = useState(months[now.getMonth()])
   const [selectedYear, setSelectedYear] = useState(now.getFullYear().toString())
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  
+
   useEffect(() => { fetchDashboardKPIs().then(setKpis) }, [])
 
-  const months = [
-    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-  ]
-
-  // Gerar anos de 2025 a 2050
   const years = Array.from({ length: 26 }, (_, i) => (2025 + i).toString())
 
   const handleApplyPeriod = () => {
@@ -77,1004 +69,574 @@ export default function DashboardPage() {
     const now = new Date()
     const currentMonth = months[now.getMonth()]
     const currentYear = now.getFullYear().toString()
-    
-    switch(period) {
+    switch (period) {
       case 'current':
-        setSelectedMonth(currentMonth)
-        setSelectedYear(currentYear)
-        setSelectedPeriod(`${currentMonth} ${currentYear}`)
-        break
+        setSelectedMonth(currentMonth); setSelectedYear(currentYear)
+        setSelectedPeriod(`${currentMonth} ${currentYear}`); break
       case 'last': {
-        const lastMonthIdx = now.getMonth() === 0 ? 11 : now.getMonth() - 1
-        const lastYearVal = now.getMonth() === 0 ? (now.getFullYear() - 1).toString() : currentYear
-        setSelectedMonth(months[lastMonthIdx])
-        setSelectedYear(lastYearVal)
-        setSelectedPeriod(`${months[lastMonthIdx]} ${lastYearVal}`)
-        break
+        const lastIdx = now.getMonth() === 0 ? 11 : now.getMonth() - 1
+        const lastYear = now.getMonth() === 0 ? (now.getFullYear() - 1).toString() : currentYear
+        setSelectedMonth(months[lastIdx]); setSelectedYear(lastYear)
+        setSelectedPeriod(`${months[lastIdx]} ${lastYear}`); break
       }
       case 'year':
-        setSelectedMonth('Dezembro')
-        setSelectedYear(currentYear)
-        setSelectedPeriod(`Ano ${currentYear}`)
-        break
+        setSelectedMonth('Dezembro'); setSelectedYear(currentYear)
+        setSelectedPeriod(`Ano ${currentYear}`); break
     }
     setIsDialogOpen(false)
   }
-  
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', { 
-      style: 'currency', 
-      currency: 'BRL',
-      minimumFractionDigits: 0
-    }).format(value)
-  }
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 }).format(value)
 
   const handleExportDashboard = () => {
-    // Exportar dados do dashboard
-    const dashboardData = {
+    const data = {
       periodo: selectedPeriod,
       receita_total: kpis?.receita_total ?? 0,
       custo_total: kpis?.custo_total ?? 0,
       lucro_liquido: kpis?.lucro_liquido ?? 0,
       exportado_em: new Date().toLocaleString('pt-BR')
     }
-    
-    const dataStr = JSON.stringify(dashboardData, null, 2)
-    const dataBlob = new Blob([dataStr], { type: 'application/json' })
-    const url = URL.createObjectURL(dataBlob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `dashboard-executivo-${new Date().toISOString().split('T')[0]}.json`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = `dashboard-executivo-${new Date().toISOString().split('T')[0]}.json`
+    document.body.appendChild(a); a.click(); document.body.removeChild(a)
     URL.revokeObjectURL(url)
   }
 
-  const getVariationColor = (variation: number) => {
-    return variation >= 0 ? 'text-green-600' : 'text-red-600'
-  }
+  // Insight bar dinâmica
+  const insight = (() => {
+    if (!kpis) return null
+    const totalAlertas =
+      kpis.estoque_critico + kpis.documentos_vencidos + kpis.documentos_vencendo +
+      kpis.manutencoes_proximas + kpis.achados_criticos + kpis.contratos_vencendo + kpis.cnh_vencendo
+    if (kpis.lucro_liquido <= 0)
+      return { type: 'danger', msg: 'Atenção: lucro líquido zerado ou negativo no período selecionado.' }
+    if (kpis.margem_lucro < 10)
+      return { type: 'warning', msg: `Margem de lucro baixa: ${kpis.margem_lucro.toFixed(1)}%. Revise os custos operacionais.` }
+    if (kpis.estoque_critico > 0)
+      return { type: 'warning', msg: `${kpis.estoque_critico} item(s) com estoque crítico. Reposição necessária.` }
+    if (totalAlertas > 0)
+      return { type: 'warning', msg: `${totalAlertas} alerta(s) operacional requer atenção.` }
+    if (kpis.margem_lucro >= 20)
+      return { type: 'success', msg: `Margem operacional saudável: ${kpis.margem_lucro.toFixed(1)}%. Operação dentro das metas.` }
+    return { type: 'info', msg: `Período ${selectedPeriod}: receita de ${formatCurrency(kpis.receita_total)} · ${kpis.pedidos_total} pedido(s).` }
+  })()
 
-  const getVariationIcon = (variation: number) => {
-    return variation >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />
+  const insightStyles: Record<string, string> = {
+    danger:  'bg-rose-50 border-rose-200 text-rose-800',
+    warning: 'bg-amber-50 border-amber-200 text-amber-800',
+    success: 'bg-emerald-50 border-emerald-200 text-emerald-800',
+    info:    'bg-blue-50 border-blue-200 text-blue-800',
   }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'online': return 'bg-green-500'
-      case 'atencao': return 'bg-yellow-500'
-      case 'offline': return 'bg-red-500'
-      default: return 'bg-gray-500'
-    }
-  }
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'online': return <Badge className="bg-green-500">Online</Badge>
-      case 'atencao': return <Badge className="bg-yellow-500">Atenção</Badge>
-      case 'offline': return <Badge variant="destructive">Offline</Badge>
-      default: return <Badge variant="outline">Desconhecido</Badge>
-    }
+  const insightDot: Record<string, string> = {
+    danger: 'bg-rose-500', warning: 'bg-amber-500', success: 'bg-emerald-500', info: 'bg-blue-500',
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header Executivo */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-lg shadow-lg">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Dashboard Executivo</h1>
-            <p className="text-blue-100 mt-1">
-              Visão consolidada da operação - {selectedPeriod}
-            </p>
-            <div className="flex items-center gap-4 mt-3">
-              <div className="flex items-center gap-1">
-                <CheckCircle className="w-4 h-4" />
-                <span className="text-sm">Sistema Operacional</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Activity className="w-4 h-4" />
-                <span className="text-sm">Atualizado em: {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
-              </div>
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="bg-white text-black border-white hover:bg-gray-100 hover:text-blue-600">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  Período
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>Selecionar Período</DialogTitle>
-                  <DialogDescription>
-                    Escolha o mês e ano para visualizar os dados do dashboard
-                  </DialogDescription>
-                </DialogHeader>
-                
-                <div className="space-y-6 py-4">
-                  {/* Atalhos Rápidos */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Atalhos Rápidos</Label>
-                    <div className="grid grid-cols-3 gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleQuickPeriod('current')}
-                        className="w-full"
-                      >
-                        Mês Atual
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleQuickPeriod('last')}
-                        className="w-full"
-                      >
-                        Mês Passado
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleQuickPeriod('year')}
-                        className="w-full"
-                      >
-                        Ano Atual
-                      </Button>
-                    </div>
-                  </div>
+    <div className="space-y-6 animate-fade-in">
 
-                  {/* Seletores Personalizados */}
-                  <div className="space-y-4">
-                    <Label className="text-sm font-medium">Período Personalizado</Label>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* Seletor de Mês */}
-                      <div className="space-y-2">
-                        <Label htmlFor="month" className="text-xs text-gray-600">Mês</Label>
-                        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                          <SelectTrigger id="month">
-                            <SelectValue placeholder="Selecione o mês" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {months.map((month) => (
-                              <SelectItem key={month} value={month}>
-                                {month}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Seletor de Ano */}
-                      <div className="space-y-2">
-                        <Label htmlFor="year" className="text-xs text-gray-600">Ano</Label>
-                        <Select value={selectedYear} onValueChange={setSelectedYear}>
-                          <SelectTrigger id="year">
-                            <SelectValue placeholder="Selecione o ano" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {years.map((year) => (
-                              <SelectItem key={year} value={year}>
-                                {year}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    {/* Preview do Período Selecionado */}
-                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-blue-600" />
-                        <div>
-                          <p className="text-xs text-blue-600 font-medium">Período Selecionado:</p>
-                          <p className="text-sm font-bold text-blue-900">{selectedMonth} de {selectedYear}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Botões de Ação */}
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => setIsDialogOpen(false)}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button
-                      className="flex-1"
-                      onClick={handleApplyPeriod}
-                    >
-                      Aplicar Período
-                    </Button>
+      {/* Executive Header */}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Dashboard Executivo</h1>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Visão consolidada — <span className="font-medium text-slate-700">{selectedPeriod}</span>
+            <span className="ml-2 inline-flex items-center gap-1 text-xs text-emerald-600">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Ao vivo · {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <button className="pg-btn-secondary text-xs h-8 px-3">
+                <Calendar className="w-3.5 h-3.5" />
+                {selectedPeriod}
+              </button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Selecionar Período</DialogTitle>
+                <DialogDescription>Escolha o mês e ano para visualizar os dados do dashboard</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-6 py-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Atalhos Rápidos</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button className="pg-btn-secondary text-xs py-2" onClick={() => handleQuickPeriod('current')}>Mês Atual</button>
+                    <button className="pg-btn-secondary text-xs py-2" onClick={() => handleQuickPeriod('last')}>Mês Passado</button>
+                    <button className="pg-btn-secondary text-xs py-2" onClick={() => handleQuickPeriod('year')}>Ano Atual</button>
                   </div>
                 </div>
-              </DialogContent>
-            </Dialog>
-            
-            <Button 
-              variant="outline" 
-              className="bg-white text-black border-white hover:bg-gray-100 hover:text-blue-600"
-              onClick={handleExportDashboard}
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Exportar
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              className="bg-white text-black border-white hover:bg-gray-100 hover:text-blue-600"
-              onClick={() => router.push('/dashboard/configuracoes')}
-            >
-              <Settings className="w-4 h-4 mr-2" />
-              Configurar
-            </Button>
-          </div>
+                <div className="space-y-4">
+                  <Label className="text-sm font-medium">Período Personalizado</Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="month" className="text-xs text-gray-600">Mês</Label>
+                      <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                        <SelectTrigger id="month"><SelectValue /></SelectTrigger>
+                        <SelectContent>{months.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="year" className="text-xs text-gray-600">Ano</Label>
+                      <Select value={selectedYear} onValueChange={setSelectedYear}>
+                        <SelectTrigger id="year"><SelectValue /></SelectTrigger>
+                        <SelectContent>{years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                    <div>
+                      <p className="text-xs text-blue-600 font-medium">Período Selecionado</p>
+                      <p className="text-sm font-bold text-blue-900">{selectedMonth} de {selectedYear}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <button className="pg-btn-secondary flex-1 justify-center" onClick={() => setIsDialogOpen(false)}>Cancelar</button>
+                  <button className="pg-btn-primary flex-1 justify-center" onClick={handleApplyPeriod}>Aplicar Período</button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <button className="pg-btn-secondary text-xs h-8 px-3" onClick={handleExportDashboard}>
+            <Download className="w-3.5 h-3.5" />
+            Exportar
+          </button>
+          <button className="pg-btn-ghost text-xs h-8 px-2" onClick={() => router.push('/dashboard/configuracoes')}>
+            <Settings className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
-      {/* KPIs Financeiros Principais */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard
-          title="Receita Total"
-          value={formatCurrency(kpis?.receita_total ?? 0)}
-          change={kpis ? 'Dados reais' : 'Carregando...'}
-          changeType="positive"
-          icon={DollarSign}
-          description="Este mês"
-        />
-        <MetricCard
-          title="Custo Total"
-          value={formatCurrency(kpis?.custo_total ?? 0)}
-          change={kpis ? 'Dados reais' : 'Carregando...'}
-          changeType="positive"
-          icon={TrendingDown}
-          description="Redução"
-        />
+      {/* Insight Bar */}
+      {insight && (
+        <div className={cn('flex items-start gap-3 px-4 py-3 rounded-xl border text-sm font-medium animate-scale-in', insightStyles[insight.type])}>
+          <span className={cn('mt-1.5 w-2 h-2 rounded-full flex-shrink-0', insightDot[insight.type])} />
+          <span>{insight.msg}</span>
+        </div>
+      )}
+      {!kpis && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm text-slate-500">
+          <div className="w-4 h-4 rounded-full border-2 border-slate-300 border-t-blue-500 animate-spin flex-shrink-0" />
+          Carregando indicadores do período...
+        </div>
+      )}
+
+      {/* KPIs Financeiros */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard title="Receita Total" value={formatCurrency(kpis?.receita_total ?? 0)} icon={DollarSign} iconColor="emerald" description="Período selecionado" loading={!kpis} />
+        <MetricCard title="Custo Total" value={formatCurrency(kpis?.custo_total ?? 0)} icon={TrendingDown} iconColor="rose" description="Período selecionado" loading={!kpis} />
         <MetricCard
           title="Lucro Líquido"
           value={formatCurrency(kpis?.lucro_liquido ?? 0)}
-          change={kpis ? `Margem: ${(kpis.margem_lucro ?? 0).toFixed(1)}%` : 'Calculando...'}
-          changeType="positive"
-          icon={Target}
-          description="Este mês"
+          icon={Target} iconColor="blue"
+          change={kpis ? `Margem: ${(kpis.margem_lucro ?? 0).toFixed(1)}%` : undefined}
+          changeType={kpis && kpis.lucro_liquido > 0 ? 'positive' : 'negative'}
+          loading={!kpis}
         />
         <MetricCard
           title="Margem de Lucro"
           value={`${kpis?.margem_lucro?.toFixed(1) ?? '0.0'}%`}
+          icon={TrendingUp}
+          iconColor={kpis && kpis.margem_lucro > 20 ? 'emerald' : 'amber'}
           change={kpis && kpis.margem_lucro > 20 ? 'Saudável' : 'Atenção'}
           changeType={kpis && kpis.margem_lucro > 20 ? 'positive' : 'negative'}
-          icon={TrendingUp}
-          description="Lucratividade"
+          description="Lucratividade" loading={!kpis}
         />
       </div>
 
       {/* Gráficos Principais */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Evolução Financeira */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="w-5 h-5" />
-              Evolução Financeira (5 Meses)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={[]}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="mes" />
-                  <YAxis tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`} />
-                  <Tooltip 
-                    formatter={(value: any) => [formatCurrency(value), '']}
-                    labelFormatter={(label) => `Mês: ${label}`}
-                  />
-                  <Area type="monotone" dataKey="receita" stroke="#10b981" fill="#10b981" fillOpacity={0.6} name="Receita" />
-                  <Area type="monotone" dataKey="custos" stroke="#ef4444" fill="#ef4444" fillOpacity={0.6} name="Custos" />
-                  <Area type="monotone" dataKey="lucro" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.8} name="Lucro" />
-                </AreaChart>
-              </ResponsiveContainer>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="pg-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart3 className="w-4 h-4 text-blue-500" />
+            <div>
+              <p className="pg-section-title">Evolução Financeira</p>
+              <p className="text-xs text-slate-400">Últimos 5 meses</p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="h-52">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={[]}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="mes" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                <YAxis tickFormatter={v => `R$${(v/1000).toFixed(0)}k`} tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                <Tooltip formatter={(v: any) => [formatCurrency(v), '']} />
+                <Area type="monotone" dataKey="receita" stroke="#10b981" fill="#10b981" fillOpacity={0.08} strokeWidth={2} />
+                <Area type="monotone" dataKey="custos" stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.08} strokeWidth={2} />
+                <Area type="monotone" dataKey="lucro" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.12} strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="pg-empty pt-2 pb-0">
+            <div className="pg-empty-icon"><BarChart3 className="w-5 h-5" /></div>
+            <p className="pg-empty-title">Sem dados históricos</p>
+            <p className="pg-empty-description">Registre transações para ver a evolução mensal</p>
+          </div>
+        </div>
 
-        {/* Performance Operacional */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="w-5 h-5" />
-              Performance vs Meta
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={[]}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="categoria" />
-                  <YAxis domain={[80, 100]} />
-                  <Tooltip formatter={(value: any) => [`${value}%`, '']} />
-                  <Bar dataKey="valor" fill="#3b82f6" name="Atual" />
-                  <Bar dataKey="meta" fill="#94a3b8" name="Meta" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="pg-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Activity className="w-4 h-4 text-blue-500" />
+            <p className="pg-section-title">Performance vs Meta</p>
+          </div>
+          <div className="h-52">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={[]}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="categoria" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                <YAxis domain={[80, 100]} tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                <Tooltip formatter={(v: any) => [`${v}%`, '']} />
+                <Bar dataKey="valor" fill="#3b82f6" name="Atual" radius={[4,4,0,0]} />
+                <Bar dataKey="meta" fill="#e2e8f0" name="Meta" radius={[4,4,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="pg-empty pt-2 pb-0">
+            <div className="pg-empty-icon"><Activity className="w-5 h-5" /></div>
+            <p className="pg-empty-title">Sem dados de performance</p>
+            <p className="pg-empty-description">Dados serão exibidos quando houver registros</p>
+          </div>
+        </div>
       </div>
 
-      {/* Widgets Financeiros Específicos */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Centro de Custos */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="w-5 h-5" />
-              Despesas por Centro de Custo
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col items-center justify-center py-8 text-center text-gray-400">
-                <BarChart3 className="w-8 h-8 mb-2" />
-                <p className="text-sm">Nenhum dado de centro de custo</p>
-                <p className="text-xs mt-1">Importe transações OFX para ver o rateio</p>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Widgets Financeiros */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="pg-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart3 className="w-4 h-4 text-blue-500" />
+            <p className="pg-section-title">Despesas por Centro</p>
+          </div>
+          <div className="pg-empty">
+            <div className="pg-empty-icon"><BarChart3 className="w-5 h-5" /></div>
+            <p className="pg-empty-title">Nenhum dado de centro de custo</p>
+            <p className="pg-empty-description">Importe transações OFX para ver o rateio</p>
+          </div>
+        </div>
 
-        {/* Transações Recentes */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="w-5 h-5" />
-              Transações Recentes
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col items-center justify-center py-8 text-center text-gray-400">
-              <Activity className="w-8 h-8 mb-2" />
-              <p className="text-sm">Nenhuma transação recente</p>
-              <p className="text-xs mt-1">Importe extratos OFX para visualizar</p>
+        <div className="pg-card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-blue-500" />
+              <p className="pg-section-title">Transações Recentes</p>
             </div>
-            <div className="mt-3 pt-3 border-t">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full"
-                onClick={() => router.push('/dashboard/financeiro')}
-              >
-                <Eye className="w-4 h-4 mr-2" />
-                Ver Todas as Transações
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="pg-empty">
+            <div className="pg-empty-icon"><Activity className="w-5 h-5" /></div>
+            <p className="pg-empty-title">Nenhuma transação recente</p>
+            <p className="pg-empty-description">Importe extratos OFX para visualizar</p>
+          </div>
+          <button className="pg-btn-secondary w-full text-xs mt-2 justify-center" onClick={() => router.push('/dashboard/financeiro')}>
+            <Eye className="w-3.5 h-3.5" />
+            Ver Todas as Transações
+          </button>
+        </div>
 
-        {/* Resumo Financeiro Rápido */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="w-5 h-5" />
-              Resumo Financeiro
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center p-3 bg-green-50 rounded-lg">
-                <p className="text-xs text-green-600 font-medium">Entradas</p>
-                <p className="text-lg font-bold text-green-700">{formatCurrency(kpis?.receita_total ?? 0)}</p>
-              </div>
-              <div className="text-center p-3 bg-red-50 rounded-lg">
-                <p className="text-xs text-red-600 font-medium">Saídas</p>
-                <p className="text-lg font-bold text-red-700">{formatCurrency(kpis?.custo_total ?? 0)}</p>
-              </div>
+        <div className="pg-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <DollarSign className="w-4 h-4 text-blue-500" />
+            <p className="pg-section-title">Resumo Financeiro</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-3 text-center">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-500 mb-1">Entradas</p>
+              <p className="text-base font-bold text-emerald-700 tabular-nums">{formatCurrency(kpis?.receita_total ?? 0)}</p>
             </div>
-            
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Lucro Líquido</span>
-                <span className="font-bold text-blue-600">{formatCurrency(kpis?.lucro_liquido ?? 0)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Margem</span>
-                <span className="font-medium text-gray-600">{kpis?.margem_lucro?.toFixed(1) ?? '0.0'}%</span>
-              </div>
+            <div className="rounded-xl bg-rose-50 border border-rose-100 px-3 py-3 text-center">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-rose-500 mb-1">Saídas</p>
+              <p className="text-base font-bold text-rose-700 tabular-nums">{formatCurrency(kpis?.custo_total ?? 0)}</p>
             </div>
-
-            <div className="pt-3 border-t">
-              <Button 
-                size="sm" 
-                className="w-full"
-                onClick={() => router.push('/dashboard/financeiro')}
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                Importar OFX
-              </Button>
+          </div>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between items-center py-1.5 border-b border-slate-100">
+              <span className="text-slate-500">Lucro Líquido</span>
+              <span className="font-semibold text-blue-600 tabular-nums">{formatCurrency(kpis?.lucro_liquido ?? 0)}</span>
             </div>
-          </CardContent>
-        </Card>
+            <div className="flex justify-between items-center py-1.5">
+              <span className="text-slate-500">Margem</span>
+              <span className="font-semibold text-slate-700">{kpis?.margem_lucro?.toFixed(1) ?? '—'}%</span>
+            </div>
+          </div>
+          <button className="pg-btn-primary w-full text-xs mt-4 justify-center" onClick={() => router.push('/dashboard/financeiro')}>
+            <FileText className="w-3.5 h-3.5" />
+            Importar OFX
+          </button>
+        </div>
       </div>
 
-      {/* Métricas Operacionais */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard
-          title="Pedidos Ativos"
-          value={(kpis?.pedidos_ativos ?? 0).toString()}
-          change={kpis ? `Total: ${kpis.pedidos_total}` : 'Carregando...'}
-          changeType="neutral"
-          icon={Package}
-          description="Em andamento"
-        />
-        <MetricCard
-          title="Taxa de Entrega"
-          value={`${kpis?.taxa_entrega?.toFixed(1) ?? '0.0'}%`}
-          change={kpis ? `${kpis.entregas_no_prazo} entregas` : 'Carregando...'}
-          changeType="positive"
-          icon={CheckCircle}
-          description="No prazo"
-        />
-        <MetricCard
-          title="Motoristas Ativos"
-          value={`${kpis?.motoristas_ativos ?? 0}/${kpis?.total_motoristas ?? 0}`}
-          change={kpis && kpis.cnh_vencendo > 0 ? `${kpis.cnh_vencendo} CNH vencendo` : 'Nenhum alerta'}
-          changeType={kpis && kpis.cnh_vencendo > 0 ? 'negative' : 'positive'}
-          icon={Users}
-          description="CNH válidas"
-        />
-        <MetricCard
-          title="Frota Ativa"
-          value={`${kpis?.veiculos_ativos ?? 0}/${kpis?.total_veiculos ?? 0}`}
-          change={kpis && kpis.veiculos_manutencao > 0 ? `${kpis.veiculos_manutencao} em manutenção` : 'Sem manutenções'}
-          changeType={kpis && kpis.veiculos_manutencao > 0 ? 'negative' : 'positive'}
-          icon={Truck}
-          description="Veículos disponíveis"
-        />
+      {/* KPIs Operacionais */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard title="Pedidos Ativos" value={(kpis?.pedidos_ativos ?? 0).toString()} change={kpis ? `Total: ${kpis.pedidos_total}` : undefined} changeType="neutral" icon={Package} iconColor="violet" description="Em andamento" loading={!kpis} />
+        <MetricCard title="Taxa de Entrega" value={`${kpis?.taxa_entrega?.toFixed(1) ?? '0.0'}%`} change={kpis ? `${kpis.entregas_no_prazo} entregas` : undefined} changeType="positive" icon={CheckCircle} iconColor="emerald" description="No prazo" loading={!kpis} />
+        <MetricCard title="Motoristas Ativos" value={`${kpis?.motoristas_ativos ?? 0}/${kpis?.total_motoristas ?? 0}`} change={kpis && kpis.cnh_vencendo > 0 ? `${kpis.cnh_vencendo} CNH vencendo` : 'Nenhum alerta'} changeType={kpis && kpis.cnh_vencendo > 0 ? 'negative' : 'positive'} icon={Users} iconColor="amber" description="CNH válidas" loading={!kpis} />
+        <MetricCard title="Frota Ativa" value={`${kpis?.veiculos_ativos ?? 0}/${kpis?.total_veiculos ?? 0}`} change={kpis && kpis.veiculos_manutencao > 0 ? `${kpis.veiculos_manutencao} em manutenção` : 'Sem manutenções'} changeType={kpis && kpis.veiculos_manutencao > 0 ? 'negative' : 'positive'} icon={Truck} iconColor="blue" description="Disponíveis" loading={!kpis} />
       </div>
 
-      {/* Widgets dos Módulos */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Status + Alertas + Performance */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Status dos Módulos */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5" />
-              Status dos Módulos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {(['Pedidos', 'Rastreamento', 'Estoque', 'Frota', 'Financeiro', 'Compliance'] as const).map((modulo, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                    <div>
-                      <p className="font-medium text-sm">{modulo}</p>
-                      <p className="text-xs text-gray-600">Online</p>
-                    </div>
+        <div className="pg-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Shield className="w-4 h-4 text-blue-500" />
+            <p className="pg-section-title">Status dos Módulos</p>
+          </div>
+          <div className="space-y-1.5">
+            {(['Pedidos', 'Rastreamento', 'Estoque', 'Frota', 'Financeiro', 'Compliance'] as const).map(mod => (
+              <div key={mod} className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" />
+                  <span className="text-sm font-medium text-slate-700">{mod}</span>
+                </div>
+                <span className="pg-badge-success text-[10px]">Online</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Alertas Críticos */}
+        <div className="pg-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <AlertTriangle className="w-4 h-4 text-amber-500" />
+            <p className="pg-section-title">Alertas Críticos</p>
+          </div>
+          <div className="space-y-2">
+            {kpis && kpis.estoque_critico > 0 && (
+              <div className="flex items-center justify-between p-3 bg-rose-50 border border-rose-100 rounded-xl">
+                <div className="flex items-center gap-2.5">
+                  <Package className="w-4 h-4 text-rose-500 flex-shrink-0" />
+                  <div><p className="text-sm font-medium text-rose-800">Estoque Crítico</p><p className="text-xs text-rose-600">{kpis.estoque_critico} produtos zerados</p></div>
+                </div>
+                <button className="text-xs text-rose-600 hover:underline" onClick={() => router.push('/dashboard/estoque')}>Ver</button>
+              </div>
+            )}
+            {kpis && kpis.documentos_vencidos > 0 && (
+              <div className="flex items-center justify-between p-3 bg-rose-50 border border-rose-100 rounded-xl">
+                <div className="flex items-center gap-2.5">
+                  <FileText className="w-4 h-4 text-rose-500 flex-shrink-0" />
+                  <div><p className="text-sm font-medium text-rose-800">Docs. Vencidos</p><p className="text-xs text-rose-600">{kpis.documentos_vencidos} documentos</p></div>
+                </div>
+                <button className="text-xs text-rose-600 hover:underline" onClick={() => router.push('/dashboard/documentos')}>Ver</button>
+              </div>
+            )}
+            {kpis && kpis.documentos_vencendo > 0 && (
+              <div className="flex items-center justify-between p-3 bg-amber-50 border border-amber-100 rounded-xl">
+                <div className="flex items-center gap-2.5">
+                  <FileText className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                  <div><p className="text-sm font-medium text-amber-800">Docs. Vencendo</p><p className="text-xs text-amber-600">{kpis.documentos_vencendo} em 30 dias</p></div>
+                </div>
+                <button className="text-xs text-amber-600 hover:underline" onClick={() => router.push('/dashboard/documentos')}>Ver</button>
+              </div>
+            )}
+            {kpis && kpis.manutencoes_proximas > 0 && (
+              <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-100 rounded-xl">
+                <div className="flex items-center gap-2.5">
+                  <Truck className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                  <div><p className="text-sm font-medium text-blue-800">Manutenções</p><p className="text-xs text-blue-600">{kpis.manutencoes_proximas} em 30 dias</p></div>
+                </div>
+                <button className="text-xs text-blue-600 hover:underline" onClick={() => router.push('/dashboard/manutencao')}>Ver</button>
+              </div>
+            )}
+            {kpis && kpis.cnh_vencendo > 0 && (
+              <div className="flex items-center justify-between p-3 bg-amber-50 border border-amber-100 rounded-xl">
+                <div className="flex items-center gap-2.5">
+                  <Users className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                  <div><p className="text-sm font-medium text-amber-800">CNH Vencendo</p><p className="text-xs text-amber-600">{kpis.cnh_vencendo} motoristas</p></div>
+                </div>
+                <button className="text-xs text-amber-600 hover:underline" onClick={() => router.push('/dashboard/motoristas')}>Ver</button>
+              </div>
+            )}
+            {kpis && kpis.contratos_vencendo > 0 && (
+              <div className="flex items-center justify-between p-3 bg-violet-50 border border-violet-100 rounded-xl">
+                <div className="flex items-center gap-2.5">
+                  <FileText className="w-4 h-4 text-violet-500 flex-shrink-0" />
+                  <div><p className="text-sm font-medium text-violet-800">Contratos</p><p className="text-xs text-violet-600">{kpis.contratos_vencendo} vencendo</p></div>
+                </div>
+                <button className="text-xs text-violet-600 hover:underline" onClick={() => router.push('/dashboard/contratos')}>Ver</button>
+              </div>
+            )}
+            {!kpis && <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="pg-shimmer h-14 rounded-xl" />)}</div>}
+            {kpis && kpis.estoque_critico === 0 && kpis.documentos_vencidos === 0 && kpis.documentos_vencendo === 0 &&
+             kpis.manutencoes_proximas === 0 && kpis.cnh_vencendo === 0 && kpis.contratos_vencendo === 0 && kpis.achados_criticos === 0 && (
+              <div className="pg-empty py-8">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center mb-3">
+                  <CheckCircle className="w-6 h-6 text-emerald-500" />
+                </div>
+                <p className="pg-empty-title text-emerald-700">Tudo em ordem!</p>
+                <p className="pg-empty-description">Nenhum alerta crítico no momento</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Performance */}
+        <div className="pg-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Target className="w-4 h-4 text-blue-500" />
+            <p className="pg-section-title">Performance</p>
+          </div>
+          {!kpis ? (
+            <div className="space-y-4">{[1,2,3,4].map(i => <div key={i} className="space-y-1.5"><div className="pg-shimmer h-3 w-32 rounded" /><div className="pg-shimmer h-2 rounded-full" /></div>)}</div>
+          ) : (
+            <div className="space-y-4">
+              {[
+                { label: 'Entregas no Prazo', pct: kpis.taxa_entrega, color: 'bg-emerald-500' },
+                { label: 'Score Compliance', pct: (kpis as any).score_compliance ?? 0, color: 'bg-blue-500' },
+                { label: 'Frota Disponível', pct: kpis.total_veiculos > 0 ? (kpis.veiculos_ativos / kpis.total_veiculos) * 100 : 0, color: 'bg-violet-500' },
+                { label: 'Motoristas Disp.', pct: kpis.total_motoristas > 0 ? (kpis.motoristas_ativos / kpis.total_motoristas) * 100 : 0, color: 'bg-amber-500' },
+              ].map(({ label, pct, color }) => (
+                <div key={label}>
+                  <div className="flex justify-between text-xs mb-1.5">
+                    <span className="text-slate-500 font-medium">{label}</span>
+                    <span className="text-slate-800 font-semibold tabular-nums">{pct.toFixed(1)}%</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-green-500">Online</Badge>
+                  <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div className={cn('h-full rounded-full transition-all duration-500', color)} style={{ width: `${Math.min(pct, 100)}%` }} />
                   </div>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Alertas Críticos */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-orange-600" />
-              Alertas Críticos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {kpis && kpis.estoque_critico > 0 && (
-                <div className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Package className="w-5 h-5 text-red-600" />
-                    <div>
-                      <p className="font-medium text-sm">Estoque Crítico</p>
-                      <p className="text-xs text-gray-600">{kpis.estoque_critico} produtos zerados</p>
-                    </div>
-                  </div>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => router.push('/dashboard/estoque')}
-                  >
-                    Ver
-                  </Button>
-                </div>
-              )}
-
-              {kpis && kpis.estoque_baixo > 0 && (
-                <div className="flex items-center justify-between p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Package className="w-5 h-5 text-orange-600" />
-                    <div>
-                      <p className="font-medium text-sm">Estoque Baixo</p>
-                      <p className="text-xs text-gray-600">{kpis.estoque_baixo} produtos abaixo do mínimo</p>
-                    </div>
-                  </div>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => router.push('/dashboard/estoque')}
-                  >
-                    Ver
-                  </Button>
-                </div>
-              )}
-
-              {kpis && kpis.documentos_vencendo > 0 && (
-                <div className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <FileText className="w-5 h-5 text-yellow-600" />
-                    <div>
-                      <p className="font-medium text-sm">Documentos Vencendo</p>
-                      <p className="text-xs text-gray-600">{kpis.documentos_vencendo} documentos em 30 dias</p>
-                    </div>
-                  </div>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => router.push('/dashboard/documentos')}
-                  >
-                    Ver
-                  </Button>
-                </div>
-              )}
-
-              {kpis && kpis.documentos_vencidos > 0 && (
-                <div className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <FileText className="w-5 h-5 text-red-600" />
-                    <div>
-                      <p className="font-medium text-sm">Documentos Vencidos</p>
-                      <p className="text-xs text-gray-600">{kpis.documentos_vencidos} documentos vencidos</p>
-                    </div>
-                  </div>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => router.push('/dashboard/documentos')}
-                  >
-                    Ver
-                  </Button>
-                </div>
-              )}
-
-              {kpis && kpis.manutencoes_proximas > 0 && (
-                <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Truck className="w-5 h-5 text-blue-600" />
-                    <div>
-                      <p className="font-medium text-sm">Manutenções Próximas</p>
-                      <p className="text-xs text-gray-600">{kpis.manutencoes_proximas} agendadas em 30 dias</p>
-                    </div>
-                  </div>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => router.push('/dashboard/manutencao')}
-                  >
-                    Ver
-                  </Button>
-                </div>
-              )}
-
-              {kpis && kpis.achados_criticos > 0 && (
-                <div className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Shield className="w-5 h-5 text-red-600" />
-                    <div>
-                      <p className="font-medium text-sm">Achados Críticos</p>
-                      <p className="text-xs text-gray-600">{kpis.achados_criticos} auditorias críticas</p>
-                    </div>
-                  </div>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => router.push('/dashboard/auditoria')}
-                  >
-                    Ver
-                  </Button>
-                </div>
-              )}
-
-              {kpis && kpis.contratos_vencendo > 0 && (
-                <div className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <FileText className="w-5 h-5 text-yellow-600" />
-                    <div>
-                      <p className="font-medium text-sm">Contratos Vencendo</p>
-                      <p className="text-xs text-gray-600">{kpis.contratos_vencendo} contratos em 30 dias</p>
-                    </div>
-                  </div>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => router.push('/dashboard/contratos')}
-                  >
-                    Ver
-                  </Button>
-                </div>
-              )}
-
-              {kpis && kpis.cnh_vencendo > 0 && (
-                <div className="flex items-center justify-between p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Users className="w-5 h-5 text-orange-600" />
-                    <div>
-                      <p className="font-medium text-sm">CNH Vencendo</p>
-                      <p className="text-xs text-gray-600">{kpis.cnh_vencendo} motoristas em 30 dias</p>
-                    </div>
-                  </div>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => router.push('/dashboard/motoristas')}
-                  >
-                    Ver
-                  </Button>
-                </div>
-              )}
-
-              {!kpis && (
-                <div className="text-center py-6 text-gray-500">
-                  <p className="text-sm">Carregando alertas...</p>
-                </div>
-              )}
-
-              {kpis && 
-                kpis.estoque_critico === 0 && 
-                kpis.estoque_baixo === 0 && 
-                kpis.documentos_vencendo === 0 && 
-                kpis.documentos_vencidos === 0 && 
-                kpis.manutencoes_proximas === 0 && 
-                kpis.achados_criticos === 0 && 
-                kpis.contratos_vencendo === 0 && 
-                kpis.cnh_vencendo === 0 && (
-                <div className="text-center py-6">
-                  <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-green-700">Nenhum alerta crítico!</p>
-                  <p className="text-xs text-gray-600">Todos os indicadores estão normais</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Resumo de Performance */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="w-5 h-5" />
-              Resumo de Performance
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span>Entregas no Prazo</span>
-                  <span className="font-medium">{kpis ? `${kpis.taxa_entrega.toFixed(1)}%` : '—'}</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-green-600 h-2 rounded-full" style={{ width: `${kpis?.taxa_entrega ?? 0}%` }}></div>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span>Score de Compliance</span>
-                  <span className="font-medium">{kpis ? `${((kpis as any).score_compliance ?? 0).toFixed(1)}%` : '—'}</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${(kpis as any)?.score_compliance ?? 0}%` }}></div>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span>Frota Disponível</span>
-                  <span className="font-medium">
-                    {kpis && kpis.total_veiculos > 0
-                      ? `${((kpis.veiculos_ativos / kpis.total_veiculos) * 100).toFixed(1)}%`
-                      : '—'}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-purple-600 h-2 rounded-full" 
-                    style={{ width: kpis && kpis.total_veiculos > 0 ? `${(kpis.veiculos_ativos / kpis.total_veiculos) * 100}%` : '0%' }}
-                  ></div>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span>Motoristas Disponíveis</span>
-                  <span className="font-medium">
-                    {kpis && kpis.total_motoristas > 0
-                      ? `${((kpis.motoristas_ativos / kpis.total_motoristas) * 100).toFixed(1)}%`
-                      : '—'}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-orange-600 h-2 rounded-full" 
-                    style={{ width: kpis && kpis.total_motoristas > 0 ? `${(kpis.motoristas_ativos / kpis.total_motoristas) * 100}%` : '0%' }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-
-            {!kpis && (
-              <div className="pt-3 border-t text-center text-gray-400 text-sm">
-                Carregando indicadores...
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Ações Rápidas dos Módulos */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Zap className="w-5 h-5" />
-            Ações Rápidas
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Button 
-              variant="outline" 
-              className="h-20 flex flex-col items-center justify-center"
-              onClick={() => router.push('/dashboard/pedidos')}
-            >
-              <Package className="w-6 h-6 mb-2" />
-              <span className="text-sm">Novo Pedido</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-20 flex flex-col items-center justify-center"
-              onClick={() => router.push('/dashboard/rastreamento')}
-            >
-              <MapPin className="w-6 h-6 mb-2" />
-              <span className="text-sm">Rastreamento</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-20 flex flex-col items-center justify-center"
-              onClick={() => router.push('/dashboard/relatorios')}
-            >
-              <FileText className="w-6 h-6 mb-2" />
-              <span className="text-sm">Relatório Executivo</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-20 flex flex-col items-center justify-center"
-              onClick={() => router.push('/dashboard/motoristas')}
-            >
-              <Users className="w-6 h-6 mb-2" />
-              <span className="text-sm">Gestão Motoristas</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-20 flex flex-col items-center justify-center"
-              onClick={() => router.push('/dashboard/veiculos')}
-            >
-              <Truck className="w-6 h-6 mb-2" />
-              <span className="text-sm">Status Frota</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-20 flex flex-col items-center justify-center"
-              onClick={() => router.push('/dashboard/custos')}
-            >
-              <DollarSign className="w-6 h-6 mb-2" />
-              <span className="text-sm">Análise Custos</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-20 flex flex-col items-center justify-center"
-              onClick={() => router.push('/dashboard/gamificacao')}
-            >
-              <Award className="w-6 h-6 mb-2" />
-              <span className="text-sm">Gamificação</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-20 flex flex-col items-center justify-center"
-              onClick={() => router.push('/dashboard/configuracoes')}
-            >
-              <Settings className="w-6 h-6 mb-2" />
-              <span className="text-sm">Configurações</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Destaques e Insights */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Destaques do Mês */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Award className="w-5 h-5 text-yellow-600" />
-              Destaques do Mês
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {kpis ? (
-              <div className="space-y-4">
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <TrendingUp className="w-4 h-4 text-green-600" />
-                    <span className="font-medium text-green-800">Receita do Período</span>
-                  </div>
-                  <p className="text-sm text-green-700">
-                    {formatCurrency(kpis.receita_total)} em receita total no período selecionado.
-                  </p>
-                </div>
-
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle className="w-4 h-4 text-blue-600" />
-                    <span className="font-medium text-blue-800">Taxa de Entregas</span>
-                  </div>
-                  <p className="text-sm text-blue-700">
-                    Taxa de entregas no prazo: {kpis.taxa_entrega.toFixed(1)}% ({kpis.entregas_no_prazo} entregas).
-                  </p>
-                </div>
-
-                <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Zap className="w-4 h-4 text-purple-600" />
-                    <span className="font-medium text-purple-800">Frota e Equipe</span>
-                  </div>
-                  <p className="text-sm text-purple-700">
-                    {kpis.motoristas_ativos}/{kpis.total_motoristas} motoristas ativos · {kpis.veiculos_ativos}/{kpis.total_veiculos} veículos disponíveis.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-8 text-gray-400">
-                <Award className="w-8 h-8 mb-2" />
-                <p className="text-sm">Carregando destaques...</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Próximas Ações */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-blue-600" />
-              Alertas e Ações Pendentes
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {kpis && kpis.estoque_critico > 0 && (
-                <div className="flex items-center gap-3 p-3 border rounded-lg">
-                  <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">Estoque Crítico</p>
-                    <p className="text-xs text-gray-600">{kpis.estoque_critico} produtos precisam reposição</p>
-                  </div>
-                  <Badge variant="outline" className="text-red-600">Urgente</Badge>
-                </div>
-              )}
-              {kpis && kpis.documentos_vencendo > 0 && (
-                <div className="flex items-center gap-3 p-3 border rounded-lg">
-                  <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">Documentos Vencendo</p>
-                    <p className="text-xs text-gray-600">{kpis.documentos_vencendo} documentos em 30 dias</p>
-                  </div>
-                  <Badge variant="outline" className="text-yellow-600">Médio</Badge>
-                </div>
-              )}
-              {kpis && kpis.manutencoes_proximas > 0 && (
-                <div className="flex items-center gap-3 p-3 border rounded-lg">
-                  <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">Manutenções Próximas</p>
-                    <p className="text-xs text-gray-600">{kpis.manutencoes_proximas} agendadas em 30 dias</p>
-                  </div>
-                  <Badge variant="outline" className="text-blue-600">Normal</Badge>
-                </div>
-              )}
-              {kpis && kpis.cnh_vencendo > 0 && (
-                <div className="flex items-center gap-3 p-3 border rounded-lg">
-                  <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">CNH Vencendo</p>
-                    <p className="text-xs text-gray-600">{kpis.cnh_vencendo} motoristas em 30 dias</p>
-                  </div>
-                  <Badge variant="outline" className="text-orange-600">Atenção</Badge>
-                </div>
-              )}
-              {kpis && kpis.contratos_vencendo > 0 && (
-                <div className="flex items-center gap-3 p-3 border rounded-lg">
-                  <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">Contratos Vencendo</p>
-                    <p className="text-xs text-gray-600">{kpis.contratos_vencendo} contratos em 30 dias</p>
-                  </div>
-                  <Badge variant="outline" className="text-purple-600">Atenção</Badge>
-                </div>
-              )}
-              {!kpis && (
-                <div className="text-center py-4 text-gray-400 text-sm">Carregando...</div>
-              )}
-              {kpis && kpis.estoque_critico === 0 && kpis.documentos_vencendo === 0 && kpis.manutencoes_proximas === 0 && kpis.cnh_vencendo === 0 && kpis.contratos_vencendo === 0 && (
-                <div className="text-center py-6">
-                  <CheckCircle className="w-10 h-10 text-green-500 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-green-700">Nenhuma ação pendente</p>
-                  <p className="text-xs text-gray-500 mt-1">Todos os indicadores estão normais</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Resumo Consolidado */}
-      <Card className="bg-gradient-to-r from-slate-50 to-slate-100 border-slate-200">
-        <CardHeader>
-          <CardTitle className="text-center text-slate-800">Resumo Executivo — {selectedPeriod}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-center">
-            <div>
-              <DollarSign className="w-8 h-8 mx-auto mb-2 text-green-600" />
-              <p className="text-2xl font-bold text-green-600">{formatCurrency(kpis?.receita_total ?? 0)}</p>
-              <p className="text-sm text-gray-600">Receita Total</p>
-            </div>
-
-            <div>
-              <Target className="w-8 h-8 mx-auto mb-2 text-blue-600" />
-              <p className="text-2xl font-bold text-blue-600">{kpis ? `${kpis.taxa_entrega.toFixed(1)}%` : '—'}</p>
-              <p className="text-sm text-gray-600">Taxa de Entregas</p>
-              <p className="text-xs text-blue-600">{kpis ? `${kpis.entregas_no_prazo} no prazo` : ''}</p>
-            </div>
-
-            <div>
-              <Users className="w-8 h-8 mx-auto mb-2 text-purple-600" />
-              <p className="text-2xl font-bold text-purple-600">{kpis ? `${kpis.motoristas_ativos}/${kpis.total_motoristas}` : '—'}</p>
-              <p className="text-sm text-gray-600">Motoristas Ativos</p>
-            </div>
-
-            <div>
-              <TrendingUp className="w-8 h-8 mx-auto mb-2 text-orange-600" />
-              <p className="text-2xl font-bold text-orange-600">{kpis ? `${kpis.margem_lucro.toFixed(1)}%` : '—'}</p>
-              <p className="text-sm text-gray-600">Margem de Lucro</p>
-              <p className="text-xs text-orange-600">{formatCurrency(kpis?.lucro_liquido ?? 0)}</p>
-            </div>
-          </div>
-
-          {!kpis && (
-            <div className="mt-6 text-center text-gray-400 text-sm py-4">
-              Carregando resumo executivo...
-            </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+
+      {/* Ações Rápidas */}
+      <div className="pg-card p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Zap className="w-4 h-4 text-blue-500" />
+          <p className="pg-section-title">Ações Rápidas</p>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
+          {[
+            { label: 'Novo Pedido', icon: Package, href: '/dashboard/pedidos' },
+            { label: 'Rastreamento', icon: MapPin, href: '/dashboard/rastreamento' },
+            { label: 'Relatório', icon: FileText, href: '/dashboard/relatorios' },
+            { label: 'Motoristas', icon: Users, href: '/dashboard/motoristas' },
+            { label: 'Status Frota', icon: Truck, href: '/dashboard/veiculos' },
+            { label: 'Análise Custos', icon: DollarSign, href: '/dashboard/custos' },
+            { label: 'Gamificação', icon: Award, href: '/dashboard/gamificacao' },
+            { label: 'Configurações', icon: Settings, href: '/dashboard/configuracoes' },
+          ].map(({ label, icon: Icon, href }) => (
+            <button key={href} onClick={() => router.push(href)}
+              className="flex flex-col items-center gap-2 p-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 hover:shadow-card transition-all duration-150 group">
+              <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+                <Icon className="w-4 h-4 text-blue-600" />
+              </div>
+              <span className="text-[11px] font-medium text-slate-600 group-hover:text-slate-900 leading-tight text-center">{label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Resumo Executivo Consolidado */}
+      <div className="pg-card overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100">
+          <p className="pg-section-title">Resumo Executivo — {selectedPeriod}</p>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-slate-100">
+          {[
+            { icon: DollarSign, color: 'text-emerald-500', label: 'Receita Total', value: formatCurrency(kpis?.receita_total ?? 0), sub: 'Período selecionado' },
+            { icon: Target, color: 'text-blue-500', label: 'Taxa de Entregas', value: kpis ? `${kpis.taxa_entrega.toFixed(1)}%` : '—', sub: kpis ? `${kpis.entregas_no_prazo} no prazo` : '' },
+            { icon: Users, color: 'text-violet-500', label: 'Motoristas Ativos', value: kpis ? `${kpis.motoristas_ativos}/${kpis.total_motoristas}` : '—', sub: 'Disponíveis' },
+            { icon: TrendingUp, color: 'text-amber-500', label: 'Margem de Lucro', value: kpis ? `${kpis.margem_lucro.toFixed(1)}%` : '—', sub: formatCurrency(kpis?.lucro_liquido ?? 0) },
+          ].map(({ icon: Icon, color, label, value, sub }) => (
+            <div key={label} className="px-5 py-5 text-center">
+              <Icon className={cn('w-6 h-6 mx-auto mb-2', color)} />
+              <p className="text-2xl font-bold text-slate-900 tabular-nums">{value}</p>
+              <p className="text-xs font-medium text-slate-500 mt-0.5">{label}</p>
+              {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Destaques + Próximas Ações */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="pg-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Award className="w-4 h-4 text-amber-500" />
+            <p className="pg-section-title">Destaques do Período</p>
+          </div>
+          {kpis ? (
+            <div className="space-y-3">
+              <div className="p-3.5 bg-emerald-50 border border-emerald-100 rounded-xl">
+                <div className="flex items-center gap-2 mb-1"><TrendingUp className="w-3.5 h-3.5 text-emerald-600" /><span className="text-xs font-semibold text-emerald-800">Receita do Período</span></div>
+                <p className="text-sm text-emerald-700">{formatCurrency(kpis.receita_total)} em receita total no período selecionado.</p>
+              </div>
+              <div className="p-3.5 bg-blue-50 border border-blue-100 rounded-xl">
+                <div className="flex items-center gap-2 mb-1"><CheckCircle className="w-3.5 h-3.5 text-blue-600" /><span className="text-xs font-semibold text-blue-800">Taxa de Entregas</span></div>
+                <p className="text-sm text-blue-700">Taxa de entregas no prazo: {kpis.taxa_entrega.toFixed(1)}% ({kpis.entregas_no_prazo} entregas).</p>
+              </div>
+              <div className="p-3.5 bg-violet-50 border border-violet-100 rounded-xl">
+                <div className="flex items-center gap-2 mb-1"><Zap className="w-3.5 h-3.5 text-violet-600" /><span className="text-xs font-semibold text-violet-800">Frota e Equipe</span></div>
+                <p className="text-sm text-violet-700">{kpis.motoristas_ativos}/{kpis.total_motoristas} motoristas ativos · {kpis.veiculos_ativos}/{kpis.total_veiculos} veículos disponíveis.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="pg-shimmer h-16 rounded-xl" />)}</div>
+          )}
+        </div>
+
+        <div className="pg-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Calendar className="w-4 h-4 text-blue-500" />
+            <p className="pg-section-title">Ações Pendentes</p>
+          </div>
+          <div className="space-y-2">
+            {kpis && kpis.estoque_critico > 0 && (
+              <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-rose-200 hover:bg-rose-50 transition-colors cursor-pointer" onClick={() => router.push('/dashboard/estoque')}>
+                <div className="w-2 h-2 rounded-full bg-rose-500 flex-shrink-0" />
+                <div className="flex-1"><p className="text-sm font-medium text-slate-800">Estoque Crítico</p><p className="text-xs text-slate-500">{kpis.estoque_critico} produtos precisam reposição</p></div>
+                <span className="pg-badge-danger">Urgente</span>
+              </div>
+            )}
+            {kpis && kpis.documentos_vencendo > 0 && (
+              <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-amber-200 hover:bg-amber-50 transition-colors cursor-pointer" onClick={() => router.push('/dashboard/documentos')}>
+                <div className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />
+                <div className="flex-1"><p className="text-sm font-medium text-slate-800">Documentos Vencendo</p><p className="text-xs text-slate-500">{kpis.documentos_vencendo} documentos em 30 dias</p></div>
+                <span className="pg-badge-warning">Médio</span>
+              </div>
+            )}
+            {kpis && kpis.manutencoes_proximas > 0 && (
+              <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-blue-200 hover:bg-blue-50 transition-colors cursor-pointer" onClick={() => router.push('/dashboard/manutencao')}>
+                <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
+                <div className="flex-1"><p className="text-sm font-medium text-slate-800">Manutenções Próximas</p><p className="text-xs text-slate-500">{kpis.manutencoes_proximas} agendadas em 30 dias</p></div>
+                <span className="pg-badge-info">Normal</span>
+              </div>
+            )}
+            {kpis && kpis.cnh_vencendo > 0 && (
+              <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-amber-200 hover:bg-amber-50 transition-colors cursor-pointer" onClick={() => router.push('/dashboard/motoristas')}>
+                <div className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
+                <div className="flex-1"><p className="text-sm font-medium text-slate-800">CNH Vencendo</p><p className="text-xs text-slate-500">{kpis.cnh_vencendo} motoristas em 30 dias</p></div>
+                <span className="pg-badge-warning">Atenção</span>
+              </div>
+            )}
+            {kpis && kpis.contratos_vencendo > 0 && (
+              <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-violet-200 hover:bg-violet-50 transition-colors cursor-pointer" onClick={() => router.push('/dashboard/contratos')}>
+                <div className="w-2 h-2 rounded-full bg-violet-500 flex-shrink-0" />
+                <div className="flex-1"><p className="text-sm font-medium text-slate-800">Contratos Vencendo</p><p className="text-xs text-slate-500">{kpis.contratos_vencendo} contratos em 30 dias</p></div>
+                <span className="pg-badge-neutral">Atenção</span>
+              </div>
+            )}
+            {!kpis && <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="pg-shimmer h-14 rounded-xl" />)}</div>}
+            {kpis && kpis.estoque_critico === 0 && kpis.documentos_vencendo === 0 && kpis.manutencoes_proximas === 0 && kpis.cnh_vencendo === 0 && kpis.contratos_vencendo === 0 && (
+              <div className="pg-empty py-8">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center mb-3">
+                  <CheckCircle className="w-6 h-6 text-emerald-500" />
+                </div>
+                <p className="pg-empty-title text-emerald-700">Nenhuma ação pendente</p>
+                <p className="pg-empty-description">Todos os indicadores estão normais</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
     </div>
   )
-} 
+}

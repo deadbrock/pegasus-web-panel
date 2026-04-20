@@ -2,50 +2,96 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   PEGASUS v1.2 — Design System
+   Tokens, utilities e padrões visuais globais
+   ============================================================ */
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Background */
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
+
+    /* Surface / Card */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 222 47% 11%;
+
+    /* Popover */
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Primary — Pegasus Blue */
+    --primary: 221 83% 53%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 84% 4.9%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 84% 4.9%;
-    --destructive: 0 84.2% 60.2%;
+
+    /* Secondary */
+    --secondary: 215 25% 95%;
+    --secondary-foreground: 222 47% 11%;
+
+    /* Muted */
+    --muted: 215 20% 95%;
+    --muted-foreground: 215 16% 47%;
+
+    /* Accent */
+    --accent: 217 91% 96%;
+    --accent-foreground: 221 83% 40%;
+
+    /* Destructive */
+    --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+
+    /* Borders & Inputs */
+    --border: 215 25% 89%;
+    --input: 215 25% 89%;
+    --ring: 221 83% 53%;
+
+    /* Radius */
+    --radius: 0.625rem;
+
+    /* Pegasus specific tokens */
+    --sidebar-bg: 222 47% 9%;
+    --sidebar-border: 222 30% 16%;
+    --sidebar-text: 215 20% 65%;
+    --sidebar-text-active: 0 0% 100%;
+    --sidebar-item-active: 221 83% 53%;
+
+    /* Shadows */
+    --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+    --shadow-elevated: 0 4px 12px 0 rgb(0 0 0 / 0.08), 0 2px 4px -1px rgb(0 0 0 / 0.04);
+    --shadow-hover: 0 8px 24px 0 rgb(0 0 0 / 0.10), 0 2px 8px -1px rgb(0 0 0 / 0.06);
+
+    /* Status Colors */
+    --success: 142 71% 45%;
+    --success-bg: 142 76% 96%;
+    --warning: 38 92% 50%;
+    --warning-bg: 48 96% 95%;
+    --danger: 0 84% 60%;
+    --danger-bg: 0 86% 97%;
+    --info: 221 83% 53%;
+    --info-bg: 217 91% 96%;
   }
- 
+
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 222 47% 5%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 222 47% 8%;
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+    --popover: 222 47% 8%;
     --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 84% 4.9%;
-    --secondary: 217.2 32.6% 17.5%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 5%;
+    --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 33% 17%;
     --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 94.1%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 224 76% 94%;
   }
 }
 
@@ -54,41 +100,265 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight;
   }
 }
 
-/* Estilos customizados para o Pegasus */
-.pegasus-gradient {
-  background: linear-gradient(135deg, #1e40af 0%, #16a34a 100%);
+/* ============================================================
+   PEGASUS v1.2 — Component Utilities
+   ============================================================ */
+
+@layer components {
+
+  /* --- Layout --- */
+  .pg-page {
+    @apply space-y-6 p-0;
+  }
+
+  /* --- Page Header --- */
+  .pg-page-header {
+    @apply flex flex-col gap-1 mb-6;
+  }
+  .pg-page-title {
+    @apply text-2xl font-bold tracking-tight text-slate-900;
+  }
+  .pg-page-subtitle {
+    @apply text-sm text-slate-500;
+  }
+
+  /* --- Cards --- */
+  .pg-card {
+    @apply bg-white rounded-xl border border-slate-200/80 shadow-[var(--shadow-card)]
+           transition-shadow duration-200;
+  }
+  .pg-card-hover {
+    @apply pg-card hover:shadow-[var(--shadow-hover)] cursor-pointer;
+  }
+  .pg-card-premium {
+    @apply pg-card shadow-[var(--shadow-elevated)];
+  }
+
+  /* --- KPI / Metric Card --- */
+  .pg-kpi-value {
+    @apply text-3xl font-bold tracking-tight text-slate-900 tabular-nums;
+  }
+  .pg-kpi-label {
+    @apply text-xs font-medium uppercase tracking-wider text-slate-400;
+  }
+  .pg-kpi-delta-pos {
+    @apply inline-flex items-center gap-1 text-xs font-semibold text-emerald-600
+           bg-emerald-50 px-2 py-0.5 rounded-full;
+  }
+  .pg-kpi-delta-neg {
+    @apply inline-flex items-center gap-1 text-xs font-semibold text-rose-600
+           bg-rose-50 px-2 py-0.5 rounded-full;
+  }
+  .pg-kpi-delta-neu {
+    @apply inline-flex items-center gap-1 text-xs font-semibold text-slate-500
+           bg-slate-100 px-2 py-0.5 rounded-full;
+  }
+
+  /* --- Icon Boxes --- */
+  .pg-icon-blue {
+    @apply w-10 h-10 rounded-lg flex items-center justify-center
+           bg-blue-50 text-blue-600 flex-shrink-0;
+  }
+  .pg-icon-emerald {
+    @apply w-10 h-10 rounded-lg flex items-center justify-center
+           bg-emerald-50 text-emerald-600 flex-shrink-0;
+  }
+  .pg-icon-rose {
+    @apply w-10 h-10 rounded-lg flex items-center justify-center
+           bg-rose-50 text-rose-600 flex-shrink-0;
+  }
+  .pg-icon-amber {
+    @apply w-10 h-10 rounded-lg flex items-center justify-center
+           bg-amber-50 text-amber-600 flex-shrink-0;
+  }
+  .pg-icon-violet {
+    @apply w-10 h-10 rounded-lg flex items-center justify-center
+           bg-violet-50 text-violet-600 flex-shrink-0;
+  }
+
+  /* --- Badges / Status --- */
+  .pg-badge-success {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+           bg-emerald-50 text-emerald-700 border border-emerald-100;
+  }
+  .pg-badge-warning {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+           bg-amber-50 text-amber-700 border border-amber-100;
+  }
+  .pg-badge-danger {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+           bg-rose-50 text-rose-700 border border-rose-100;
+  }
+  .pg-badge-info {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+           bg-blue-50 text-blue-700 border border-blue-100;
+  }
+  .pg-badge-neutral {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+           bg-slate-100 text-slate-600 border border-slate-200;
+  }
+
+  /* --- Buttons --- */
+  .pg-btn-primary {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+           bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800
+           shadow-sm transition-all duration-150 focus-visible:outline-none
+           focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .pg-btn-secondary {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+           bg-white text-slate-700 border border-slate-200 hover:bg-slate-50
+           hover:border-slate-300 shadow-sm transition-all duration-150
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500
+           focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .pg-btn-ghost {
+    @apply inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium
+           text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-150;
+  }
+  .pg-btn-danger {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+           bg-rose-600 text-white hover:bg-rose-700 shadow-sm transition-all duration-150;
+  }
+
+  /* --- Tables --- */
+  .pg-table-header {
+    @apply text-xs font-semibold uppercase tracking-wider text-slate-400
+           bg-slate-50/80 border-b border-slate-200;
+  }
+  .pg-table-row {
+    @apply border-b border-slate-100 hover:bg-blue-50/30 transition-colors duration-100;
+  }
+  .pg-table-cell {
+    @apply px-4 py-3 text-sm text-slate-700;
+  }
+
+  /* --- Input --- */
+  .pg-input {
+    @apply w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm
+           text-slate-900 placeholder:text-slate-400
+           focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400
+           transition-all duration-150;
+  }
+
+  /* --- Section Heading --- */
+  .pg-section-title {
+    @apply text-base font-semibold text-slate-800;
+  }
+  .pg-section-subtitle {
+    @apply text-xs text-slate-400 font-normal;
+  }
+
+  /* --- Insight/Alert bar --- */
+  .pg-insight-bar {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl border
+           text-sm font-medium transition-all duration-200;
+  }
+  .pg-insight-info {
+    @apply pg-insight-bar bg-blue-50 border-blue-200 text-blue-800;
+  }
+  .pg-insight-warning {
+    @apply pg-insight-bar bg-amber-50 border-amber-200 text-amber-800;
+  }
+  .pg-insight-success {
+    @apply pg-insight-bar bg-emerald-50 border-emerald-200 text-emerald-800;
+  }
+  .pg-insight-danger {
+    @apply pg-insight-bar bg-rose-50 border-rose-200 text-rose-800;
+  }
+
+  /* --- Divider --- */
+  .pg-divider {
+    @apply border-t border-slate-100 my-4;
+  }
+
+  /* --- Gradient text --- */
+  .pg-gradient-text {
+    @apply bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent;
+  }
+
+  /* --- Loading skeleton --- */
+  .pg-skeleton {
+    @apply animate-pulse bg-slate-100 rounded-lg;
+  }
+
+  /* --- Empty state --- */
+  .pg-empty {
+    @apply flex flex-col items-center justify-center py-16 px-6 text-center;
+  }
+  .pg-empty-icon {
+    @apply w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center
+           text-slate-300 mb-4;
+  }
+  .pg-empty-title {
+    @apply text-sm font-semibold text-slate-700 mb-1;
+  }
+  .pg-empty-description {
+    @apply text-xs text-slate-400 max-w-xs;
+  }
 }
 
-.pegasus-card {
-  @apply bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow;
-}
+/* ============================================================
+   PEGASUS v1.2 — Global visual overrides
+   ============================================================ */
 
-.pegasus-metric {
-  @apply text-2xl font-bold text-gray-900;
-}
-
-/* Leaflet Map Styles */
-.leaflet-container {
-  @apply rounded-lg;
-}
-
-/* Scrollbar personalizada */
+/* Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
+  height: 5px;
 }
-
 ::-webkit-scrollbar-track {
-  @apply bg-gray-100;
+  background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 rounded-full;
+  @apply bg-slate-200 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-300;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-400;
-} 
+/* Smooth page transitions */
+main {
+  animation: pg-fade-in 0.18s ease-out;
+}
+
+@keyframes pg-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Shimmer loading */
+@keyframes pg-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.pg-shimmer {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: pg-shimmer 1.4s infinite;
+}
+
+/* Map */
+.leaflet-container {
+  @apply rounded-xl;
+}
+
+/* Pegasus legacy gradient */
+.pegasus-gradient {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #3b82f6 100%);
+}
+
+/* Premium number display */
+.pg-number {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}

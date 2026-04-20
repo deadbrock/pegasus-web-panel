@@ -26,13 +26,13 @@ import {
   Database,
   Briefcase,
   ClipboardList,
-  MapPin
+  MapPin,
+  Zap
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth/auth-context'
 import { getModulesForRole } from '@/lib/permissions'
 
-// Definir grupos de módulos
 type ModuleGroup = {
   id: string
   name: string
@@ -48,7 +48,7 @@ type ModuleGroup = {
 const moduleGroups: ModuleGroup[] = [
   {
     id: 'operations',
-    name: 'OPERAÇÕES',
+    name: 'Operações',
     icon: Briefcase,
     modules: [
       { name: 'Pedidos', path: '/dashboard/pedidos', icon: ShoppingCart },
@@ -59,18 +59,18 @@ const moduleGroups: ModuleGroup[] = [
   },
   {
     id: 'financial',
-    name: 'FINANCEIRO',
+    name: 'Financeiro',
     icon: DollarSign,
     modules: [
       { name: 'Financeiro', path: '/dashboard/financeiro', icon: DollarSign },
       { name: 'Custos', path: '/dashboard/custos', icon: Target },
       { name: 'Centro de Custos', path: '/dashboard/centro-custos', icon: Warehouse },
-      { name: 'Planejamento Financeiro', path: '/dashboard/planejamento-financeiro', icon: Calendar },
+      { name: 'Plan. Financeiro', path: '/dashboard/planejamento-financeiro', icon: Calendar },
     ]
   },
   {
     id: 'fleet',
-    name: 'FROTA',
+    name: 'Frota',
     icon: Truck,
     modules: [
       { name: 'Veículos', path: '/dashboard/veiculos', icon: Truck },
@@ -80,7 +80,7 @@ const moduleGroups: ModuleGroup[] = [
   },
   {
     id: 'fiscal',
-    name: 'FISCAL',
+    name: 'Fiscal',
     icon: FileText,
     modules: [
       { name: 'Fiscal', path: '/dashboard/fiscal', icon: FileText },
@@ -90,7 +90,7 @@ const moduleGroups: ModuleGroup[] = [
   },
   {
     id: 'analysis',
-    name: 'ANÁLISE',
+    name: 'Análise',
     icon: BarChart3,
     modules: [
       { name: 'Analytics', path: '/dashboard/analytics', icon: BarChart3 },
@@ -102,7 +102,7 @@ const moduleGroups: ModuleGroup[] = [
   },
   {
     id: 'admin',
-    name: 'ADMINISTRAÇÃO',
+    name: 'Administração',
     icon: Settings,
     modules: [
       { name: 'Supervisores', path: '/dashboard/supervisores', icon: Users },
@@ -116,19 +116,11 @@ export function Sidebar() {
   const pathname = usePathname()
   const { user } = useAuth()
   const [expandedGroups, setExpandedGroups] = useState<string[]>(['operations'])
-  
-  // Se não há usuário logado, não mostra nada
-  if (!user?.role) {
-    return null
-  }
 
-  // Obtém os módulos permitidos para o perfil do usuário
+  if (!user?.role) return null
+
   const allowedModules = getModulesForRole(user.role)
   const allowedPaths = allowedModules.map(m => m.path)
-  
-  // Debug: Log do role e módulos permitidos
-  console.log('[Sidebar] User role:', user.role)
-  console.log('[Sidebar] Allowed paths:', allowedPaths)
 
   const toggleGroup = (groupId: string) => {
     setExpandedGroups(prev =>
@@ -138,142 +130,133 @@ export function Sidebar() {
     )
   }
 
-  // Verificar se algum módulo do grupo está ativo
-  const isGroupActive = (group: ModuleGroup) => {
-    return group.modules.some(module => pathname === module.path)
-  }
+  const isGroupActive = (group: ModuleGroup) =>
+    group.modules.some(module => pathname === module.path)
 
   return (
-    <div className="w-64 bg-white shadow-lg flex flex-col">
+    <aside className="w-[240px] flex-shrink-0 flex flex-col bg-[#0f172a] overflow-hidden">
       {/* Logo */}
-      <div className="h-16 flex items-center px-6 border-b border-gray-200">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 pegasus-gradient rounded-lg flex items-center justify-center">
-            <Package className="w-5 h-5 text-white" />
+      <div className="h-16 flex items-center px-5 border-b border-white/[0.06]">
+        <Link href="/dashboard" className="flex items-center gap-3 group">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/25 flex-shrink-0">
+            <Zap className="w-4 h-4 text-white" />
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Pegasus</h1>
-            <p className="text-xs text-gray-500">Gestão Logística</p>
+          <div className="leading-tight">
+            <p className="text-[15px] font-bold text-white tracking-tight">Pegasus</p>
+            <p className="text-[10px] text-slate-400 font-medium tracking-widest uppercase">v1.2</p>
           </div>
-        </div>
+        </Link>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-6">
-        <div className="px-3 space-y-2">
-          {/* Dashboard - Sempre visível */}
-          <Link
-            href="/dashboard"
-            className={cn(
-              'flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors group',
-              pathname === '/dashboard'
-                ? 'bg-blue-50 text-blue-700'
-                : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-            )}
-          >
-            <LayoutDashboard 
-              className={cn(
-                'w-5 h-5 mr-3 transition-colors',
-                pathname === '/dashboard' ? 'text-blue-700' : 'text-gray-400 group-hover:text-gray-500'
-              )}
-            />
-            Dashboard
-          </Link>
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
 
-          {/* Divider */}
-          <div className="py-2">
-            <div className="border-t border-gray-200"></div>
-          </div>
+        {/* Dashboard link */}
+        <Link
+          href="/dashboard"
+          className={cn(
+            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 group',
+            pathname === '/dashboard'
+              ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+              : 'text-slate-400 hover:text-white hover:bg-white/[0.06]'
+          )}
+        >
+          <LayoutDashboard className={cn(
+            'w-4 h-4 flex-shrink-0 transition-colors',
+            pathname === '/dashboard' ? 'text-white' : 'text-slate-500 group-hover:text-slate-300'
+          )} />
+          Dashboard
+        </Link>
 
-          {/* Grupos de Módulos */}
-          {moduleGroups.map((group) => {
-            const isExpanded = expandedGroups.includes(group.id)
-            const hasActiveModule = isGroupActive(group)
-            const GroupIcon = group.icon
-            
-            // Filtrar módulos permitidos
-            const visibleModules = group.modules.filter(module => 
-              allowedPaths.includes(module.path)
-            )
-
-            // Se não há módulos visíveis, não mostrar o grupo
-            if (visibleModules.length === 0) return null
-
-            return (
-              <div key={group.id} className="space-y-1">
-                {/* Cabeçalho do Grupo */}
-                <button
-                  onClick={() => toggleGroup(group.id)}
-                  className={cn(
-                    'w-full flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-colors',
-                    hasActiveModule
-                      ? 'text-blue-700 bg-blue-50'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                  )}
-                >
-                  <div className="flex items-center">
-                    <GroupIcon className="w-4 h-4 mr-2" />
-                    {group.name}
-                  </div>
-                  {isExpanded ? (
-                    <ChevronDown className="w-4 h-4" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4" />
-                  )}
-                </button>
-
-                {/* Módulos do Grupo */}
-                {isExpanded && (
-                  <div className="space-y-0.5 ml-3 pl-3 border-l-2 border-gray-200">
-                    {visibleModules.map((module) => {
-                      const ModuleIcon = module.icon
-                      const isActive = pathname === module.path
-
-                      return (
-                        <Link
-                          key={module.path}
-                          href={module.path}
-                          className={cn(
-                            'flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors group',
-                            isActive
-                              ? 'bg-blue-50 text-blue-700'
-                              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                          )}
-                        >
-                          <ModuleIcon 
-                            className={cn(
-                              'w-4 h-4 mr-3 transition-colors',
-                              isActive ? 'text-blue-700' : 'text-gray-400 group-hover:text-gray-500'
-                            )}
-                          />
-                          {module.name}
-                        </Link>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            )
-          })}
+        <div className="py-2">
+          <div className="h-px bg-white/[0.06]" />
         </div>
+
+        {/* Groups */}
+        {moduleGroups.map((group) => {
+          const isExpanded = expandedGroups.includes(group.id)
+          const hasActive = isGroupActive(group)
+          const GroupIcon = group.icon
+
+          const visibleModules = group.modules.filter(m => allowedPaths.includes(m.path))
+          if (visibleModules.length === 0) return null
+
+          return (
+            <div key={group.id}>
+              <button
+                onClick={() => toggleGroup(group.id)}
+                className={cn(
+                  'w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-150 group',
+                  hasActive
+                    ? 'text-slate-200'
+                    : 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.04]'
+                )}
+              >
+                <span className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-widest">
+                  <GroupIcon className="w-3.5 h-3.5" />
+                  {group.name}
+                </span>
+                {isExpanded
+                  ? <ChevronDown className="w-3 h-3 opacity-50" />
+                  : <ChevronRight className="w-3 h-3 opacity-50" />}
+              </button>
+
+              {isExpanded && (
+                <div className="mt-0.5 space-y-0.5 ml-2">
+                  {visibleModules.map((module) => {
+                    const ModuleIcon = module.icon
+                    const isActive = pathname === module.path
+
+                    return (
+                      <Link
+                        key={module.path}
+                        href={module.path}
+                        className={cn(
+                          'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150 group',
+                          isActive
+                            ? 'bg-white/[0.10] text-white font-medium'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.05] font-normal'
+                        )}
+                      >
+                        <ModuleIcon className={cn(
+                          'w-4 h-4 flex-shrink-0',
+                          isActive ? 'text-blue-400' : 'text-slate-600 group-hover:text-slate-400'
+                        )} />
+                        <span className="truncate">{module.name}</span>
+                        {isActive && (
+                          <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0" />
+                        )}
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )
+        })}
       </nav>
 
-      {/* User Info */}
-      <div className="p-4 border-t border-gray-200">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-            <Users className="w-4 h-4 text-gray-600" />
+      {/* User footer */}
+      <div className="p-4 border-t border-white/[0.06]">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center flex-shrink-0">
+            <span className="text-xs font-bold text-white uppercase">
+              {(user.name || user.email || 'U')[0]}
+            </span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">
+            <p className="text-sm font-medium text-slate-200 truncate">
               {user.name || user.email}
             </p>
-            <p className="text-xs text-gray-500 truncate capitalize">
+            <p className="text-xs text-slate-500 capitalize truncate">
               {user.role}
             </p>
           </div>
+          <Link href="/dashboard/configuracoes">
+            <Settings className="w-4 h-4 text-slate-600 hover:text-slate-400 transition-colors" />
+          </Link>
         </div>
       </div>
-    </div>
+    </aside>
   )
-} 
+}

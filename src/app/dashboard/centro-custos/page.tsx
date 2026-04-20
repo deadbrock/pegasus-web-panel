@@ -533,96 +533,93 @@ export default function CentroCustosPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando centros de custo...</p>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 rounded-full border-2 border-blue-600 border-t-transparent animate-spin mx-auto" />
+          <p className="text-sm text-slate-500">Carregando centros de custo...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Centro de Custos</h1>
-          <p className="text-gray-600">Gestão e alocação de despesas por centro</p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Centro de Custos</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Gestão e alocação estratégica de despesas por centro</p>
         </div>
-        <div className="flex space-x-2">
-          <Button variant="outline" size="sm">
-            <BarChart3 className="w-4 h-4 mr-2" />
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button className="pg-btn-ghost text-xs h-8 px-3">
+            <BarChart3 className="w-3.5 h-3.5" />
             Relatórios
-          </Button>
+          </button>
           <Link href="/dashboard/centro-custos/diarias">
-            <Button variant="outline" size="sm">
-              <Plane className="w-4 h-4 mr-2" />
-              Gerenciar Diárias
-            </Button>
+            <button className="pg-btn-secondary text-xs h-8 px-3">
+              <Plane className="w-3.5 h-3.5" />
+              Diárias
+            </button>
           </Link>
-          <Button size="sm" onClick={handleCreateCentro}>
-            <Plus className="w-4 h-4 mr-2" />
+          <button className="pg-btn-primary text-xs h-8 px-3" onClick={handleCreateCentro}>
+            <Plus className="w-3.5 h-3.5" />
             Novo Centro
-          </Button>
+          </button>
         </div>
       </div>
 
-      {/* Estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Gastos</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalGastos)}</div>
-            <p className="text-xs text-muted-foreground">{totalLancamentos} lançamento{totalLancamentos !== 1 ? 's' : ''} este mês</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Centros Ativos</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{centrosAtivos}</div>
-            <p className="text-xs text-muted-foreground">de {centrosCusto.length} total</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Personalizados</CardTitle>
-            <Settings className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{centrosPersonalizados}</div>
-            <p className="text-xs text-muted-foreground">Criados pela equipe</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Maior Gasto</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold truncate" title={maiorGastoCentro}>{maiorGastoCentro}</div>
-            <p className="text-xs text-muted-foreground">{formatCurrency(maiorGastoValor)} este mês</p>
-          </CardContent>
-        </Card>
+      {/* KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="pg-card p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="pg-kpi-label mb-2">Total de Gastos</p>
+              <p className="text-2xl font-bold tracking-tight text-slate-900 tabular-nums">{formatCurrency(totalGastos)}</p>
+              <p className="text-xs text-slate-400 mt-1">{totalLancamentos} lançamento{totalLancamentos !== 1 ? 's' : ''} este mês</p>
+            </div>
+            <div className="pg-icon-rose flex-shrink-0"><DollarSign className="w-4 h-4" /></div>
+          </div>
+        </div>
+        <div className="pg-card p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="pg-kpi-label mb-2">Centros Ativos</p>
+              <p className="text-2xl font-bold tracking-tight text-slate-900 tabular-nums">{centrosAtivos}</p>
+              <p className="text-xs text-slate-400 mt-1">de {centrosCusto.length} total</p>
+            </div>
+            <div className="pg-icon-blue flex-shrink-0"><Target className="w-4 h-4" /></div>
+          </div>
+        </div>
+        <div className="pg-card p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="pg-kpi-label mb-2">Personalizados</p>
+              <p className="text-2xl font-bold tracking-tight text-slate-900 tabular-nums">{centrosPersonalizados}</p>
+              <p className="text-xs text-slate-400 mt-1">Criados pela equipe</p>
+            </div>
+            <div className="pg-icon-violet flex-shrink-0"><Settings className="w-4 h-4" /></div>
+          </div>
+        </div>
+        <div className="pg-card p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="pg-kpi-label mb-2">Maior Gasto</p>
+              <p className="text-lg font-bold tracking-tight text-slate-900 truncate" title={maiorGastoCentro}>{maiorGastoCentro}</p>
+              <p className="text-xs text-slate-400 mt-1">{formatCurrency(maiorGastoValor)} este mês</p>
+            </div>
+            <div className="pg-icon-amber flex-shrink-0"><BarChart3 className="w-4 h-4" /></div>
+          </div>
+        </div>
       </div>
 
       <Tabs defaultValue="centros" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="centros" className="flex items-center gap-2">
-            <Target className="w-4 h-4" />
+        <TabsList className="bg-white border border-slate-200 shadow-card p-1 h-9">
+          <TabsTrigger value="centros" className="flex items-center gap-1.5 text-xs h-7 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm">
+            <Target className="w-3.5 h-3.5" />
             Centros de Custo
           </TabsTrigger>
-          <TabsTrigger value="historico" className="flex items-center gap-2">
-            <History className="w-4 h-4" />
+          <TabsTrigger value="historico" className="flex items-center gap-1.5 text-xs h-7 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm">
+            <History className="w-3.5 h-3.5" />
             Histórico
           </TabsTrigger>
         </TabsList>
@@ -630,19 +627,19 @@ export default function CentroCustosPage() {
         {/* ABA: Centros */}
         <TabsContent value="centros" className="space-y-4">
       {/* Busca */}
-      <Card>
-        <CardContent className="pt-6">
+      <div className="pg-card">
+        <div className="p-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
             <Input
               placeholder="Buscar por nome, código ou descrição..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="pl-10 border-slate-200 focus:border-blue-400 focus:ring-blue-500/20 bg-white"
             />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Lista de Centros de Custo */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -650,33 +647,33 @@ export default function CentroCustosPage() {
           const IconComponent = getIcon(centro.codigo)
           
           return (
-            <Card key={centro.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-3">
+            <div key={centro.id} className="pg-card hover:shadow-elevated transition-all duration-200 group">
+              <div className="p-4 pb-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div 
-                      className="w-10 h-10 rounded-lg flex items-center justify-center"
-                      style={{ backgroundColor: `${centro.cor_hex}20`, color: centro.cor_hex }}
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ backgroundColor: `${centro.cor_hex}18`, color: centro.cor_hex }}
                     >
                       <IconComponent className="w-5 h-5" />
                     </div>
                     <div>
-                      <CardTitle className="text-lg">{centro.nome}</CardTitle>
-                      <p className="text-sm text-gray-500">{centro.codigo}</p>
+                      <p className="font-semibold text-slate-900 text-sm leading-tight">{centro.nome}</p>
+                      <p className="text-[11px] text-slate-400 font-mono mt-0.5">{centro.codigo}</p>
                     </div>
                   </div>
-                  <div className="flex space-x-1">
-                    <Badge variant={centro.tipo === 'predefinido' ? 'default' : 'secondary'}>
-                      {centro.tipo === 'predefinido' ? 'Padrão' : 'Personalizado'}
-                    </Badge>
-                    {!centro.ativo && <Badge variant="destructive">Inativo</Badge>}
+                  <div className="flex gap-1.5">
+                    <span className={centro.tipo === 'predefinido' ? 'pg-badge-info' : 'pg-badge-neutral'}>
+                      {centro.tipo === 'predefinido' ? 'Padrão' : 'Custom'}
+                    </span>
+                    {!centro.ativo && <span className="pg-badge-danger">Inativo</span>}
                   </div>
                 </div>
-              </CardHeader>
-              
-              <CardContent className="space-y-3">
+              </div>
+
+              <div className="px-4 pb-4 space-y-3 border-t border-slate-50 pt-3">
                 {centro.descricao && (
-                  <p className="text-sm text-gray-500 line-clamp-1">{centro.descricao}</p>
+                  <p className="text-xs text-slate-400 line-clamp-1">{centro.descricao}</p>
                 )}
 
                 {/* Stats do mês */}
@@ -684,16 +681,16 @@ export default function CentroCustosPage() {
                   const centroId = centro.id as string
                   const stats = centroId ? statsLancamentos[centroId] : null
                   return (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-gray-50 rounded-lg p-2 text-center">
-                        <p className="text-xs text-gray-500 mb-0.5">Gasto este mês</p>
-                        <p className="font-bold text-base" style={{ color: centro.cor_hex }}>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="rounded-lg bg-slate-50 border border-slate-100 p-2.5 text-center">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Gasto este mês</p>
+                        <p className="font-bold text-sm tabular-nums" style={{ color: centro.cor_hex }}>
                           {formatCurrency(stats?.total || 0)}
                         </p>
                       </div>
-                      <div className="bg-gray-50 rounded-lg p-2 text-center">
-                        <p className="text-xs text-gray-500 mb-0.5">Lançamentos</p>
-                        <p className="font-bold text-base text-gray-700">
+                      <div className="rounded-lg bg-slate-50 border border-slate-100 p-2.5 text-center">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Lançamentos</p>
+                        <p className="font-bold text-sm text-slate-700 tabular-nums">
                           {stats?.count || 0}
                         </p>
                       </div>
@@ -702,15 +699,14 @@ export default function CentroCustosPage() {
                 })()}
 
                 {/* Botão principal: Registrar Custo */}
-                <Button
-                  className="w-full"
-                  size="sm"
-                  style={{ backgroundColor: centro.cor_hex, borderColor: centro.cor_hex }}
+                <button
+                  className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold text-white shadow-sm hover:opacity-90 active:opacity-80 transition-opacity"
+                  style={{ backgroundColor: centro.cor_hex }}
                   onClick={() => handleRegistrarCusto(centro)}
                 >
-                  <Receipt className="w-4 h-4 mr-2" />
+                  <Receipt className="w-3.5 h-3.5" />
                   Registrar Custo
-                </Button>
+                </button>
 
                 {/* Lançamentos recentes (expandível) */}
                 {(() => {
@@ -718,31 +714,31 @@ export default function CentroCustosPage() {
                   const recentes = centroId ? (lancamentosRecentes[centroId] || []) : []
                   const aberto = expandidoId === centro.id
                   return (
-                    <div className="border-t pt-2">
+                    <div className="border-t border-slate-100 pt-2.5">
                       <button
-                        className="flex items-center justify-between w-full text-xs text-gray-500 hover:text-gray-700"
+                        className="flex items-center justify-between w-full text-xs text-slate-400 hover:text-slate-600 transition-colors"
                         onClick={() => {
                           if (!aberto && centroId) fetchLancamentosRecentes(centroId)
                           setExpandidoId(aberto ? null : (centro.id ?? null))
                         }}
                       >
-                        <span className="flex items-center gap-1">
+                        <span className="flex items-center gap-1.5 font-medium">
                           <List className="w-3 h-3" />
                           Lançamentos recentes
                         </span>
                         {aberto ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                       </button>
                       {aberto && (
-                        <div className="mt-2 space-y-1.5 max-h-40 overflow-y-auto">
+                        <div className="mt-2 space-y-1 max-h-40 overflow-y-auto">
                           {recentes.length === 0 ? (
-                            <p className="text-xs text-gray-400 text-center py-2">Nenhum lançamento ainda.</p>
+                            <p className="text-xs text-slate-400 text-center py-3">Nenhum lançamento ainda.</p>
                           ) : recentes.map(l => (
-                            <div key={l.id} className="flex justify-between items-start text-xs bg-gray-50 rounded px-2 py-1.5">
+                            <div key={l.id} className="flex justify-between items-start text-xs bg-slate-50 rounded-lg px-2.5 py-2 border border-slate-100">
                               <div className="flex-1 min-w-0 mr-2">
-                                <p className="font-medium text-gray-700 truncate">{l.descricao}</p>
-                                <p className="text-gray-400">{new Date(l.data + 'T12:00:00').toLocaleDateString('pt-BR')} · {l.status_pagamento}</p>
+                                <p className="font-medium text-slate-700 truncate">{l.descricao}</p>
+                                <p className="text-slate-400 mt-0.5">{new Date(l.data + 'T12:00:00').toLocaleDateString('pt-BR')} · {l.status_pagamento}</p>
                               </div>
-                              <span className="font-semibold text-gray-800 whitespace-nowrap" style={{ color: centro.cor_hex }}>
+                              <span className="font-semibold whitespace-nowrap tabular-nums" style={{ color: centro.cor_hex }}>
                                 {formatCurrency(l.valor)}
                               </span>
                             </div>
@@ -754,7 +750,7 @@ export default function CentroCustosPage() {
                 })()}
 
                 {/* Rodapé com editar/excluir */}
-                <div className="flex justify-between items-center pt-1 border-t">
+                <div className="flex justify-between items-center pt-1 border-t border-slate-100">
                   <span className="text-xs text-gray-400">
                     {centro.created_at ? new Date(centro.created_at).toLocaleDateString('pt-BR') : ''}
                   </span>
@@ -779,8 +775,8 @@ export default function CentroCustosPage() {
                     )}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )
         })}
       </div>
@@ -1282,26 +1278,21 @@ export default function CentroCustosPage() {
       </Dialog>
 
       {filteredCentros.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <Target className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Nenhum centro de custo encontrado
-            </h3>
-            <p className="text-gray-600 mb-4">
-              {searchTerm 
-                ? 'Tente ajustar os filtros de busca'
-                : 'Crie seu primeiro centro de custo personalizado'
-              }
+        <div className="pg-card">
+          <div className="pg-empty py-16">
+            <div className="pg-empty-icon w-14 h-14"><Target className="w-6 h-6" /></div>
+            <p className="pg-empty-title">Nenhum centro de custo encontrado</p>
+            <p className="pg-empty-description">
+              {searchTerm ? 'Tente ajustar os filtros de busca' : 'Crie seu primeiro centro de custo personalizado'}
             </p>
             {!searchTerm && (
-              <Button onClick={handleCreateCentro}>
-                <Plus className="w-4 h-4 mr-2" />
+              <button className="pg-btn-primary mt-4" onClick={handleCreateCentro}>
+                <Plus className="w-3.5 h-3.5" />
                 Criar Centro de Custo
-              </Button>
+              </button>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
         </TabsContent>
 
