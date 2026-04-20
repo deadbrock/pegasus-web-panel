@@ -114,75 +114,12 @@ export default function CentroCustosPage() {
       const data = await response.json()
       setCentrosCusto(data)
     } catch (error) {
-      console.error('Erro:', error)
-      // Fallback para dados simulados
-      const centrosCustoSimulados: CentroCusto[] = [
-        {
-          id: 1,
-          nome: 'Sede',
-          tipo: 'predefinido',
-          codigo: 'SEDE',
-          descricao: 'Custos administrativos da sede',
-          ativo: true,
-          cor_hex: '#3B82F6',
-          created_at: '2024-01-01',
-          total_gastos: 125000,
-          transacoes_mes: 45
-        },
-        {
-          id: 2,
-          nome: 'Veículos',
-          tipo: 'predefinido',
-          codigo: 'VEICULOS',
-          descricao: 'Combustível, manutenção e seguro veicular',
-          ativo: true,
-          cor_hex: '#EF4444',
-          created_at: '2024-01-01',
-          total_gastos: 98000,
-          transacoes_mes: 67
-        },
-        {
-          id: 3,
-          nome: 'Filiais',
-          tipo: 'predefinido',
-          codigo: 'FILIAL',
-          descricao: 'Custos das filiais',
-          ativo: true,
-          cor_hex: '#10B981',
-          created_at: '2024-01-01',
-          total_gastos: 85000,
-          transacoes_mes: 32
-        },
-        {
-          id: 4,
-          nome: 'Diárias',
-          tipo: 'predefinido',
-          codigo: 'DIARIAS',
-          descricao: 'Pagamento de diárias para funcionários',
-          ativo: true,
-          cor_hex: '#F59E0B',
-          created_at: '2024-01-01',
-          total_gastos: 35000,
-          transacoes_mes: 28
-        },
-        {
-          id: 5,
-          nome: 'Projeto Alpha',
-          tipo: 'personalizado',
-          codigo: 'PROJ_ALPHA',
-          descricao: 'Projeto especial de expansão',
-          ativo: true,
-          cor_hex: '#8B5CF6',
-          created_at: '2024-01-15',
-          total_gastos: 45000,
-          transacoes_mes: 12
-        }
-      ]
-      setCentrosCusto(centrosCustoSimulados)
+      console.error('Erro ao carregar centros de custo:', error)
+      setCentrosCusto([])
       toast({
-        title: "Aviso",
-        description: "Usando dados simulados. Verifique a conexão com o backend.",
-        variant: "default"
+        title: "Erro",
+        description: "Não foi possível carregar os centros de custo.",
+        variant: "destructive"
       })
     } finally {
       setLoading(false)

@@ -74,6 +74,17 @@ export default function CustosPage() {
   const handleExport = () => exportRelatorioMensalCustos(rows)
   const handleExportCategorias = () => exportCustosPorCategoria(rows)
 
+  const custoTotal = useMemo(() => rows.reduce((acc, r) => acc + (r.valor ?? 0), 0), [rows])
+  const fmtBRL = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 })
+  const maiorCategoria = useMemo(() => {
+    const acc: Record<string, number> = {}
+    rows.forEach(r => { if (r.categoria) acc[r.categoria] = (acc[r.categoria] ?? 0) + (r.valor ?? 0) })
+    const sorted = Object.entries(acc).sort((a, b) => b[1] - a[1])
+    if (!sorted.length) return { nome: '—', pct: '—' }
+    const pct = custoTotal > 0 ? `${((sorted[0][1] / custoTotal) * 100).toFixed(0)}%` : '—'
+    return { nome: sorted[0][0], pct }
+  }, [rows, custoTotal])
+
   return (
     <div className="space-y-6">
       {/* Header Section */}
@@ -103,36 +114,36 @@ export default function CustosPage() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
-          title="Custo Total Mensal"
-          value="R$ 45.280"
-          change="+8.2%"
-          changeType="negative"
+          title="Custo Total no Período"
+          value={fmtBRL(custoTotal)}
+          change={rows.length ? `${rows.length} lançamentos` : 'Sem dados'}
+          changeType="neutral"
           icon={DollarSign}
-          description="Janeiro 2024"
+          description="Período selecionado"
         />
         <MetricCard
-          title="Custo por KM"
-          value="R$ 4.35"
-          change="-5.1%"
-          changeType="positive"
+          title="Custo por Lançamento"
+          value={rows.length ? fmtBRL(custoTotal / rows.length) : '—'}
+          change={rows.length ? 'Média real' : 'Sem dados'}
+          changeType="neutral"
           icon={Calculator}
-          description="Meta: R$ 4.50"
+          description="Média do período"
         />
         <MetricCard
           title="Maior Categoria"
-          value="Combustível"
-          change="65%"
+          value={maiorCategoria.nome}
+          change={maiorCategoria.pct}
           changeType="neutral"
           icon={PieChart}
-          description="Do total mensal"
+          description="Do total no período"
         />
         <MetricCard
-          title="Eficiência"
-          value="94.2%"
-          change="+2.8%"
+          title="Lançamentos"
+          value={rows.length.toString()}
+          change={rows.length ? 'Dados reais' : 'Sem dados'}
           changeType="positive"
           icon={TrendingUp}
-          description="Meta: 90%"
+          description="No período"
         />
       </div>
 
@@ -199,26 +210,25 @@ export default function CustosPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Combustível</span>
-                    <span className="font-semibold text-orange-600">R$ 29.432</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Manutenção</span>
-                    <span className="font-semibold text-blue-600">R$ 12.850</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Pedágio</span>
-                    <span className="font-semibold text-purple-600">R$ 2.180</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Outros</span>
-                    <span className="font-semibold text-gray-600">R$ 818</span>
-                  </div>
+                  {Object.entries(
+                    rows.reduce((acc: Record<string, number>, r) => {
+                      const cat = r.categoria || 'Outros'
+                      acc[cat] = (acc[cat] ?? 0) + (r.valor ?? 0)
+                      return acc
+                    }, {})
+                  ).sort((a, b) => b[1] - a[1]).map(([cat, val]) => (
+                    <div key={cat} className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">{cat}</span>
+                      <span className="font-semibold">{fmtBRL(val)}</span>
+                    </div>
+                  ))}
+                  {rows.length === 0 && (
+                    <p className="text-sm text-gray-400 text-center py-4">Nenhum custo no período</p>
+                  )}
                   <div className="pt-2 border-t">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Total Mês</span>
-                      <span className="font-bold text-green-600">R$ 45.280</span>
+                      <span className="text-sm font-medium">Total</span>
+                      <span className="font-bold text-green-600">{fmtBRL(custoTotal)}</span>
                     </div>
                   </div>
                 </div>
@@ -293,62 +303,33 @@ export default function CustosPage() {
                 <CardTitle>Ranking de Categorias</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-                      <div>
-                        <p className="font-medium">Combustível</p>
-                        <p className="text-sm text-gray-600">324 lançamentos</p>
+                <div className="space-y-3">
+                  {Object.entries(
+                    rows.reduce((acc: Record<string, { total: number; count: number }>, r) => {
+                      const cat = r.categoria || 'Outros'
+                      if (!acc[cat]) acc[cat] = { total: 0, count: 0 }
+                      acc[cat].total += r.valor ?? 0
+                      acc[cat].count++
+                      return acc
+                    }, {})
+                  ).sort((a, b) => b[1].total - a[1].total).map(([cat, info]) => (
+                    <div key={cat} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                        <div>
+                          <p className="font-medium">{cat}</p>
+                          <p className="text-sm text-gray-600">{info.count} lançamento{info.count !== 1 ? 's' : ''}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold">{fmtBRL(info.total)}</p>
+                        <p className="text-sm text-gray-600">{custoTotal > 0 ? `${((info.total / custoTotal) * 100).toFixed(0)}%` : '—'}</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-semibold">R$ 29.432</p>
-                      <p className="text-sm text-gray-600">65%</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                      <div>
-                        <p className="font-medium">Manutenção</p>
-                        <p className="text-sm text-gray-600">89 lançamentos</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold">R$ 12.850</p>
-                      <p className="text-sm text-gray-600">28%</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 rounded-full bg-purple-500"></div>
-                      <div>
-                        <p className="font-medium">Pedágio</p>
-                        <p className="text-sm text-gray-600">156 lançamentos</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold">R$ 2.180</p>
-                      <p className="text-sm text-gray-600">5%</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 rounded-full bg-gray-500"></div>
-                      <div>
-                        <p className="font-medium">Outros</p>
-                        <p className="text-sm text-gray-600">34 lançamentos</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold">R$ 818</p>
-                      <p className="text-sm text-gray-600">2%</p>
-                    </div>
-                  </div>
+                  ))}
+                  {rows.length === 0 && (
+                    <p className="text-sm text-gray-400 text-center py-6">Nenhum lançamento no período</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -405,42 +386,31 @@ export default function CustosPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Metas e Indicadores</CardTitle>
+                <CardTitle>Indicadores do Período</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div>
                     <div className="flex justify-between text-sm mb-1">
-                      <span>Meta Custo/KM</span>
-                      <span>R$ 4.35 / R$ 4.50</span>
+                      <span>Total de Lançamentos</span>
+                      <span className="font-medium">{rows.length}</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-green-600 h-2 rounded-full w-[97%]"></div>
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">3% abaixo da meta</div>
                   </div>
-
                   <div>
                     <div className="flex justify-between text-sm mb-1">
-                      <span>Controle Orçamentário</span>
-                      <span>R$ 45.280 / R$ 48.000</span>
+                      <span>Custo Total</span>
+                      <span className="font-medium">{fmtBRL(custoTotal)}</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-blue-600 h-2 rounded-full w-[94%]"></div>
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">6% abaixo do orçamento</div>
                   </div>
-
                   <div>
                     <div className="flex justify-between text-sm mb-1">
-                      <span>Eficiência Operacional</span>
-                      <span>94.2%</span>
+                      <span>Maior Categoria</span>
+                      <span className="font-medium">{maiorCategoria.nome} ({maiorCategoria.pct})</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-purple-600 h-2 rounded-full w-[94%]"></div>
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">4% acima da meta</div>
                   </div>
+                  {rows.length === 0 && (
+                    <p className="text-sm text-gray-400 text-center py-4">Sem dados no período selecionado</p>
+                  )}
                 </div>
               </CardContent>
             </Card>

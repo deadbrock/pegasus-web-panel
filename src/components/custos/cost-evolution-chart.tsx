@@ -1,18 +1,24 @@
 'use client'
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts'
+import { TrendingUp } from 'lucide-react'
 
-// Mock data para evolução mensal dos custos
-const evolutionData = [
-  { mes: 'Jul', total: 38450, combustivel: 18200, manutencao: 12500, outros: 7750 },
-  { mes: 'Ago', total: 42380, combustivel: 20150, manutencao: 14200, outros: 8030 },
-  { mes: 'Set', total: 39920, combustivel: 19300, manutencao: 11800, outros: 8820 },
-  { mes: 'Out', total: 46520, combustivel: 22800, manutencao: 15200, outros: 8520 },
-  { mes: 'Nov', total: 44180, combustivel: 21600, manutencao: 13900, outros: 8680 },
-  { mes: 'Dez', total: 50000, combustivel: 24500, manutencao: 16500, outros: 9000 }
-]
+interface CostEvolutionChartProps {
+  data?: Array<{ mes: string; total: number; combustivel?: number; manutencao?: number; outros?: number }>
+}
 
-export function CostEvolutionChart() {
+export function CostEvolutionChart({ data }: CostEvolutionChartProps) {
+  const evolutionData = data ?? []
+
+  if (evolutionData.length === 0) {
+    return (
+      <div className="h-64 flex flex-col items-center justify-center text-gray-400">
+        <TrendingUp className="w-10 h-10 mb-2" />
+        <p className="text-sm">Sem dados de evolução</p>
+        <p className="text-xs mt-1">Cadastre custos para visualizar o histórico</p>
+      </div>
+    )
+  }
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (

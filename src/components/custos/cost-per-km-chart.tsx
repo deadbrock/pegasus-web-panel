@@ -1,81 +1,46 @@
 'use client'
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, ComposedChart } from 'recharts'
+import { Calculator } from 'lucide-react'
 
-// Mock data para custo por KM
-const costPerKmData = [
-  { 
-    mes: 'Jul', 
-    custoKm: 4.12, 
-    meta: 4.50, 
-    kmTotal: 9340, 
-    custoTotal: 38450,
-    eficiencia: 91.6
-  },
-  { 
-    mes: 'Ago', 
-    custoKm: 4.48, 
-    meta: 4.50, 
-    kmTotal: 9460, 
-    custoTotal: 42380,
-    eficiencia: 99.6
-  },
-  { 
-    mes: 'Set', 
-    custoKm: 4.22, 
-    meta: 4.50, 
-    kmTotal: 9460, 
-    custoTotal: 39920,
-    eficiencia: 93.8
-  },
-  { 
-    mes: 'Out', 
-    custoKm: 4.68, 
-    meta: 4.50, 
-    kmTotal: 9940, 
-    custoTotal: 46520,
-    eficiencia: 104.0
-  },
-  { 
-    mes: 'Nov', 
-    custoKm: 4.35, 
-    meta: 4.50, 
-    kmTotal: 10150, 
-    custoTotal: 44180,
-    eficiencia: 96.7
-  },
-  { 
-    mes: 'Dez', 
-    custoKm: 4.85, 
-    meta: 4.50, 
-    kmTotal: 10310, 
-    custoTotal: 50000,
-    eficiencia: 107.8
+interface CostPerKmChartProps {
+  data?: Array<{ mes: string; custoKm: number; meta?: number; kmTotal?: number; custoTotal?: number; eficiencia?: number }>
+}
+
+export function CostPerKmChart({ data }: CostPerKmChartProps) {
+  const costPerKmData = data ?? []
+
+  if (costPerKmData.length === 0) {
+    return (
+      <div className="h-64 flex flex-col items-center justify-center text-gray-400">
+        <Calculator className="w-10 h-10 mb-2" />
+        <p className="text-sm">Sem dados de custo por KM</p>
+        <p className="text-xs mt-1">Registre viagens e custos para calcular</p>
+      </div>
+    )
   }
-]
 
-export function CostPerKmChart() {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-      const data = costPerKmData.find(item => item.mes === label)
+      const d = costPerKmData.find((item: any) => item.mes === label)
       
       return (
         <div className="bg-white p-3 border rounded-lg shadow-md">
           <p className="font-medium">{label}</p>
           <p className="text-sm text-blue-600">
-            Custo/KM: R$ {data?.custoKm.toFixed(2)}
+            Custo/KM: R$ {d?.custoKm.toFixed(2)}
           </p>
           <p className="text-sm text-gray-600">
-            Meta: R$ {data?.meta.toFixed(2)}
+            Meta: R$ {d?.meta?.toFixed(2) ?? '—'}
           </p>
           <p className="text-sm text-gray-600">
-            KM Total: {data?.kmTotal.toLocaleString('pt-BR')}
+            KM Total: {d?.kmTotal?.toLocaleString('pt-BR') ?? '—'}
           </p>
           <p className="text-sm text-gray-600">
-            Custo Total: R$ {data?.custoTotal.toLocaleString('pt-BR')}
+            Custo Total: R$ {d?.custoTotal?.toLocaleString('pt-BR') ?? '—'}
           </p>
-          <p className={`text-sm ${data && data.eficiencia > 100 ? 'text-red-600' : 'text-green-600'}`}>
-            Eficiência: {data?.eficiencia.toFixed(1)}%
+          <p className={`text-sm ${d && d.eficiencia && d.eficiencia > 100 ? 'text-red-600' : 'text-green-600'}`}>
+            Eficiência: {d?.eficiencia?.toFixed(1) ?? '—'}%
           </p>
         </div>
       )

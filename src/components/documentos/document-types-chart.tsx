@@ -2,18 +2,23 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
 
-// Mock data para tipos de documentos
-const typesData = [
-  { name: 'CNH', value: 18, color: '#3b82f6' },
-  { name: 'CRLV', value: 20, color: '#10b981' },
-  { name: 'Seguro', value: 25, color: '#8b5cf6' },
-  { name: 'ANTT', value: 12, color: '#f59e0b' },
-  { name: 'Certificados', value: 8, color: '#06b6d4' },
-  { name: 'Outros', value: 6, color: '#6b7280' }
-]
+interface DocumentTypesChartProps {
+  data?: Array<{ name: string; value: number; color?: string }>
+}
 
-export function DocumentTypesChart() {
+const COLORS = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#06b6d4', '#6b7280']
+
+export function DocumentTypesChart({ data }: DocumentTypesChartProps) {
+  const typesData = (data ?? []).map((d, i) => ({ ...d, color: d.color ?? COLORS[i % COLORS.length] }))
   const total = typesData.reduce((sum, item) => sum + item.value, 0)
+
+  if (typesData.length === 0) {
+    return (
+      <div className="h-48 flex flex-col items-center justify-center text-gray-400">
+        <p className="text-sm">Sem documentos cadastrados</p>
+      </div>
+    )
+  }
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {

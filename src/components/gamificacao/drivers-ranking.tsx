@@ -9,105 +9,8 @@ interface DriversRankingProps {
   compact?: boolean
 }
 
-// Mock data para ranking de motoristas
-const rankingData = [
-  {
-    posicao: 1,
-    motorista: 'João Silva',
-    pontos: 1875,
-    nivel: 'Diamante',
-    cor_nivel: 'bg-cyan-400',
-    conquistas: 12,
-    entregas_mes: 89,
-    eficiencia: 96.2,
-    pontos_mes: 245,
-    variacao: '+12'
-  },
-  {
-    posicao: 2,
-    motorista: 'Maria Santos',
-    pontos: 1654,
-    nivel: 'Platina',
-    cor_nivel: 'bg-blue-400',
-    conquistas: 10,
-    entregas_mes: 76,
-    eficiencia: 94.8,
-    pontos_mes: 189,
-    variacao: '+8'
-  },
-  {
-    posicao: 3,
-    motorista: 'Carlos Lima',
-    pontos: 1432,
-    nivel: 'Ouro',
-    cor_nivel: 'bg-yellow-500',
-    conquistas: 8,
-    entregas_mes: 71,
-    eficiencia: 92.1,
-    pontos_mes: 156,
-    variacao: '-3'
-  },
-  {
-    posicao: 4,
-    motorista: 'Ana Costa',
-    pontos: 1298,
-    nivel: 'Ouro',
-    cor_nivel: 'bg-yellow-500',
-    conquistas: 7,
-    entregas_mes: 65,
-    eficiencia: 90.5,
-    pontos_mes: 142,
-    variacao: '+5'
-  },
-  {
-    posicao: 5,
-    motorista: 'Pedro Oliveira',
-    pontos: 1156,
-    nivel: 'Prata',
-    cor_nivel: 'bg-gray-300',
-    conquistas: 6,
-    entregas_mes: 58,
-    eficiencia: 88.9,
-    pontos_mes: 128,
-    variacao: '-1'
-  },
-  {
-    posicao: 6,
-    motorista: 'Roberto Silva',
-    pontos: 1024,
-    nivel: 'Prata',
-    cor_nivel: 'bg-gray-300',
-    conquistas: 5,
-    entregas_mes: 52,
-    eficiencia: 87.3,
-    pontos_mes: 115,
-    variacao: '+7'
-  },
-  {
-    posicao: 7,
-    motorista: 'Fernanda Lima',
-    pontos: 896,
-    nivel: 'Bronze',
-    cor_nivel: 'bg-orange-600',
-    conquistas: 4,
-    entregas_mes: 47,
-    eficiencia: 85.1,
-    pontos_mes: 98,
-    variacao: '+2'
-  },
-  {
-    posicao: 8,
-    motorista: 'Lucas Santos',
-    pontos: 743,
-    nivel: 'Bronze',
-    cor_nivel: 'bg-orange-600',
-    conquistas: 3,
-    entregas_mes: 41,
-    eficiencia: 82.8,
-    pontos_mes: 87,
-    variacao: '-4'
-  }
-]
+// Ranking virá do Supabase — sem dados mock
+const rankingData: any[] = []
 
 export function DriversRanking({ period, compact = false }: DriversRankingProps) {
   const displayData = compact ? rankingData.slice(0, 5) : rankingData
@@ -150,6 +53,16 @@ export function DriversRanking({ period, compact = false }: DriversRankingProps)
     if (variacao.startsWith('+')) return 'text-green-600'
     if (variacao.startsWith('-')) return 'text-red-600'
     return 'text-gray-600'
+  }
+
+  if (displayData.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-10 text-center text-gray-500">
+        <Trophy className="w-10 h-10 mb-3 text-gray-300" />
+        <p className="font-medium">Nenhum motorista no ranking ainda</p>
+        <p className="text-sm mt-1">O ranking aparecerá aqui conforme os motoristas acumularem pontos.</p>
+      </div>
+    )
   }
 
   return (

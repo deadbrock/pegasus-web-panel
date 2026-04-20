@@ -41,7 +41,7 @@ export function CostsImportExport({ onImported }: { onImported?: () => void }) {
     ]
     const dataRows = [
       ['data', 'categoria', 'descricao', 'valor', 'responsavel', 'veiculo_id', 'observacoes', 'status'],
-      ['2025-01-15', 'Combustível', 'Abastecimento - Posto Shell', 450.8, 'Carlos Lima', '', 'Tanque cheio', 'Pago'],
+      ['2025-01-15', 'Combustível', 'Abastecimento - Posto Shell', 450.8, 'Nome do Motorista', '', 'Tanque cheio', 'Pago'],
     ]
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(instructions), 'Instruções')

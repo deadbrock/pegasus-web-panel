@@ -30,6 +30,7 @@ import {
   fetchManutencoes, 
   calcularEstatisticasManutencoes,
   subscribeManutencoes,
+  deleteManutencao,
   type Manutencao
 } from '@/lib/services/manutencoes-service'
 import { useToast } from '@/hooks/use-toast'
@@ -107,18 +108,22 @@ export default function ManutencaoPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Deseja realmente excluir esta manutenção?')) return
-    
+
     try {
-      // Aqui você implementaria a função de delete
-      await loadManutencoes()
+      const ok = await deleteManutencao(id)
+      if (!ok) throw new Error('Falha ao excluir')
+
+      // Atualiza a lista localmente sem precisar recarregar tudo
+      setManutencoes(prev => prev.filter(m => m.id !== id))
+
       toast({
-        title: 'Sucesso',
-        description: 'Manutenção excluída com sucesso!'
+        title: 'Manutenção excluída',
+        description: 'O registro foi removido com sucesso.'
       })
     } catch (error) {
       toast({
-        title: 'Erro',
-        description: 'Não foi possível excluir a manutenção',
+        title: 'Erro ao excluir',
+        description: 'Não foi possível excluir a manutenção. Verifique as permissões.',
         variant: 'destructive'
       })
     }
@@ -216,15 +221,15 @@ export default function ManutencaoPage() {
         <MetricCard
           title="Total de Manutenções"
           value={loading ? '...' : stats.total.toString()}
-          change="+8.2%"
-          changeType="positive"
+          change={loading ? '...' : `${stats.total} registros`}
+          changeType="neutral"
           icon={Wrench}
           description="Cadastradas"
         />
         <MetricCard
           title="Pendentes"
           value={loading ? '...' : stats.pendentes.toString()}
-          change={stats.pendentes > 5 ? '+' + (stats.pendentes - 5) : '0'}
+          change={stats.pendentes > 5 ? '+' + (stats.pendentes - 5) + ' acima do normal' : 'Normal'}
           changeType={stats.pendentes > 5 ? "negative" : "positive"}
           icon={Clock}
           description="Requerem atenção"
@@ -232,15 +237,15 @@ export default function ManutencaoPage() {
         <MetricCard
           title="Em Andamento"
           value={loading ? '...' : stats.emAndamento.toString()}
-          change="-1"
-          changeType="positive"
+          change={loading ? '...' : 'Em execução'}
+          changeType="neutral"
           icon={AlertTriangle}
           description="Em execução"
         />
         <MetricCard
           title="Concluídas"
           value={loading ? '...' : stats.concluidas.toString()}
-          change="+15.3%"
+          change={loading ? '...' : stats.total > 0 ? `${((stats.concluidas / stats.total) * 100).toFixed(0)}% do total` : 'Sem dados'}
           changeType="positive"
           icon={CheckCircle}
           description="Finalizadas"
@@ -450,33 +455,39 @@ export default function ManutencaoPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Manutenções no Prazo</span>
-                      <span>87%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-green-600 h-2 rounded-full w-[87%]"></div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Disponibilidade da Frota</span>
-                      <span>92%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-blue-600 h-2 rounded-full w-[92%]"></div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Eficiência de Custos</span>
-                      <span>78%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-orange-600 h-2 rounded-full w-[78%]"></div>
-                    </div>
-                  </div>
+                  {stats.total > 0 ? (
+                    <>
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span>Manutenções Concluídas</span>
+                          <span>{stats.total > 0 ? `${((stats.concluidas / stats.total) * 100).toFixed(0)}%` : '—'}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div className="bg-green-600 h-2 rounded-full" style={{ width: `${stats.total > 0 ? (stats.concluidas / stats.total) * 100 : 0}%` }}></div>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span>Em Andamento</span>
+                          <span>{stats.total > 0 ? `${((stats.emAndamento / stats.total) * 100).toFixed(0)}%` : '—'}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${stats.total > 0 ? (stats.emAndamento / stats.total) * 100 : 0}%` }}></div>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span>Pendentes</span>
+                          <span>{stats.total > 0 ? `${((stats.pendentes / stats.total) * 100).toFixed(0)}%` : '—'}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div className="bg-orange-600 h-2 rounded-full" style={{ width: `${stats.total > 0 ? (stats.pendentes / stats.total) * 100 : 0}%` }}></div>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-400 text-center py-4">Nenhuma manutenção cadastrada</p>
+                  )}
                 </div>
               </CardContent>
             </Card>

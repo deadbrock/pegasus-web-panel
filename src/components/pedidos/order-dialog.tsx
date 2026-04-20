@@ -43,20 +43,7 @@ const paymentOptions = [
   'Material de Consumo'
 ]
 
-// Mock data para produtos e motoristas
-const mockProducts = [
-  { id: 1, name: 'Produto A', price: 25.90 },
-  { id: 2, name: 'Produto B', price: 45.50 },
-  { id: 3, name: 'Produto C', price: 78.30 },
-  { id: 4, name: 'Produto D', price: 120.00 },
-]
-
-const mockDrivers = [
-  { id: 1, name: 'Carlos Lima', vehicle: 'BRA-2023' },
-  { id: 2, name: 'Ana Oliveira', vehicle: 'BRA-2024' },
-  { id: 3, name: 'João Silva', vehicle: 'BRA-2025' },
-  { id: 4, name: 'Maria Santos', vehicle: 'BRA-2026' },
-]
+// Produtos e motoristas carregados via loadDadosReais() do Supabase
 
 export function OrderDialog({ open, onClose, order }: OrderDialogProps) {
   const [formData, setFormData] = useState({

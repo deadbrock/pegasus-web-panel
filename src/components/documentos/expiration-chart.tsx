@@ -2,21 +2,8 @@
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
-// Mock data para cronograma de vencimentos
-const expirationData = [
-  { periodo: 'Jan 2024', vencimentos: 5, vencidos: 2, validos: 3 },
-  { periodo: 'Fev 2024', vencimentos: 3, vencidos: 1, validos: 2 },
-  { periodo: 'Mar 2024', vencimentos: 8, vencidos: 0, validos: 8 },
-  { periodo: 'Abr 2024', vencimentos: 12, vencidos: 1, validos: 11 },
-  { periodo: 'Mai 2024', vencimentos: 6, vencidos: 0, validos: 6 },
-  { periodo: 'Jun 2024', vencimentos: 9, vencidos: 0, validos: 9 },
-  { periodo: 'Jul 2024', vencimentos: 4, vencidos: 0, validos: 4 },
-  { periodo: 'Ago 2024', vencimentos: 7, vencidos: 0, validos: 7 },
-  { periodo: 'Set 2024', vencimentos: 11, vencidos: 0, validos: 11 },
-  { periodo: 'Out 2024', vencimentos: 5, vencidos: 0, validos: 5 },
-  { periodo: 'Nov 2024', vencimentos: 8, vencidos: 0, validos: 8 },
-  { periodo: 'Dez 2024', vencimentos: 13, vencidos: 0, validos: 13 }
-]
+// Dados virão via prop do backend/Supabase
+const expirationData: any[] = []
 
 export function ExpirationChart() {
   const CustomTooltip = ({ active, payload, label }: any) => {

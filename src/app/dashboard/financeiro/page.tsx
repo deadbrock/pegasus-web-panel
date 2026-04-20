@@ -90,59 +90,10 @@ export default function FinanceiroPage() {
     status: 'pendente' as 'pendente' | 'alocado' | 'aprovado'
   })
 
-  // Dados simulados para demonstração
-  const transacoesSimuladas: Transacao[] = [
-    {
-      id: 1,
-      data_transacao: '2024-01-15',
-      descricao: 'COMBUSTÍVEL POSTO IPIRANGA',
-      valor: 2500.00,
-      tipo: 'saida',
-      categoria: 'Combustível',
-      centro_custo: { nome: 'Veículos', cor_hex: '#EF4444' },
-      status: 'alocado',
-      ofx_fitid: 'TXN-001'
-    },
-    {
-      id: 2,
-      data_transacao: '2024-01-15',
-      descricao: 'RECEBIMENTO CLIENTE ABC LTDA',
-      valor: 45000.00,
-      tipo: 'entrada',
-      categoria: 'Receita Operacional',
-      status: 'pendente'
-    },
-    {
-      id: 3,
-      data_transacao: '2024-01-14',
-      descricao: 'ALUGUEL SEDE JANEIRO',
-      valor: 12000.00,
-      tipo: 'saida',
-      categoria: 'Aluguel',
-      centro_custo: { nome: 'Sede', cor_hex: '#3B82F6' },
-      status: 'alocado'
-    }
-  ]
-
-  const importacoesSimuladas: ImportacaoOFX[] = [
-    {
-      id: 1,
-      arquivo_nome: 'extrato_janeiro_2024.ofx',
-      total_transacoes: 47,
-      transacoes_novas: 45,
-      transacoes_duplicadas: 2,
-      status: 'concluido',
-      created_at: '2024-01-15T14:30:00Z'
-    }
-  ]
-
   useEffect(() => {
-    // Simula carregamento
-    setTimeout(() => {
-      setTransacoes(transacoesSimuladas)
-      setImportacoes(importacoesSimuladas)
-      setLoading(false)
-    }, 1000)
+    setTransacoes([])
+    setImportacoes([])
+    setLoading(false)
   }, [])
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -159,65 +110,14 @@ export default function FinanceiroPage() {
     setImportProgress(0)
     
     try {
-      // Simula análise do arquivo OFX
       const progressSteps = [10, 30, 60, 80, 100]
       for (const step of progressSteps) {
         setImportProgress(step)
-        await new Promise(resolve => setTimeout(resolve, 400))
+        await new Promise(resolve => setTimeout(resolve, 300))
       }
-      
-      // Simula preview das transações encontradas
-      const previewData: PreviewTransacao[] = [
-        {
-          data: '2024-01-15',
-          descricao: 'TED RECEBIDA - EMPRESA ABC LTDA',
-          valor: 15000.00,
-          tipo: 'entrada',
-          categoria_sugerida: 'Receita Operacional',
-          duplicada: false,
-          fitid: 'TXN-001'
-        },
-        {
-          data: '2024-01-15',
-          descricao: 'COMBUSTIVEL POSTO SHELL',
-          valor: 280.50,
-          tipo: 'saida',
-          categoria_sugerida: 'Combustível',
-          duplicada: false,
-          fitid: 'TXN-002'
-        },
-        {
-          data: '2024-01-14',
-          descricao: 'ALUGUEL SEDE JANEIRO',
-          valor: 12000.00,
-          tipo: 'saida',
-          categoria_sugerida: 'Aluguel',
-          duplicada: true, // Já existe no sistema
-          fitid: 'TXN-003'
-        },
-        {
-          data: '2024-01-14',
-          descricao: 'PAGAMENTO FORNECEDOR XYZ',
-          valor: 5600.00,
-          tipo: 'saida',
-          categoria_sugerida: 'Fornecedores',
-          duplicada: false,
-          fitid: 'TXN-004'
-        },
-        {
-          data: '2024-01-13',
-          descricao: 'DIARIA FUNCIONARIO JOAO SILVA',
-          valor: 450.00,
-          tipo: 'saida',
-          categoria_sugerida: 'Diárias',
-          duplicada: false,
-          fitid: 'TXN-005'
-        }
-      ]
-      
-      setPreviewTransacoes(previewData)
-      setShowPreview(true)
-      
+      // A análise real do arquivo OFX será implementada no backend
+      alert('Funcionalidade de importação OFX em desenvolvimento. Conecte ao backend para processar o arquivo.')
+      setShowPreview(false)
     } catch (error) {
       alert('Erro ao analisar arquivo OFX')
     } finally {
@@ -226,65 +126,11 @@ export default function FinanceiroPage() {
   }
 
   const handleConfirmImport = async () => {
-    if (!selectedFile || previewTransacoes.length === 0) return
-
-    setUploadLoading(true)
-    setImportProgress(0)
-    
-    try {
-      // Simula importação das transações não duplicadas
-      const transacoesParaImportar = previewTransacoes.filter(t => !t.duplicada)
-      const progressStep = 100 / transacoesParaImportar.length
-
-      for (let i = 0; i < transacoesParaImportar.length; i++) {
-        const preview = transacoesParaImportar[i]
-        
-        // Cria nova transação baseada no preview
-        const novaTransacao: Transacao = {
-          id: Math.max(...transacoes.map(t => t.id), 0) + i + 1,
-          data_transacao: preview.data,
-          descricao: preview.descricao,
-          valor: preview.valor,
-          tipo: preview.tipo,
-          categoria: preview.categoria_sugerida,
-          status: 'pendente',
-          ofx_fitid: preview.fitid
-        }
-        
-        setTransacoes(prev => [novaTransacao, ...prev])
-        setImportProgress((i + 1) * progressStep)
-        await new Promise(resolve => setTimeout(resolve, 100))
-      }
-      
-      // Registra a importação
-      const novaImportacao: ImportacaoOFX = {
-        id: importacoes.length + 1,
-        arquivo_nome: selectedFile.name,
-        total_transacoes: previewTransacoes.length,
-        transacoes_novas: transacoesParaImportar.length,
-        transacoes_duplicadas: previewTransacoes.filter(t => t.duplicada).length,
-        status: 'concluido',
-        created_at: new Date().toISOString()
-      }
-      
-      setImportacoes([novaImportacao, ...importacoes])
-      
-      // Reset states
-      setShowPreview(false)
-      setPreviewTransacoes([])
-      setSelectedFile(null)
-      setIsImportDialogOpen(false)
-      
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
-      
-    } catch (error) {
-      alert('Erro ao importar transações')
-    } finally {
-      setUploadLoading(false)
-      setImportProgress(0)
-    }
+    alert('Importação OFX real ainda não conectada ao backend. Implemente a integração com Supabase.')
+    setShowPreview(false)
+    setPreviewTransacoes([])
+    setSelectedFile(null)
+    setIsImportDialogOpen(false)
   }
 
   const handleCancelImport = () => {

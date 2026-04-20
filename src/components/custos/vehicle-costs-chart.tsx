@@ -1,77 +1,50 @@
 'use client'
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { Truck } from 'lucide-react'
 
-// Mock data para custos por veículo
-const vehicleCostsData = [
-  {
-    veiculo: 'BRA-2023',
-    combustivel: 5240,
-    manutencao: 2180,
-    outros: 450,
-    total: 7870,
-    kmMes: 2340
-  },
-  {
-    veiculo: 'BRA-2024',
-    combustivel: 4850,
-    manutencao: 1950,
-    outros: 320,
-    total: 7120,
-    kmMes: 2180
-  },
-  {
-    veiculo: 'BRA-2025',
-    combustivel: 6200,
-    manutencao: 2950,
-    outros: 580,
-    total: 9730,
-    kmMes: 2680
-  },
-  {
-    veiculo: 'BRA-2026',
-    combustivel: 4950,
-    manutencao: 1820,
-    outros: 395,
-    total: 7165,
-    kmMes: 2250
-  },
-  {
-    veiculo: 'BRA-2027',
-    combustivel: 5180,
-    manutencao: 2250,
-    outros: 420,
-    total: 7850,
-    kmMes: 2380
+interface VehicleCostsChartProps {
+  data?: Array<{ veiculo: string; combustivel?: number; manutencao?: number; outros?: number; total: number; kmMes?: number }>
+}
+
+export function VehicleCostsChart({ data }: VehicleCostsChartProps) {
+  const vehicleCostsData = data ?? []
+
+  if (vehicleCostsData.length === 0) {
+    return (
+      <div className="h-64 flex flex-col items-center justify-center text-gray-400">
+        <Truck className="w-10 h-10 mb-2" />
+        <p className="text-sm">Sem dados por veículo</p>
+        <p className="text-xs mt-1">Cadastre custos vinculados a veículos</p>
+      </div>
+    )
   }
-]
 
-export function VehicleCostsChart() {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-      const data = vehicleCostsData.find(item => item.veiculo === label)
+      const d = vehicleCostsData.find((item: any) => item.veiculo === label)
       
       return (
         <div className="bg-white p-3 border rounded-lg shadow-md">
           <p className="font-medium">{label}</p>
           <p className="text-sm text-orange-600">
-            Combustível: R$ {data?.combustivel.toLocaleString('pt-BR')}
+            Combustível: R$ {d?.combustivel?.toLocaleString('pt-BR') ?? '—'}
           </p>
           <p className="text-sm text-blue-600">
-            Manutenção: R$ {data?.manutencao.toLocaleString('pt-BR')}
+            Manutenção: R$ {d?.manutencao?.toLocaleString('pt-BR') ?? '—'}
           </p>
           <p className="text-sm text-gray-600">
-            Outros: R$ {data?.outros.toLocaleString('pt-BR')}
+            Outros: R$ {d?.outros?.toLocaleString('pt-BR') ?? '—'}
           </p>
           <div className="border-t pt-1 mt-1">
             <p className="text-sm font-medium">
-              Total: R$ {data?.total.toLocaleString('pt-BR')}
+              Total: R$ {d?.total.toLocaleString('pt-BR')}
             </p>
             <p className="text-sm text-gray-500">
-              KM Mês: {data?.kmMes.toLocaleString('pt-BR')}
+              KM Mês: {d?.kmMes?.toLocaleString('pt-BR') ?? '—'}
             </p>
             <p className="text-sm text-gray-500">
-              Custo/KM: R$ {data ? (data.total / data.kmMes).toFixed(2) : '0.00'}
+              Custo/KM: R$ {d && d.kmMes ? (d.total / d.kmMes).toFixed(2) : '—'}
             </p>
           </div>
         </div>
@@ -172,11 +145,12 @@ export function VehicleCostsChart() {
               <td className="p-3 text-right font-bold">
                 {vehicleCostsData.reduce((sum, v) => sum + v.kmMes, 0).toLocaleString('pt-BR')} km
               </td>
-              <td className="p-3 text-right font-bold">
-                R$ {(
-                  vehicleCostsData.reduce((sum, v) => sum + v.total, 0) / 
-                  vehicleCostsData.reduce((sum, v) => sum + v.kmMes, 0)
-                ).toFixed(2)}
+                <td className="p-3 text-right font-bold">
+                {(() => {
+                  const totalKm = vehicleCostsData.reduce((sum, v) => sum + (v.kmMes ?? 0), 0)
+                  const totalCost = vehicleCostsData.reduce((sum, v) => sum + v.total, 0)
+                  return totalKm > 0 ? `R$ ${(totalCost / totalKm).toFixed(2)}` : '—'
+                })()}
               </td>
             </tr>
           </tfoot>

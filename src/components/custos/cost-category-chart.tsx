@@ -1,24 +1,28 @@
 'use client'
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
+import { PieChart as PieChartIcon } from 'lucide-react'
 
 interface CostCategoryChartProps {
   showDetails?: boolean
+  data?: Array<{ name: string; value: number; color?: string }>
 }
 
-// Mock data para custos por categoria
-const categoryData = [
-  { name: 'Combustível', value: 29432, color: '#f97316' },
-  { name: 'Manutenção', value: 12850, color: '#3b82f6' },
-  { name: 'Pedágio', value: 2180, color: '#8b5cf6' },
-  { name: 'Seguro', value: 3750, color: '#10b981' },
-  { name: 'Documentação', value: 856, color: '#06b6d4' },
-  { name: 'Multas', value: 390, color: '#ef4444' },
-  { name: 'Outros', value: 542, color: '#6b7280' }
-]
+const COLORS = ['#f97316', '#3b82f6', '#8b5cf6', '#10b981', '#06b6d4', '#ef4444', '#6b7280']
 
-export function CostCategoryChart({ showDetails = false }: CostCategoryChartProps) {
+export function CostCategoryChart({ showDetails = false, data }: CostCategoryChartProps) {
+  const categoryData = (data ?? []).map((d, i) => ({ ...d, color: d.color ?? COLORS[i % COLORS.length] }))
   const total = categoryData.reduce((sum, item) => sum + item.value, 0)
+
+  if (categoryData.length === 0) {
+    return (
+      <div className="h-64 flex flex-col items-center justify-center text-gray-400">
+        <PieChartIcon className="w-10 h-10 mb-2" />
+        <p className="text-sm">Sem dados de categoria</p>
+        <p className="text-xs mt-1">Cadastre custos para visualizar</p>
+      </div>
+    )
+  }
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {

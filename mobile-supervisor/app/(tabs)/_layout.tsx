@@ -84,6 +84,15 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="jornada"
+        options={{
+          title: 'Jornada',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="map-marker-path" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="perfil"
         options={{
           title: 'Perfil',

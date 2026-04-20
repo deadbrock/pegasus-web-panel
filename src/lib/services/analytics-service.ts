@@ -31,10 +31,7 @@ export async function getDeliveryEvolution(lastDays = 30): Promise<DeliveryPoint
     }
     return Object.entries(byDay).map(([k, v]) => ({ data: k, entregas: v.total, concluidas: v.concluidas, meta: 70 }))
   } catch {
-    // fallback mock
-    const points: DeliveryPoint[] = []
-    for (let i = 0; i < 10; i++) points.push({ data: formatDay(new Date(start.getTime() + i * 86400000)), entregas: 80 + i * 2, concluidas: 75 + i * 2, meta: 70 })
-    return points
+    return []
   }
 }
 
@@ -175,10 +172,7 @@ export async function getDriversPerformance(): Promise<{ name: string; entregas:
     }
     return Object.entries(stats).map(([name, v]) => ({ name, entregas: v.entregas, pontuacao: v.pontuacao }))
   } catch {
-    return [
-      { name: 'João Silva', entregas: 45, pontuacao: 92 },
-      { name: 'Maria Santos', entregas: 52, pontuacao: 96 },
-    ]
+    return []
   }
 }
 

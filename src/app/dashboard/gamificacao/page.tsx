@@ -17,7 +17,8 @@ import {
   Medal,
   Download,
   Settings,
-  Plus
+  Plus,
+  BarChart2
 } from 'lucide-react'
 import { MetricCard } from '@/components/dashboard/metric-card'
 import { DriversRanking } from '@/components/gamificacao/drivers-ranking'
@@ -162,53 +163,9 @@ export default function GamificacaoPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {[
-                    { 
-                      motorista: 'João Silva', 
-                      conquista: 'Pontualidade', 
-                      pontos: 25, 
-                      tempo: '2 horas atrás',
-                      cor: 'bg-green-100 text-green-800'
-                    },
-                    { 
-                      motorista: 'Maria Santos', 
-                      conquista: 'Economia de Combustível', 
-                      pontos: 35, 
-                      tempo: '5 horas atrás',
-                      cor: 'bg-blue-100 text-blue-800'
-                    },
-                    { 
-                      motorista: 'Carlos Lima', 
-                      conquista: 'Cliente Satisfeito', 
-                      pontos: 40, 
-                      tempo: '1 dia atrás',
-                      cor: 'bg-purple-100 text-purple-800'
-                    },
-                    { 
-                      motorista: 'Ana Costa', 
-                      conquista: 'Maratonista', 
-                      pontos: 50, 
-                      tempo: '2 dias atrás',
-                      cor: 'bg-orange-100 text-orange-800'
-                    }
-                  ].map((item, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Award className="w-5 h-5 text-yellow-600" />
-                        <div>
-                          <p className="font-medium">{item.motorista}</p>
-                          <p className="text-sm text-gray-600">{item.conquista}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className={`text-sm px-2 py-1 rounded ${item.cor}`}>
-                          +{item.pontos} pontos
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">{item.tempo}</p>
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex flex-col items-center justify-center py-8 text-center text-gray-500">
+                  <Award className="w-8 h-8 mb-2 text-gray-300" />
+                  <p className="text-sm">Nenhuma conquista recente.</p>
                 </div>
               </CardContent>
             </Card>
@@ -313,29 +270,9 @@ export default function GamificacaoPage() {
                 <CardTitle>Progresso por Nível</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {[
-                    { nome: 'João Silva', nivel: 'Ouro', progresso: 75, pontos: '950/1000' },
-                    { nome: 'Maria Santos', nivel: 'Prata', progresso: 60, pontos: '480/600' },
-                    { nome: 'Carlos Lima', nivel: 'Bronze', progresso: 90, pontos: '270/300' },
-                    { nome: 'Ana Costa', nivel: 'Platina', progresso: 30, pontos: '1150/1500' }
-                  ].map((driver, index) => (
-                    <div key={index} className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="font-medium">{driver.nome}</p>
-                          <p className="text-sm text-gray-600">{driver.nivel}</p>
-                        </div>
-                        <p className="text-sm text-gray-600">{driver.pontos}</p>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${driver.progresso}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex flex-col items-center justify-center py-8 text-center text-gray-500">
+                  <Crown className="w-8 h-8 mb-2 text-gray-300" />
+                  <p className="text-sm">Nenhum motorista com progresso registrado.</p>
                 </div>
               </CardContent>
             </Card>
@@ -349,160 +286,10 @@ export default function GamificacaoPage() {
 
         {/* Analytics Tab */}
         <TabsContent value="analytics" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Métricas de Engajamento */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Métricas de Engajamento</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Taxa de Participação</span>
-                      <span>89.5%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-green-600 h-2 rounded-full w-[90%]"></div>
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">24 de 27 motoristas</div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Conquistas por Motorista</span>
-                      <span>7.8</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-blue-600 h-2 rounded-full w-[78%]"></div>
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">Meta: 10 conquistas</div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Pontos Médios por Mês</span>
-                      <span>518</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-purple-600 h-2 rounded-full w-[85%]"></div>
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">15% acima do esperado</div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Retenção de Motoristas</span>
-                      <span>95.2%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-orange-600 h-2 rounded-full w-[95%]"></div>
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">Melhoria significativa</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Impacto nos Resultados */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Impacto nos Resultados</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Entregas no Prazo</span>
-                    <span className="font-semibold text-green-600">↗ +12%</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Consumo de Combustível</span>
-                    <span className="font-semibold text-green-600">↘ -8%</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Avaliação dos Clientes</span>
-                    <span className="font-semibold text-green-600">↗ +15%</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Acidentes</span>
-                    <span className="font-semibold text-green-600">↘ -25%</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Rotatividade</span>
-                    <span className="font-semibold text-green-600">↘ -18%</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Produtividade</span>
-                    <span className="font-semibold text-green-600">↗ +22%</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Conquistas Mais Populares */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Conquistas Mais Populares</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {[
-                    { nome: 'Pontualidade', obtida: 18, total: 24, porcentagem: 75 },
-                    { nome: 'Cliente Satisfeito', obtida: 15, total: 24, porcentagem: 63 },
-                    { nome: 'Economia de Combustível', obtida: 12, total: 24, porcentagem: 50 },
-                    { nome: 'Maratonista', obtida: 8, total: 24, porcentagem: 33 },
-                    { nome: 'Zero Acidentes', obtida: 6, total: 24, porcentagem: 25 }
-                  ].map((achievement, index) => (
-                    <div key={index}>
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-medium">{achievement.nome}</span>
-                        <span className="text-sm text-gray-600">{achievement.obtida}/{achievement.total}</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-blue-600 h-2 rounded-full"
-                          style={{ width: `${achievement.porcentagem}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* ROI do Sistema */}
-            <Card>
-              <CardHeader>
-                <CardTitle>ROI do Sistema de Gamificação</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center space-y-4">
-                  <div>
-                    <p className="text-3xl font-bold text-green-600">324%</p>
-                    <p className="text-sm text-gray-600">Retorno sobre Investimento</p>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-gray-500">Custo Mensal</p>
-                      <p className="font-medium">R$ 2.400</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Economia Gerada</p>
-                      <p className="font-medium text-green-600">R$ 7.776</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Produtividade</p>
-                      <p className="font-medium text-blue-600">+22%</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Satisfação</p>
-                      <p className="font-medium text-purple-600">+15%</p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="flex flex-col items-center justify-center py-16 text-center text-gray-500">
+            <BarChart2 className="w-12 h-12 mb-3 text-gray-300" />
+            <p className="font-medium text-lg">Analytics em desenvolvimento</p>
+            <p className="text-sm mt-1 max-w-md">As métricas de engajamento, impacto nos resultados e ROI do sistema aparecerão aqui com dados reais.</p>
           </div>
         </TabsContent>
       </Tabs>

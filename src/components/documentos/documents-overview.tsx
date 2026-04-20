@@ -3,22 +3,23 @@
 import { Progress } from '@/components/ui/progress'
 import { CheckCircle, AlertTriangle, Clock, FileCheck } from 'lucide-react'
 
-// Mock data para overview
-const overviewData = {
-  total: 89,
-  validos: 76,
-  vencendo: 8,
-  vencidos: 5,
-  compliance: 85.4
+interface DocumentsOverviewProps {
+  data?: { total: number; validos: number; vencendo: number; vencidos: number; compliance: number }
 }
 
-export function DocumentsOverview() {
+export function DocumentsOverview({ data }: DocumentsOverviewProps) {
+  const overviewData = data ?? { total: 0, validos: 0, vencendo: 0, vencidos: 0, compliance: 0 }
+
   const getPercentage = (value: number) => {
+    if (overviewData.total === 0) return '0.0'
     return ((value / overviewData.total) * 100).toFixed(1)
   }
 
   return (
     <div className="space-y-6">
+      {overviewData.total === 0 && (
+        <p className="text-sm text-gray-400 text-center py-4">Nenhum documento cadastrado</p>
+      )}
       {/* Status Distribution */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -83,7 +84,7 @@ export function DocumentsOverview() {
         </div>
         <div className="text-center">
           <p className="text-2xl font-bold text-green-600">
-            {Math.round((overviewData.validos / overviewData.total) * 100)}%
+            {overviewData.total > 0 ? Math.round((overviewData.validos / overviewData.total) * 100) : 0}%
           </p>
           <p className="text-sm text-gray-600">Em Conformidade</p>
         </div>

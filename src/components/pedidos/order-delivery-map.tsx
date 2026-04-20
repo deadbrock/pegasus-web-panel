@@ -4,49 +4,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { MapPin, Truck, CheckCircle, Clock, AlertTriangle } from 'lucide-react'
 
-// Mock data para entregas no mapa
-const deliveryData = [
-  {
-    id: 'P-001235',
-    cliente: 'Maria Santos',
-    endereco: 'Av. Paulista, 456 - São Paulo/SP',
-    status: 'Em Rota',
-    motorista: 'Carlos Lima',
-    veiculo: 'BRA-2023',
-    posicao: { x: 45, y: 30 },
-    estimativa: '14:30'
-  },
-  {
-    id: 'P-001243',
-    cliente: 'André Lima',
-    endereco: 'Copacabana, 789 - Rio de Janeiro/RJ',
-    status: 'Em Rota',
-    motorista: 'Ana Oliveira',
-    veiculo: 'BRA-2024',
-    posicao: { x: 65, y: 55 },
-    estimativa: '16:45'
-  },
-  {
-    id: 'P-001236',
-    cliente: 'Pedro Costa',
-    endereco: 'Rua Santos Dumont, 789 - Rio de Janeiro/RJ',
-    status: 'Entregue',
-    motorista: 'Ana Oliveira',
-    veiculo: 'BRA-2024',
-    posicao: { x: 70, y: 50 },
-    estimativa: 'Concluído'
-  },
-  {
-    id: 'P-001237',
-    cliente: 'Ana Souza',
-    endereco: 'Rua da Liberdade, 321 - Belo Horizonte/MG',
-    status: 'Atrasado',
-    motorista: 'João Silva',
-    veiculo: 'BRA-2025',
-    posicao: { x: 35, y: 40 },
-    estimativa: 'Atrasado'
-  }
-]
+// Nenhum dado mock — entregas virão do backend/Supabase via prop `data`
+const deliveryData: any[] = []
 
 export function OrderDeliveryMap() {
   const getStatusIcon = (status: string) => {
@@ -153,6 +112,12 @@ export function OrderDeliveryMap() {
       </div>
 
       {/* Lista de Entregas */}
+      {deliveryData.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+          <MapPin className="w-8 h-8 mb-2" />
+          <p className="text-sm">Nenhuma entrega em andamento</p>
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {deliveryData.map((delivery) => (
           <Card key={delivery.id} className="hover:shadow-md transition-shadow">

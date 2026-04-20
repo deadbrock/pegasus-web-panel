@@ -5,69 +5,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ArrowUpDown, TrendingUp, TrendingDown } from 'lucide-react'
 
-// Mock data - substituir por dados do Supabase
-const data = [
-  {
-    id: 1,
-    motorista: 'João Silva',
-    veiculo: 'BRA-2023',
-    entregas: 45,
-    eficiencia: 92,
-    combustivel: 8.2,
-    status: 'Ativo',
-    trend: 'up'
-  },
-  {
-    id: 2,
-    motorista: 'Maria Santos',
-    veiculo: 'BRA-2024',
-    entregas: 52,
-    eficiencia: 96,
-    combustivel: 7.8,
-    status: 'Ativo',
-    trend: 'up'
-  },
-  {
-    id: 3,
-    motorista: 'Pedro Costa',
-    veiculo: 'BRA-2022',
-    entregas: 38,
-    eficiencia: 85,
-    combustivel: 9.1,
-    status: 'Manutenção',
-    trend: 'down'
-  },
-  {
-    id: 4,
-    motorista: 'Ana Oliveira',
-    veiculo: 'BRA-2025',
-    entregas: 41,
-    eficiencia: 89,
-    combustivel: 8.5,
-    status: 'Ativo',
-    trend: 'up'
-  },
-  {
-    id: 5,
-    motorista: 'Carlos Lima',
-    veiculo: 'BRA-2021',
-    entregas: 47,
-    eficiencia: 91,
-    combustivel: 8.0,
-    status: 'Ativo',
-    trend: 'up'
-  },
-  {
-    id: 6,
-    motorista: 'Luiza Alves',
-    veiculo: 'BRA-2026',
-    entregas: 35,
-    eficiencia: 86,
-    combustivel: 8.8,
-    status: 'Férias',
-    trend: 'down'
-  }
-]
+// Dados virão do Supabase
+const data: any[] = []
 
 export function AnalyticsTable() {
   const getStatusBadge = (status: string) => {
@@ -132,7 +71,13 @@ export function AnalyticsTable() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map((row) => (
+          {data.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                Nenhum dado de analytics disponível.
+              </TableCell>
+            </TableRow>
+          ) : data.map((row) => (
             <TableRow key={row.id}>
               <TableCell className="font-medium">{row.motorista}</TableCell>
               <TableCell>{row.veiculo}</TableCell>
@@ -141,7 +86,7 @@ export function AnalyticsTable() {
                 <div className="flex items-center gap-2">
                   <span>{row.eficiencia}%</span>
                   <div className="w-20 bg-gray-200 rounded-full h-2">
-                    <div 
+                    <div
                       className="bg-blue-600 h-2 rounded-full"
                       style={{ width: `${row.eficiencia}%` }}
                     />

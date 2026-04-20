@@ -22,81 +22,8 @@ import {
   Settings
 } from 'lucide-react'
 
-// Mock data para alertas
-const alertsData = [
-  {
-    id: 1,
-    tipo: 'Combustível',
-    prioridade: 'Alta',
-    veiculo: 'BRA-2025',
-    motorista: 'João Silva',
-    descricao: 'Nível de combustível baixo (30%)',
-    localizacao: 'Belo Horizonte - Centro',
-    timestamp: '2024-01-15T14:23:45',
-    status: 'Ativo',
-    categoria: 'Operacional'
-  },
-  {
-    id: 2,
-    tipo: 'Temperatura',
-    prioridade: 'Média',
-    veiculo: 'BRA-2024',
-    motorista: 'Ana Oliveira',
-    descricao: 'Temperatura do motor elevada (95°C)',
-    localizacao: 'Rio de Janeiro - Zona Sul',
-    timestamp: '2024-01-15T14:18:32',
-    status: 'Ativo',
-    categoria: 'Manutenção'
-  },
-  {
-    id: 3,
-    tipo: 'Velocidade',
-    prioridade: 'Alta',
-    veiculo: 'BRA-2023',
-    motorista: 'Carlos Lima',
-    descricao: 'Excesso de velocidade (85 km/h em zona 60)',
-    localizacao: 'Santos - Via Anchieta',
-    timestamp: '2024-01-15T14:15:12',
-    status: 'Resolvido',
-    categoria: 'Segurança'
-  },
-  {
-    id: 4,
-    tipo: 'Rota',
-    prioridade: 'Baixa',
-    veiculo: 'BRA-2026',
-    motorista: 'Maria Santos',
-    descricao: 'Desvio da rota programada',
-    localizacao: 'Curitiba - BR-277',
-    timestamp: '2024-01-15T14:10:05',
-    status: 'Ativo',
-    categoria: 'Operacional'
-  },
-  {
-    id: 5,
-    tipo: 'Comunicação',
-    prioridade: 'Média',
-    veiculo: 'BRA-2027',
-    motorista: 'Pedro Costa',
-    descricao: 'Perda de sinal GPS há 15 minutos',
-    localizacao: 'Última: Porto Alegre - Centro',
-    timestamp: '2024-01-15T13:45:23',
-    status: 'Ativo',
-    categoria: 'Técnico'
-  },
-  {
-    id: 6,
-    tipo: 'Manutenção',
-    prioridade: 'Média',
-    veiculo: 'BRA-2025',
-    motorista: 'João Silva',
-    descricao: 'Manutenção preventiva vencida há 3 dias',
-    localizacao: 'Belo Horizonte - Garagem',
-    timestamp: '2024-01-15T08:00:00',
-    status: 'Pendente',
-    categoria: 'Manutenção'
-  }
-]
+// Nenhum dado mock — alertas virão do backend/Supabase
+const alertsData: any[] = []
 
 export function AlertsPanel() {
   const [filterType, setFilterType] = useState('')
@@ -226,7 +153,7 @@ export function AlertsPanel() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Resolvidos Hoje</p>
-                <p className="text-2xl font-bold text-green-600">8</p>
+                <p className="text-2xl font-bold text-green-600">{alertsData.filter(a => a.status === 'Resolvido').length}</p>
               </div>
               <CheckCircle className="w-8 h-8 text-green-500" />
             </div>

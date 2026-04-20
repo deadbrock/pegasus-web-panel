@@ -5,59 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { AlertTriangle, Clock, Shield, FileText, Calendar, User, Bell, CheckCircle } from 'lucide-react'
 
-// Mock data para alertas
-const alertsData = [
-  {
-    id: 1,
-    tipo: 'CNH',
-    numero: '987654321',
-    responsavel: 'Maria Santos',
-    dataVencimento: '2024-01-18',
-    diasRestantes: -5,
-    prioridade: 'urgente',
-    status: 'vencido'
-  },
-  {
-    id: 2,
-    tipo: 'CRLV',
-    numero: 'BRA-2024',
-    responsavel: 'Luis Fernando',
-    dataVencimento: '2024-01-25',
-    diasRestantes: 3,
-    prioridade: 'alta',
-    status: 'vencendo'
-  },
-  {
-    id: 3,
-    tipo: 'CNH',
-    numero: '555444333',
-    responsavel: 'Fernanda Oliveira',
-    dataVencimento: '2024-02-15',
-    diasRestantes: 25,
-    prioridade: 'media',
-    status: 'renovacao'
-  },
-  {
-    id: 4,
-    tipo: 'Seguro',
-    numero: 'SEG-2024-002',
-    responsavel: 'Roberto Silva',
-    dataVencimento: '2024-02-01',
-    diasRestantes: 15,
-    prioridade: 'alta',
-    status: 'vencendo'
-  },
-  {
-    id: 5,
-    tipo: 'CRLV',
-    numero: 'BRA-2025',
-    responsavel: 'Ana Costa',
-    dataVencimento: '2024-02-28',
-    diasRestantes: 42,
-    prioridade: 'baixa',
-    status: 'atencao'
-  }
-]
+// Alertas virão do backend/Supabase — sem mock data
+const alertsData: any[] = []
 
 export function DocumentAlertsPanel() {
   const getPriorityBadge = (prioridade: string) => {

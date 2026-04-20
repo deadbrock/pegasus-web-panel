@@ -78,61 +78,9 @@ export default function DiariasPage() {
     status: 'solicitada'
   })
 
-  // Dados simulados para demonstração
-  const diariasSimuladas: Diaria[] = [
-    {
-      id: 1,
-      funcionario: 'João Silva',
-      cargo: 'Motorista',
-      destino: 'São Paulo - SP',
-      motivo_viagem: 'Entrega de mercadorias especiais',
-      data_inicio: '2024-01-15',
-      data_fim: '2024-01-17',
-      dias_diaria: 3,
-      valor_diario: 180.00,
-      valor_total: 540.00,
-      status: 'aprovada',
-      observacoes: 'Viagem para cliente premium',
-      created_at: '2024-01-10T14:30:00Z'
-    },
-    {
-      id: 2,
-      funcionario: 'Maria Santos',
-      cargo: 'Supervisora',
-      destino: 'Rio de Janeiro - RJ',
-      motivo_viagem: 'Supervisão de filial',
-      data_inicio: '2024-01-20',
-      data_fim: '2024-01-22',
-      dias_diaria: 3,
-      valor_diario: 220.00,
-      valor_total: 660.00,
-      status: 'paga',
-      observacoes: 'Auditoria mensal da filial RJ',
-      created_at: '2024-01-12T10:15:00Z'
-    },
-    {
-      id: 3,
-      funcionario: 'Pedro Costa',
-      cargo: 'Técnico',
-      destino: 'Belo Horizonte - MG',
-      motivo_viagem: 'Manutenção preventiva de equipamentos',
-      data_inicio: '2024-01-25',
-      data_fim: '2024-01-26',
-      dias_diaria: 2,
-      valor_diario: 150.00,
-      valor_total: 300.00,
-      status: 'solicitada',
-      observacoes: 'Manutenção urgente do sistema de rastreamento',
-      created_at: '2024-01-14T16:45:00Z'
-    }
-  ]
-
   useEffect(() => {
-    // Simula carregamento
-    setTimeout(() => {
-      setDiarias(diariasSimuladas)
-      setLoading(false)
-    }, 1000)
+    setDiarias([])
+    setLoading(false)
   }, [])
 
   const calculateDays = (startDate: string, endDate: string): number => {

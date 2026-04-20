@@ -27,6 +27,7 @@ import { VehiclesTable } from '@/components/rastreamento/vehicles-table'
 import { RouteHistory } from '@/components/rastreamento/route-history'
 import { TrackingMetrics } from '@/components/rastreamento/tracking-metrics'
 import { AlertsPanel } from '@/components/rastreamento/alerts-panel'
+import { TelemetriaTab } from '@/components/rastreamento/telemetria-tab'
 import { fetchVeiculos, subscribePosicoes, subscribeVeiculos } from '@/lib/services/rastreamento-realtime'
 
 export default function RastreamentoPage() {
@@ -182,14 +183,20 @@ export default function RastreamentoPage() {
       </div>
 
       {/* Tracking Tabs */}
-      <Tabs defaultValue="map" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+      <Tabs defaultValue="telemetria" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="telemetria">Telemetria</TabsTrigger>
           <TabsTrigger value="map">Mapa</TabsTrigger>
           <TabsTrigger value="vehicles">Veículos</TabsTrigger>
           <TabsTrigger value="routes">Rotas</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="alerts">Alertas</TabsTrigger>
         </TabsList>
+
+        {/* Telemetria Tab */}
+        <TabsContent value="telemetria" className="space-y-6">
+          <TelemetriaTab />
+        </TabsContent>
 
         {/* Map Tab */}
         <TabsContent value="map" className="space-y-6">

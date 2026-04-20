@@ -12,57 +12,7 @@ interface TrackingMapProps {
   data?: Array<{ id: string | number; placa?: string; motorista?: string; status?: string; latitude?: number; longitude?: number }>
 }
 
-// Mock data para veículos no mapa (fallback)
-const vehiclesOnMap = [
-  {
-    id: 1,
-    placa: 'BRA-2023',
-    motorista: 'Carlos Lima',
-    status: 'Em Movimento',
-    posicao: { x: 35, y: 40 },
-    velocidade: 65,
-    destino: 'São Paulo - Centro',
-    eta: '14:30',
-    combustivel: 75,
-    temperatura: 85
-  },
-  {
-    id: 2,
-    placa: 'BRA-2024',
-    motorista: 'Ana Oliveira',
-    status: 'Parado',
-    posicao: { x: 60, y: 25 },
-    velocidade: 0,
-    destino: 'Rio de Janeiro - Zona Sul',
-    eta: '16:45',
-    combustivel: 45,
-    temperatura: 90
-  },
-  {
-    id: 3,
-    placa: 'BRA-2025',
-    motorista: 'João Silva',
-    status: 'Em Movimento',
-    posicao: { x: 75, y: 60 },
-    velocidade: 45,
-    destino: 'Belo Horizonte - Centro',
-    eta: '18:20',
-    combustivel: 30,
-    temperatura: 75
-  },
-  {
-    id: 4,
-    placa: 'BRA-2026',
-    motorista: 'Maria Santos',
-    status: 'Entregando',
-    posicao: { x: 45, y: 30 },
-    velocidade: 15,
-    destino: 'Santos - Porto',
-    eta: 'No destino',
-    combustivel: 85,
-    temperatura: 80
-  }
-]
+// Nenhum dado mock — veículos virão via prop `data` do backend/Supabase
 
 export function TrackingMap({ selectedVehicle, isRealTime, data }: TrackingMapProps) {
   const [hoveredVehicle, setHoveredVehicle] = useState<any>(null)
@@ -185,8 +135,17 @@ export function TrackingMap({ selectedVehicle, isRealTime, data }: TrackingMapPr
           <div className="absolute left-3/4 top-0 bottom-0 w-2 bg-gray-400 opacity-50 rounded"></div>
         </div>
 
+        {/* Estado vazio */}
+        {(!data || data.length === 0) && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 bg-white/70">
+            <Truck className="w-10 h-10 mb-2" />
+            <p className="text-sm font-medium">Nenhum veículo rastreado</p>
+            <p className="text-xs mt-1">Inicie uma jornada no app do supervisor</p>
+          </div>
+        )}
+
         {/* Marcadores dos veículos */}
-        {(data && data.length ? data : vehiclesOnMap).map((vehicle: any) => {
+        {(data ?? []).map((vehicle: any) => {
           const isSelected = selectedVehicle?.id === vehicle.id
           const isHovered = hoveredVehicle?.id === vehicle.id
           
@@ -195,8 +154,8 @@ export function TrackingMap({ selectedVehicle, isRealTime, data }: TrackingMapPr
               key={vehicle.id}
               className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
               style={{
-                left: vehicle.posicao?.x ? `${vehicle.posicao.x}%` : `${50 + Math.random() * 40 - 20}%`,
-                top: vehicle.posicao?.y ? `${vehicle.posicao.y}%` : `${50 + Math.random() * 40 - 20}%`,
+                left: vehicle.posicao?.x ? `${vehicle.posicao.x}%` : '50%',
+                top: vehicle.posicao?.y ? `${vehicle.posicao.y}%` : '50%',
                 zIndex: isSelected ? 20 : 10
               }}
               onMouseEnter={() => setHoveredVehicle(vehicle)}
@@ -290,15 +249,15 @@ export function TrackingMap({ selectedVehicle, isRealTime, data }: TrackingMapPr
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-green-500"></div>
-              <span className="text-xs">Em Movimento ({vehiclesOnMap.filter(v => v.status === 'Em Movimento').length})</span>
+              <span className="text-xs">Em Movimento ({(data ?? []).filter((v: any) => v.status === 'Em Movimento').length})</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-              <span className="text-xs">Parado ({vehiclesOnMap.filter(v => v.status === 'Parado').length})</span>
+              <span className="text-xs">Parado ({(data ?? []).filter((v: any) => v.status === 'Parado').length})</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-              <span className="text-xs">Entregando ({vehiclesOnMap.filter(v => v.status === 'Entregando').length})</span>
+              <span className="text-xs">Entregando ({(data ?? []).filter((v: any) => v.status === 'Entregando').length})</span>
             </div>
           </div>
         </div>
