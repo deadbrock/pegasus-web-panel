@@ -145,6 +145,36 @@ export async function uploadDocumento(file: File, bucket: string = 'documentos')
   }
 }
 
+export type DocumentosStats = {
+  total: number
+  vencidos: number
+  vencendo_30_dias: number
+  ok: number
+}
+
+/**
+ * Busca estatísticas de documentos para o dashboard
+ */
+export async function fetchDocumentosStats(): Promise<DocumentosStats> {
+  try {
+    const { data, error } = await supabase
+      .from('documentos')
+      .select('id, created_at')
+
+    if (error) {
+      console.error('[fetchDocumentosStats] Erro:', error)
+      return { total: 0, vencidos: 0, vencendo_30_dias: 0, ok: 0 }
+    }
+
+    const total = data?.length || 0
+    // A tabela documentos atual não tem campos de validade — retorna totais básicos
+    return { total, vencidos: 0, vencendo_30_dias: 0, ok: total }
+  } catch (error) {
+    console.error('[fetchDocumentosStats] Erro:', error)
+    return { total: 0, vencidos: 0, vencendo_30_dias: 0, ok: 0 }
+  }
+}
+
 /**
  * Subscribe para mudanças em tempo real
  */

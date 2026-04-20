@@ -340,7 +340,7 @@ export default function DashboardPage() {
         <MetricCard
           title="Lucro Líquido"
           value={formatCurrency(kpis?.lucro_liquido ?? 0)}
-          change={kpis ? `Margem: ${kpis.margem_lucro.toFixed(1)}%` : 'Calculando...'}
+          change={kpis ? `Margem: ${(kpis.margem_lucro ?? 0).toFixed(1)}%` : 'Calculando...'}
           changeType="positive"
           icon={Target}
           description="Este mês"
@@ -778,10 +778,10 @@ export default function DashboardPage() {
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span>Score de Compliance</span>
-                  <span className="font-medium">{kpis ? `${kpis.score_compliance.toFixed(1)}%` : '—'}</span>
+                  <span className="font-medium">{kpis ? `${((kpis as any).score_compliance ?? 0).toFixed(1)}%` : '—'}</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${kpis?.score_compliance ?? 0}%` }}></div>
+                  <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${(kpis as any)?.score_compliance ?? 0}%` }}></div>
                 </div>
               </div>
 

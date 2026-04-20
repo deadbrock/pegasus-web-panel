@@ -123,48 +123,57 @@ export async function deletePedido(id: string): Promise<boolean> {
  * Busca estatísticas de pedidos
  */
 export async function fetchPedidosStats(): Promise<PedidoStats> {
-  const { data, error } = await supabase
-    .from('pedidos')
-    .select('status, valor, data_entrega, data_entrega_prevista')
+  try {
+    // Tenta selecionar com data_entrega_prevista
+    let { data, error } = await supabase
+      .from('pedidos')
+      .select('status, valor, data_entrega, data_entrega_prevista')
 
-  if (error) {
-    console.error('Erro ao buscar estatísticas:', error)
-    throw error
-  }
+    // Se falhar (coluna inexistente — código 42703 ou 400), tenta sem ela
+    if (error) {
+      const fallback = await supabase
+        .from('pedidos')
+        .select('status, valor, data_entrega')
+      if (fallback.error) {
+        console.error('Erro ao buscar estatísticas:', fallback.error)
+        return { total: 0, pendentes: 0, em_transito: 0, entregues: 0, cancelados: 0, atrasados: 0, valor_total: 0, peso_total: 0, taxa_entrega: 0 }
+      }
+      data = fallback.data
+    }
 
-  const total = data?.length || 0
-  const pendentes = data?.filter(p => p.status === 'Pendente').length || 0
-  const em_transito = data?.filter(p => p.status === 'Em Trânsito').length || 0
-  const entregues = data?.filter(p => p.status === 'Entregue').length || 0
-  const cancelados = data?.filter(p => p.status === 'Cancelado').length || 0
-  const atrasados = data?.filter(p => p.status === 'Atrasado').length || 0
+    const total = data?.length || 0
+    const pendentes = data?.filter((p: any) => p.status === 'Pendente').length || 0
+    const em_transito = data?.filter((p: any) => p.status === 'Em Trânsito').length || 0
+    const entregues = data?.filter((p: any) => p.status === 'Entregue').length || 0
+    const cancelados = data?.filter((p: any) => p.status === 'Cancelado').length || 0
+    const atrasados = data?.filter((p: any) => p.status === 'Atrasado').length || 0
+    const valor_total = data?.reduce((sum: number, p: any) => sum + (p.valor || 0), 0) || 0
 
-  const valor_total = data?.reduce((sum, p) => sum + (p.valor || 0), 0) || 0
-  // Removido peso_total pois a coluna peso não existe na tabela pedidos
-  const peso_total = 0
+    // Calcular taxa de entrega no prazo (somente se data_entrega_prevista existir nos dados)
+    const entreguesData = (data || []).filter((p: any) =>
+      p.status === 'Entregue' && p.data_entrega && p.data_entrega_prevista
+    )
+    const entreguesNoPrazo = entreguesData.filter((p: any) => {
+      return new Date(p.data_entrega) <= new Date(p.data_entrega_prevista)
+    }).length
+    const taxa_entrega = entregues > 0
+      ? (entreguesData.length > 0 ? (entreguesNoPrazo / entreguesData.length) * 100 : 100)
+      : 0
 
-  // Calcular taxa de entrega no prazo
-  const entreguesData = data?.filter(p => p.status === 'Entregue' && p.data_entrega && p.data_entrega_prevista) || []
-  const entreguesNoPrazo = entreguesData.filter(p => {
-    const dataEntrega = new Date(p.data_entrega!)
-    const dataPrevista = new Date(p.data_entrega_prevista!)
-    return dataEntrega <= dataPrevista
-  }).length
-
-  const taxa_entrega = entreguesData.length > 0 
-    ? (entreguesNoPrazo / entreguesData.length) * 100 
-    : 0
-
-  return {
-    total,
-    pendentes,
-    em_transito,
-    entregues,
-    cancelados,
-    atrasados,
-    valor_total,
-    peso_total,
-    taxa_entrega
+    return {
+      total,
+      pendentes,
+      em_transito,
+      entregues,
+      cancelados,
+      atrasados,
+      valor_total,
+      peso_total: 0,
+      taxa_entrega
+    }
+  } catch (error) {
+    console.error('Erro ao buscar estatísticas de pedidos:', error)
+    return { total: 0, pendentes: 0, em_transito: 0, entregues: 0, cancelados: 0, atrasados: 0, valor_total: 0, peso_total: 0, taxa_entrega: 0 }
   }
 }
 
