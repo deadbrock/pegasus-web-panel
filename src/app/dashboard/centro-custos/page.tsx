@@ -144,34 +144,36 @@ export default function CentroCustosPage() {
         body: JSON.stringify(formData),
       })
 
-      if (!response.ok) throw new Error('Erro ao salvar centro de custo')
+      const result = await response.json()
 
-      const savedCentro = await response.json()
-      
+      if (!response.ok) {
+        throw new Error(result?.error || 'Erro ao salvar centro de custo')
+      }
+
       if (editingCentro) {
-        setCentrosCusto(prev => prev.map(c => 
-          c.id === editingCentro.id ? savedCentro : c
+        setCentrosCusto(prev => prev.map(c =>
+          c.id === editingCentro.id ? result : c
         ))
         toast({
           title: "Sucesso!",
           description: "Centro de custo atualizado com sucesso.",
         })
       } else {
-        setCentrosCusto(prev => [...prev, savedCentro])
+        setCentrosCusto(prev => [...prev, result])
         toast({
           title: "Sucesso!",
           description: "Centro de custo criado com sucesso.",
         })
       }
-      
+
       setIsDialogOpen(false)
       resetForm()
-      
-    } catch (error) {
-      console.error('Erro:', error)
+
+    } catch (error: any) {
+      console.error('Erro ao salvar centro de custo:', error)
       toast({
         title: "Erro",
-        description: "Não foi possível salvar o centro de custo. Tente novamente.",
+        description: error?.message || "Não foi possível salvar o centro de custo.",
         variant: "destructive"
       })
     } finally {
@@ -185,19 +187,19 @@ export default function CentroCustosPage() {
         method: 'DELETE',
       })
 
-      if (!response.ok) throw new Error('Erro ao excluir centro de custo')
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(result?.error || 'Erro ao excluir centro de custo')
 
       setCentrosCusto(prev => prev.filter(c => c.id !== id))
       toast({
         title: "Sucesso!",
         description: "Centro de custo excluído com sucesso.",
       })
-      
-    } catch (error) {
-      console.error('Erro:', error)
+    } catch (error: any) {
+      console.error('Erro ao excluir centro de custo:', error)
       toast({
         title: "Erro",
-        description: "Não foi possível excluir o centro de custo. Tente novamente.",
+        description: error?.message || "Não foi possível excluir o centro de custo.",
         variant: "destructive"
       })
     }
