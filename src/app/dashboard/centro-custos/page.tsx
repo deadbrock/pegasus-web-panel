@@ -33,9 +33,15 @@ import {
   AlertCircle,
   CheckCircle2,
   User,
-  Calendar
+  Calendar,
+  Receipt,
+  List,
+  TrendingUp,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react'
 import Link from 'next/link'
+import { supabase } from '@/lib/supabase'
 
 interface CentroCusto {
   id?: number
@@ -58,6 +64,44 @@ interface FormData {
   cor_hex: string
   ativo: boolean
   tipo: 'predefinido' | 'personalizado'
+}
+
+interface Lancamento {
+  id: string
+  descricao: string
+  valor: number
+  data: string
+  categoria?: string
+  forma_pagamento?: string
+  status_pagamento?: string
+  fornecedor?: string
+  numero_documento?: string
+  observacoes?: string
+  created_at: string
+}
+
+interface LancamentoForm {
+  descricao: string
+  valor: string
+  data: string
+  categoria: string
+  forma_pagamento: string
+  status_pagamento: string
+  fornecedor: string
+  numero_documento: string
+  observacoes: string
+}
+
+const lancamentoFormInicial: LancamentoForm = {
+  descricao: '',
+  valor: '',
+  data: new Date().toISOString().split('T')[0],
+  categoria: 'Outros',
+  forma_pagamento: 'PIX',
+  status_pagamento: 'Pago',
+  fornecedor: '',
+  numero_documento: '',
+  observacoes: '',
 }
 
 const iconMap = {
@@ -88,6 +132,14 @@ export default function CentroCustosPage() {
     ativo: true,
     tipo: 'personalizado'
   })
+
+  // Estados para lançamento de custos
+  const [registrandoCusto, setRegistrandoCusto] = useState<CentroCusto | null>(null)
+  const [lancamentoForm, setLancamentoForm] = useState<LancamentoForm>(lancamentoFormInicial)
+  const [savingLancamento, setSavingLancamento] = useState(false)
+  const [statsLancamentos, setStatsLancamentos] = useState<Record<string, { total: number; count: number }>>({})
+  const [lancamentosRecentes, setLancamentosRecentes] = useState<Record<string, Lancamento[]>>({})
+  const [expandidoId, setExpandidoId] = useState<string | number | null>(null)
 
   // Estados para o diálogo de diárias
   const [isDiariasDialogOpen, setIsDiariasDialogOpen] = useState(false)
@@ -217,9 +269,106 @@ export default function CentroCustosPage() {
     setEditingCentro(null)
   }
 
+  // Carrega stats de lançamentos para todos os centros
+  const fetchStatsLancamentos = async (centros: CentroCusto[]) => {
+    if (centros.length === 0) return
+    const inicioMes = new Date()
+    inicioMes.setDate(1)
+    const inicioStr = inicioMes.toISOString().split('T')[0]
+
+    const { data } = await supabase
+      .from('lancamentos_centro_custo')
+      .select('centro_custo_id, valor, data')
+      .gte('data', inicioStr)
+
+    if (!data) return
+
+    const map: Record<string, { total: number; count: number }> = {}
+    for (const row of data) {
+      const key = row.centro_custo_id
+      if (!map[key]) map[key] = { total: 0, count: 0 }
+      map[key].total += Number(row.valor)
+      map[key].count += 1
+    }
+    setStatsLancamentos(map)
+  }
+
+  // Carrega lançamentos recentes de um centro específico
+  const fetchLancamentosRecentes = async (centroId: string) => {
+    const { data } = await supabase
+      .from('lancamentos_centro_custo')
+      .select('*')
+      .eq('centro_custo_id', centroId)
+      .order('data', { ascending: false })
+      .limit(5)
+    if (data) {
+      setLancamentosRecentes(prev => ({ ...prev, [centroId]: data }))
+    }
+  }
+
+  const handleRegistrarCusto = (centro: CentroCusto) => {
+    setRegistrandoCusto(centro)
+    setLancamentoForm(lancamentoFormInicial)
+  }
+
+  const saveLancamento = async () => {
+    if (!registrandoCusto) return
+    if (!lancamentoForm.descricao || !lancamentoForm.valor || !lancamentoForm.data) {
+      toast({ title: 'Preencha os campos obrigatórios', variant: 'destructive' })
+      return
+    }
+    const valor = parseFloat(lancamentoForm.valor.replace(',', '.'))
+    if (isNaN(valor) || valor <= 0) {
+      toast({ title: 'Valor inválido', variant: 'destructive' })
+      return
+    }
+    try {
+      setSavingLancamento(true)
+      const { error } = await supabase
+        .from('lancamentos_centro_custo')
+        .insert({
+          centro_custo_id: registrandoCusto.id,
+          centro_custo_codigo: registrandoCusto.codigo,
+          descricao: lancamentoForm.descricao,
+          valor,
+          data: lancamentoForm.data,
+          categoria: lancamentoForm.categoria,
+          forma_pagamento: lancamentoForm.forma_pagamento,
+          status_pagamento: lancamentoForm.status_pagamento,
+          fornecedor: lancamentoForm.fornecedor || null,
+          numero_documento: lancamentoForm.numero_documento || null,
+          observacoes: lancamentoForm.observacoes || null,
+        })
+      if (error) {
+        toast({ title: 'Erro ao registrar custo', description: error.message, variant: 'destructive' })
+        return
+      }
+      toast({ title: 'Custo registrado!', description: `${lancamentoForm.descricao} — R$ ${valor.toFixed(2)}` })
+      setRegistrandoCusto(null)
+      // Atualiza stats do centro salvo
+      const centroId = registrandoCusto.id as string
+      if (centroId) {
+        fetchLancamentosRecentes(centroId)
+        // Recarrega stats gerais
+        fetchStatsLancamentos(centrosCusto)
+      }
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e?.message, variant: 'destructive' })
+    } finally {
+      setSavingLancamento(false)
+    }
+  }
+
   useEffect(() => {
     fetchCentrosCusto()
   }, [])
+
+  // Quando centros carregam, busca stats de lançamentos
+  useEffect(() => {
+    if (centrosCusto.length > 0) {
+      fetchStatsLancamentos(centrosCusto)
+    }
+  }, [centrosCusto])
 
   const filteredCentros = centrosCusto.filter(centro =>
     centro.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -449,43 +598,103 @@ export default function CentroCustosPage() {
                 </div>
               </CardHeader>
               
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3">
                 {centro.descricao && (
-                  <p className="text-sm text-gray-600">{centro.descricao}</p>
+                  <p className="text-sm text-gray-500 line-clamp-1">{centro.descricao}</p>
                 )}
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-gray-500">Total Gastos</p>
-                    <p className="font-semibold text-lg" style={{ color: centro.cor_hex }}>
-                      {formatCurrency(centro.total_gastos || 0)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Transações/Mês</p>
-                    <p className="font-semibold text-lg text-gray-700">
-                      {centro.transacoes_mes || 0}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex justify-between items-center pt-2 border-t">
-                  <span className="text-xs text-gray-500">
-                    Criado em {centro.created_at ? new Date(centro.created_at).toLocaleDateString('pt-BR') : 'N/A'}
+
+                {/* Stats do mês */}
+                {(() => {
+                  const centroId = centro.id as string
+                  const stats = centroId ? statsLancamentos[centroId] : null
+                  return (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-gray-50 rounded-lg p-2 text-center">
+                        <p className="text-xs text-gray-500 mb-0.5">Gasto este mês</p>
+                        <p className="font-bold text-base" style={{ color: centro.cor_hex }}>
+                          {formatCurrency(stats?.total || 0)}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-2 text-center">
+                        <p className="text-xs text-gray-500 mb-0.5">Lançamentos</p>
+                        <p className="font-bold text-base text-gray-700">
+                          {stats?.count || 0}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {/* Botão principal: Registrar Custo */}
+                <Button
+                  className="w-full"
+                  size="sm"
+                  style={{ backgroundColor: centro.cor_hex, borderColor: centro.cor_hex }}
+                  onClick={() => handleRegistrarCusto(centro)}
+                >
+                  <Receipt className="w-4 h-4 mr-2" />
+                  Registrar Custo
+                </Button>
+
+                {/* Lançamentos recentes (expandível) */}
+                {(() => {
+                  const centroId = centro.id as string
+                  const recentes = centroId ? (lancamentosRecentes[centroId] || []) : []
+                  const aberto = expandidoId === centro.id
+                  return (
+                    <div className="border-t pt-2">
+                      <button
+                        className="flex items-center justify-between w-full text-xs text-gray-500 hover:text-gray-700"
+                        onClick={() => {
+                          if (!aberto && centroId) fetchLancamentosRecentes(centroId)
+                          setExpandidoId(aberto ? null : (centro.id ?? null))
+                        }}
+                      >
+                        <span className="flex items-center gap-1">
+                          <List className="w-3 h-3" />
+                          Lançamentos recentes
+                        </span>
+                        {aberto ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                      </button>
+                      {aberto && (
+                        <div className="mt-2 space-y-1.5 max-h-40 overflow-y-auto">
+                          {recentes.length === 0 ? (
+                            <p className="text-xs text-gray-400 text-center py-2">Nenhum lançamento ainda.</p>
+                          ) : recentes.map(l => (
+                            <div key={l.id} className="flex justify-between items-start text-xs bg-gray-50 rounded px-2 py-1.5">
+                              <div className="flex-1 min-w-0 mr-2">
+                                <p className="font-medium text-gray-700 truncate">{l.descricao}</p>
+                                <p className="text-gray-400">{new Date(l.data + 'T12:00:00').toLocaleDateString('pt-BR')} · {l.status_pagamento}</p>
+                              </div>
+                              <span className="font-semibold text-gray-800 whitespace-nowrap" style={{ color: centro.cor_hex }}>
+                                {formatCurrency(l.valor)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
+
+                {/* Rodapé com editar/excluir */}
+                <div className="flex justify-between items-center pt-1 border-t">
+                  <span className="text-xs text-gray-400">
+                    {centro.created_at ? new Date(centro.created_at).toLocaleDateString('pt-BR') : ''}
                   </span>
                   <div className="flex space-x-1">
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       size="sm"
-                      onClick={() => handleDiariasClick(centro)}
+                      onClick={() => centro.codigo === 'DIARIAS' ? handleDiariasClick(centro) : handleEditCentro(centro)}
                       title={centro.codigo === 'DIARIAS' ? 'Registrar Nova Diária' : 'Editar Centro'}
                     >
                       {centro.codigo === 'DIARIAS' ? <Plus className="w-4 h-4" /> : <Edit className="w-4 h-4" />}
                     </Button>
                     {centro.tipo === 'personalizado' && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="text-red-600"
                         onClick={() => handleDeleteCentro(centro)}
                       >
@@ -846,6 +1055,152 @@ export default function CentroCustosPage() {
                 Registrar Diária
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ===== Dialog: Registrar Custo ===== */}
+      <Dialog open={!!registrandoCusto} onOpenChange={(open) => { if (!open) setRegistrandoCusto(null) }}>
+        <DialogContent className="sm:max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {registrandoCusto && (
+                <div
+                  className="w-7 h-7 rounded flex items-center justify-center"
+                  style={{ backgroundColor: `${registrandoCusto.cor_hex}20`, color: registrandoCusto.cor_hex }}
+                >
+                  <Receipt className="w-4 h-4" />
+                </div>
+              )}
+              Registrar Custo — {registrandoCusto?.nome}
+            </DialogTitle>
+            <DialogDescription>
+              Preencha os dados do lançamento. Ele será vinculado a este centro de custo.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Linha 1: Descrição */}
+            <div className="space-y-1">
+              <Label htmlFor="lc-descricao">Descrição *</Label>
+              <Input
+                id="lc-descricao"
+                placeholder="Ex: Abastecimento veículo, Aluguel sala..."
+                value={lancamentoForm.descricao}
+                onChange={e => setLancamentoForm(p => ({ ...p, descricao: e.target.value }))}
+              />
+            </div>
+
+            {/* Linha 2: Valor + Data */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="lc-valor">Valor (R$) *</Label>
+                <Input
+                  id="lc-valor"
+                  placeholder="0,00"
+                  value={lancamentoForm.valor}
+                  onChange={e => setLancamentoForm(p => ({ ...p, valor: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="lc-data">Data *</Label>
+                <Input
+                  id="lc-data"
+                  type="date"
+                  value={lancamentoForm.data}
+                  onChange={e => setLancamentoForm(p => ({ ...p, data: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            {/* Linha 3: Categoria + Forma Pagamento */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Categoria</Label>
+                <Select value={lancamentoForm.categoria} onValueChange={v => setLancamentoForm(p => ({ ...p, categoria: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {['Combustível','Manutenção','Salário','Aluguel','Material','Serviço','Pedágio','Seguro','Impostos','Outros'].map(c => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Forma de Pagamento</Label>
+                <Select value={lancamentoForm.forma_pagamento} onValueChange={v => setLancamentoForm(p => ({ ...p, forma_pagamento: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {['PIX','Dinheiro','Cartão','Boleto','Transferência'].map(f => (
+                      <SelectItem key={f} value={f}>{f}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Linha 4: Status + Fornecedor */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Status</Label>
+                <Select value={lancamentoForm.status_pagamento} onValueChange={v => setLancamentoForm(p => ({ ...p, status_pagamento: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Pago">Pago</SelectItem>
+                    <SelectItem value="Pendente">Pendente</SelectItem>
+                    <SelectItem value="Vencido">Vencido</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="lc-fornecedor">Fornecedor</Label>
+                <Input
+                  id="lc-fornecedor"
+                  placeholder="Nome do fornecedor"
+                  value={lancamentoForm.fornecedor}
+                  onChange={e => setLancamentoForm(p => ({ ...p, fornecedor: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            {/* Linha 5: Nº Documento + Observações */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="lc-doc">Nº Documento</Label>
+                <Input
+                  id="lc-doc"
+                  placeholder="NF, Recibo, etc."
+                  value={lancamentoForm.numero_documento}
+                  onChange={e => setLancamentoForm(p => ({ ...p, numero_documento: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="lc-obs">Observações</Label>
+                <Input
+                  id="lc-obs"
+                  placeholder="Informações adicionais"
+                  value={lancamentoForm.observacoes}
+                  onChange={e => setLancamentoForm(p => ({ ...p, observacoes: e.target.value }))}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t">
+            <Button variant="outline" onClick={() => setRegistrandoCusto(null)} disabled={savingLancamento}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={saveLancamento}
+              disabled={savingLancamento || !lancamentoForm.descricao || !lancamentoForm.valor || !lancamentoForm.data}
+              style={registrandoCusto ? { backgroundColor: registrandoCusto.cor_hex } : {}}
+            >
+              {savingLancamento ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Salvando...</>
+              ) : (
+                <><Receipt className="w-4 h-4 mr-2" />Registrar</>
+              )}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
