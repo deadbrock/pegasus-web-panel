@@ -116,61 +116,63 @@ export async function deleteCusto(id: string): Promise<boolean> {
 }
 
 /**
- * Busca estatísticas de custos
+ * Busca estatísticas de custos — agrega a tabela `custos` + `lancamentos_centro_custo`
  */
 export async function fetchCustosStats(ano?: number, mes?: number): Promise<CustoStats> {
-  let query = supabase.from('custos').select('*')
-
-  if (ano) {
-    const anoStr = ano.toString()
-    query = query.gte('data', `${anoStr}-01-01`).lte('data', `${anoStr}-12-31`)
-  }
-
-  const { data, error } = await query
-
-  if (error) {
-    console.error('Erro ao buscar estatísticas:', error)
-    throw error
-  }
-
   const hoje = new Date()
   const mesAtual = mes || hoje.getMonth() + 1
   const anoAtual = ano || hoje.getFullYear()
+  const anoStr = anoAtual.toString()
 
-  // Filtrar custos do mês atual
-  const custosMes = data?.filter(c => {
-    const dataCusto = new Date(c.data)
-    return dataCusto.getMonth() + 1 === mesAtual && dataCusto.getFullYear() === anoAtual
-  }) || []
+  // Buscar custos tradicionais e lançamentos de centros em paralelo
+  const [custosRes, lancamentosRes] = await Promise.all([
+    supabase
+      .from('custos')
+      .select('data, valor, categoria, status_pagamento')
+      .gte('data', `${anoStr}-01-01`)
+      .lte('data', `${anoStr}-12-31`),
+    supabase
+      .from('lancamentos_centro_custo')
+      .select('data, valor, categoria, status_pagamento')
+      .gte('data', `${anoStr}-01-01`)
+      .lte('data', `${anoStr}-12-31`)
+      // Se tabela não existir ainda, ignora silenciosamente
+      .throwOnError()
+      .catch(() => ({ data: [] as any[], error: null }))
+  ])
 
-  const total_mes = custosMes.reduce((sum, c) => sum + c.valor, 0)
-  const total_ano = data?.reduce((sum, c) => sum + c.valor, 0) || 0
+  const custosData = custosRes.data || []
+  // lancamentosRes pode ser resultado do catch (objeto direto) ou resultado normal
+  const lancamentosData = (lancamentosRes as any)?.data ?? []
 
-  // Agrupar por categoria
-  const por_categoria: Record<string, number> = {}
-  data?.forEach(c => {
-    por_categoria[c.categoria] = (por_categoria[c.categoria] || 0) + c.valor
+  // Unificar todos os registros
+  const todos = [
+    ...custosData.map((c: any) => ({ ...c, origem: 'custos' })),
+    ...lancamentosData.map((l: any) => ({ ...l, origem: 'lancamentos' })),
+  ]
+
+  // Filtrar pelo mês atual
+  const doMes = todos.filter(c => {
+    const d = new Date(c.data + 'T12:00:00')
+    return d.getMonth() + 1 === mesAtual && d.getFullYear() === anoAtual
   })
 
-  // Calcular média mensal (considerando todos os meses do ano)
+  const total_mes = doMes.reduce((sum, c) => sum + Number(c.valor), 0)
+  const total_ano = todos.reduce((sum, c) => sum + Number(c.valor), 0)
+
+  const por_categoria: Record<string, number> = {}
+  todos.forEach(c => {
+    const cat = c.categoria || 'Outros'
+    por_categoria[cat] = (por_categoria[cat] || 0) + Number(c.valor)
+  })
+
   const media_mensal = total_ano / 12
+  const maior_custo = todos.length ? Math.max(...todos.map(c => Number(c.valor))) : 0
 
-  // Maior custo individual
-  const maior_custo = data?.length ? Math.max(...data.map(c => c.valor)) : 0
+  const pendentes = todos.filter(c => c.status_pagamento === 'Pendente').length
+  const vencidos = todos.filter(c => c.status_pagamento === 'Vencido').length
 
-  // Custos pendentes e vencidos
-  const pendentes = data?.filter(c => c.status_pagamento === 'Pendente').length || 0
-  const vencidos = data?.filter(c => c.status_pagamento === 'Vencido').length || 0
-
-  return {
-    total_mes,
-    total_ano,
-    por_categoria,
-    media_mensal,
-    maior_custo,
-    pendentes,
-    vencidos
-  }
+  return { total_mes, total_ano, por_categoria, media_mensal, maior_custo, pendentes, vencidos }
 }
 
 /**

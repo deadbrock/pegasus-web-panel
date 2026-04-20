@@ -38,10 +38,15 @@ import {
   List,
   TrendingUp,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  History,
+  Filter,
+  ArrowUpDown,
+  X
 } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 interface CentroCusto {
   id?: number
@@ -140,6 +145,14 @@ export default function CentroCustosPage() {
   const [statsLancamentos, setStatsLancamentos] = useState<Record<string, { total: number; count: number }>>({})
   const [lancamentosRecentes, setLancamentosRecentes] = useState<Record<string, Lancamento[]>>({})
   const [expandidoId, setExpandidoId] = useState<string | number | null>(null)
+
+  // Estados para histórico
+  const [historicoLancamentos, setHistoricoLancamentos] = useState<(Lancamento & { centro_custo_nome?: string })[]>([])
+  const [loadingHistorico, setLoadingHistorico] = useState(false)
+  const [filtroMes, setFiltroMes] = useState<number>(new Date().getMonth() + 1)
+  const [filtroAno, setFiltroAno] = useState<number>(new Date().getFullYear())
+  const [filtroCentro, setFiltroCentro] = useState<string>('todos')
+  const [ordenacaoHistorico, setOrdenacaoHistorico] = useState<'data_desc' | 'data_asc' | 'valor_desc' | 'valor_asc'>('data_desc')
 
   // Estados para o diálogo de diárias
   const [isDiariasDialogOpen, setIsDiariasDialogOpen] = useState(false)
@@ -370,6 +383,47 @@ export default function CentroCustosPage() {
     }
   }, [centrosCusto])
 
+  const fetchHistorico = async () => {
+    setLoadingHistorico(true)
+    try {
+      const primeiroDia = `${filtroAno}-${String(filtroMes).padStart(2, '0')}-01`
+      const ultimoDia = new Date(filtroAno, filtroMes, 0).toISOString().split('T')[0]
+
+      let query = supabase
+        .from('lancamentos_centro_custo')
+        .select('*, centros_custo(nome)')
+        .gte('data', primeiroDia)
+        .lte('data', ultimoDia)
+
+      if (filtroCentro !== 'todos') {
+        query = query.eq('centro_custo_id', filtroCentro)
+      }
+
+      const [coluna, direcao] = ordenacaoHistorico.split('_')
+      query = query.order(coluna === 'data' ? 'data' : 'valor', { ascending: direcao === 'asc' })
+
+      const { data, error } = await query
+      if (error) throw error
+
+      const lista = (data || []).map((l: any) => ({
+        ...l,
+        centro_custo_nome: l.centros_custo?.nome ?? l.centro_custo_codigo ?? '—',
+      }))
+      setHistoricoLancamentos(lista)
+    } catch (e: any) {
+      console.error('Erro ao buscar histórico:', e)
+      setHistoricoLancamentos([])
+    } finally {
+      setLoadingHistorico(false)
+    }
+  }
+
+  // Recarrega histórico quando filtros mudam
+  useEffect(() => {
+    fetchHistorico()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtroMes, filtroAno, filtroCentro, ordenacaoHistorico])
+
   const filteredCentros = centrosCusto.filter(centro =>
     centro.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
     centro.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -465,9 +519,17 @@ export default function CentroCustosPage() {
     }).format(value)
   }
 
-  const totalGastos = centrosCusto.reduce((acc, centro) => acc + (centro.total_gastos || 0), 0)
+  // Soma de lançamentos do mês (dados reais da tabela lancamentos_centro_custo)
+  const totalGastos = Object.values(statsLancamentos).reduce((acc, s) => acc + s.total, 0)
+  const totalLancamentos = Object.values(statsLancamentos).reduce((acc, s) => acc + s.count, 0)
   const centrosAtivos = centrosCusto.filter(c => c.ativo).length
   const centrosPersonalizados = centrosCusto.filter(c => c.tipo === 'personalizado').length
+  // Centro com maior gasto
+  const maiorGastoEntry = Object.entries(statsLancamentos).sort((a, b) => b[1].total - a[1].total)[0]
+  const maiorGastoCentro = maiorGastoEntry
+    ? centrosCusto.find(c => String(c.id) === maiorGastoEntry[0])?.nome ?? '—'
+    : '—'
+  const maiorGastoValor = maiorGastoEntry ? maiorGastoEntry[1].total : 0
 
   if (loading) {
     return (
@@ -515,7 +577,7 @@ export default function CentroCustosPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(totalGastos)}</div>
-            <p className="text-xs text-muted-foreground">Este mês</p>
+            <p className="text-xs text-muted-foreground">{totalLancamentos} lançamento{totalLancamentos !== 1 ? 's' : ''} este mês</p>
           </CardContent>
         </Card>
         
@@ -547,12 +609,26 @@ export default function CentroCustosPage() {
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">Sede</div>
-            <p className="text-xs text-muted-foreground">{formatCurrency(125000)}</p>
+            <div className="text-2xl font-bold truncate" title={maiorGastoCentro}>{maiorGastoCentro}</div>
+            <p className="text-xs text-muted-foreground">{formatCurrency(maiorGastoValor)} este mês</p>
           </CardContent>
         </Card>
       </div>
 
+      <Tabs defaultValue="centros" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="centros" className="flex items-center gap-2">
+            <Target className="w-4 h-4" />
+            Centros de Custo
+          </TabsTrigger>
+          <TabsTrigger value="historico" className="flex items-center gap-2">
+            <History className="w-4 h-4" />
+            Histórico
+          </TabsTrigger>
+        </TabsList>
+
+        {/* ABA: Centros */}
+        <TabsContent value="centros" className="space-y-4">
       {/* Busca */}
       <Card>
         <CardContent className="pt-6">
@@ -1227,6 +1303,198 @@ export default function CentroCustosPage() {
           </CardContent>
         </Card>
       )}
+        </TabsContent>
+
+        {/* ABA: Histórico */}
+        <TabsContent value="historico" className="space-y-4">
+          {/* Filtros */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex flex-wrap gap-3 items-end">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-gray-500">Mês</label>
+                  <select
+                    value={filtroMes}
+                    onChange={(e) => setFiltroMes(Number(e.target.value))}
+                    className="border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'].map((m, i) => (
+                      <option key={i} value={i + 1}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-gray-500">Ano</label>
+                  <select
+                    value={filtroAno}
+                    onChange={(e) => setFiltroAno(Number(e.target.value))}
+                    className="border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(a => (
+                      <option key={a} value={a}>{a}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-gray-500">Centro</label>
+                  <select
+                    value={filtroCentro}
+                    onChange={(e) => setFiltroCentro(e.target.value)}
+                    className="border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[200px]"
+                  >
+                    <option value="todos">Todos os centros</option>
+                    {centrosCusto.map(c => (
+                      <option key={c.id} value={String(c.id)}>{c.nome}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-gray-500">Ordenar por</label>
+                  <select
+                    value={ordenacaoHistorico}
+                    onChange={(e) => setOrdenacaoHistorico(e.target.value as any)}
+                    className="border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="data_desc">Data (mais recente)</option>
+                    <option value="data_asc">Data (mais antiga)</option>
+                    <option value="valor_desc">Valor (maior)</option>
+                    <option value="valor_asc">Valor (menor)</option>
+                  </select>
+                </div>
+                <div className="ml-auto flex items-end">
+                  <div className="text-sm text-gray-500">
+                    {loadingHistorico ? (
+                      <span className="flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Carregando...</span>
+                    ) : (
+                      <span>{historicoLancamentos.length} lançamento{historicoLancamentos.length !== 1 ? 's' : ''}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Resumo do período */}
+          {!loadingHistorico && historicoLancamentos.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card className="border-blue-100 bg-blue-50">
+                <CardContent className="pt-4 pb-4">
+                  <p className="text-xs text-blue-600 font-medium">Total do período</p>
+                  <p className="text-xl font-bold text-blue-700">
+                    {formatCurrency(historicoLancamentos.reduce((s, l) => s + Number(l.valor), 0))}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="border-green-100 bg-green-50">
+                <CardContent className="pt-4 pb-4">
+                  <p className="text-xs text-green-600 font-medium">Pagos</p>
+                  <p className="text-xl font-bold text-green-700">
+                    {formatCurrency(historicoLancamentos.filter(l => l.status_pagamento === 'Pago').reduce((s, l) => s + Number(l.valor), 0))}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="border-amber-100 bg-amber-50">
+                <CardContent className="pt-4 pb-4">
+                  <p className="text-xs text-amber-600 font-medium">Pendentes</p>
+                  <p className="text-xl font-bold text-amber-700">
+                    {formatCurrency(historicoLancamentos.filter(l => l.status_pagamento === 'Pendente').reduce((s, l) => s + Number(l.valor), 0))}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="border-red-100 bg-red-50">
+                <CardContent className="pt-4 pb-4">
+                  <p className="text-xs text-red-600 font-medium">Vencidos</p>
+                  <p className="text-xl font-bold text-red-700">
+                    {formatCurrency(historicoLancamentos.filter(l => l.status_pagamento === 'Vencido').reduce((s, l) => s + Number(l.valor), 0))}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Tabela de lançamentos */}
+          <Card>
+            <CardContent className="p-0">
+              {loadingHistorico ? (
+                <div className="flex items-center justify-center py-16 text-gray-400">
+                  <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                  Carregando histórico...
+                </div>
+              ) : historicoLancamentos.length === 0 ? (
+                <div className="text-center py-16 text-gray-400">
+                  <History className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                  <p className="font-medium">Nenhum lançamento encontrado</p>
+                  <p className="text-sm mt-1">Tente ajustar os filtros ou registre um custo nos cards.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-gray-50">
+                        <th className="text-left px-4 py-3 font-medium text-gray-600">Data</th>
+                        <th className="text-left px-4 py-3 font-medium text-gray-600">Centro</th>
+                        <th className="text-left px-4 py-3 font-medium text-gray-600">Descrição</th>
+                        <th className="text-left px-4 py-3 font-medium text-gray-600">Categoria</th>
+                        <th className="text-left px-4 py-3 font-medium text-gray-600">Forma Pgto.</th>
+                        <th className="text-right px-4 py-3 font-medium text-gray-600">Valor</th>
+                        <th className="text-center px-4 py-3 font-medium text-gray-600">Status</th>
+                        <th className="text-left px-4 py-3 font-medium text-gray-600">Fornecedor</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {historicoLancamentos.map((l) => (
+                        <tr key={l.id} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
+                          <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
+                            {new Date(l.data + 'T12:00:00').toLocaleDateString('pt-BR')}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              {(() => {
+                                const centro = centrosCusto.find(c => String(c.id) === String(l.centro_custo_id))
+                                return centro ? (
+                                  <span
+                                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                                    style={{ backgroundColor: centro.cor_hex }}
+                                  />
+                                ) : null
+                              })()}
+                              <span className="text-gray-700 font-medium truncate max-w-[130px]" title={l.centro_custo_nome}>
+                                {l.centro_custo_nome}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-gray-700 max-w-[200px]">
+                            <span className="truncate block" title={l.descricao}>{l.descricao}</span>
+                          </td>
+                          <td className="px-4 py-3 text-gray-500">{l.categoria}</td>
+                          <td className="px-4 py-3 text-gray-500">{l.forma_pagamento}</td>
+                          <td className="px-4 py-3 text-right font-semibold text-gray-900">
+                            {formatCurrency(Number(l.valor))}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                              l.status_pagamento === 'Pago'
+                                ? 'bg-green-100 text-green-700'
+                                : l.status_pagamento === 'Pendente'
+                                ? 'bg-amber-100 text-amber-700'
+                                : 'bg-red-100 text-red-700'
+                            }`}>
+                              {l.status_pagamento}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-gray-500 max-w-[150px]">
+                            <span className="truncate block" title={l.fornecedor ?? ''}>{l.fornecedor || '—'}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
