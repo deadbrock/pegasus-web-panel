@@ -228,6 +228,13 @@ export const ALL_MODULES: ModulePermission[] = [
     path: '/gestao-adm/contratos',
     allowedRoles: ['admin', 'diretor', 'adm_contratos']
   },
+  {
+    id: 'gestao-adm-analytics',
+    name: 'Analytics ADM',
+    icon: 'BarChart3',
+    path: '/gestao-adm/analytics',
+    allowedRoles: ['admin', 'diretor', 'adm_contratos']
+  },
 ];
 
 // Função para verificar se um usuário tem acesso a um módulo

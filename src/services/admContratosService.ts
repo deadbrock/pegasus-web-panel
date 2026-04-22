@@ -194,6 +194,21 @@ export async function deleteAdmContratoFinanceiro(id: string): Promise<boolean> 
   return true
 }
 
+// ─── Todos os dados financeiros (para Analytics) ─────────────────────────────
+
+export async function fetchAdmAllFinanceiro(): Promise<AdmContratoFinanceiro[]> {
+  const { data, error } = await supabase
+    .from('adm_contrato_financeiro')
+    .select('*')
+    .order('periodo_referencia', { ascending: false })
+
+  if (error) {
+    console.warn('[admContratosService] fetchAdmAllFinanceiro error:', error.message)
+    return []
+  }
+  return (data as AdmContratoFinanceiro[]) ?? []
+}
+
 // ─── Stats por contrato ───────────────────────────────────────────────────────
 
 export async function fetchAdmContratoStats(

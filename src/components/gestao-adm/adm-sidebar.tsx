@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { FileCheck2, Zap, Settings, LogOut } from 'lucide-react'
+import { FileCheck2, Zap, LogOut, BarChart3 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useRouter } from 'next/navigation'
@@ -12,6 +12,11 @@ const navItems = [
     label: 'Contratos',
     path: '/gestao-adm/contratos',
     icon: FileCheck2,
+  },
+  {
+    label: 'Analytics',
+    path: '/gestao-adm/analytics',
+    icon: BarChart3,
   },
 ]
 
