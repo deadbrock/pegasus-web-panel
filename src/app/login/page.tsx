@@ -5,6 +5,7 @@ import { useAuth } from '../../lib/auth/auth-context'
 import { useRouter } from 'next/navigation'
 import { Lock, Mail, Eye, EyeOff, Zap, TrendingUp, Shield, BarChart3, Truck, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { getDefaultRouteForRole } from '@/lib/permissions'
 
 const features = [
   { icon: BarChart3, title: 'Analytics em tempo real', desc: 'Indicadores executivos e performance operacional ao vivo.' },
@@ -23,7 +24,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
-    if (user) router.push('/dashboard')
+    if (user) router.push(getDefaultRouteForRole(user.role))
   }, [user, router])
 
   const onLogin = async (e: React.FormEvent) => {
@@ -32,7 +33,7 @@ export default function LoginPage() {
     setError(null)
     try {
       await login(email, password)
-      router.push('/dashboard')
+      // O useEffect acima será disparado quando user atualizar e fará o redirect correto
     } catch (e: any) {
       setError(e?.message || 'Credenciais inválidas. Verifique e tente novamente.')
     } finally {

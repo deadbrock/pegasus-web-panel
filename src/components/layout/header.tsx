@@ -38,6 +38,7 @@ const breadcrumbMap: Record<string, { label: string; parent?: string }> = {
   '/dashboard/planejamento':         { label: 'Planejamento',     parent: 'Análise' },
   '/dashboard/planejamento-financeiro': { label: 'Plan. Financeiro', parent: 'Financeiro' },
   '/dashboard/centro-custos/diarias':{ label: 'Diárias',          parent: 'Centro de Custos' },
+  '/gestao-adm/contratos':            { label: 'Contratos',        parent: 'Gestão ADM' },
 }
 
 const quickActions = [

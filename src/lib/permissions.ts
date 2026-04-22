@@ -212,7 +212,22 @@ export const ALL_MODULES: ModulePermission[] = [
     icon: 'Calendar',
     path: '/dashboard/configuracoes-periodo',
     allowedRoles: ['admin', 'diretor', 'logistica']
-  }
+  },
+  // ── Gestão ADM ──────────────────────────────────────────────────────────
+  {
+    id: 'gestao-adm',
+    name: 'Gestão ADM',
+    icon: 'Briefcase',
+    path: '/gestao-adm',
+    allowedRoles: ['admin', 'diretor', 'adm_contratos']
+  },
+  {
+    id: 'gestao-adm-contratos',
+    name: 'Contratos ADM',
+    icon: 'FileCheck2',
+    path: '/gestao-adm/contratos',
+    allowedRoles: ['admin', 'diretor', 'adm_contratos']
+  },
 ];
 
 // Função para verificar se um usuário tem acesso a um módulo
@@ -228,33 +243,50 @@ export function getModulesForRole(userRole: string): ModulePermission[] {
   return ALL_MODULES.filter(module => module.allowedRoles.includes(userRole));
 }
 
+// Retorna a rota padrão de entrada de acordo com o perfil do usuário
+export function getDefaultRouteForRole(role: string): string {
+  switch (role) {
+    case 'adm_contratos':
+      return '/gestao-adm/contratos';
+    default:
+      return '/dashboard';
+  }
+}
+
 // Função para verificar se um usuário pode acessar uma rota
 export function canAccessRoute(userRole: string, path: string): boolean {
-  // Permitir acesso a rotas de login e configurações
+  // Rotas públicas sempre permitidas
   if (path === '/login' || path === '/' || path.startsWith('/_next')) {
     return true;
   }
-  
-  const module = ALL_MODULES.find(m => path.startsWith(m.path));
-  
-  // Se não encontrar módulo específico mas está dentro do dashboard, permitir
-  // (permite navegação para rotas não explicitamente bloqueadas)
-  if (!module && path.startsWith('/dashboard')) {
-    return true;
+
+  // Encontra o módulo mais específico que corresponde ao caminho
+  // Ordena por comprimento do path (desc) para encontrar o mais específico primeiro
+  const sortedModules = [...ALL_MODULES].sort((a, b) => b.path.length - a.path.length);
+  const module = sortedModules.find(m => path === m.path || path.startsWith(m.path + '/'));
+
+  if (module) {
+    return module.allowedRoles.includes(userRole);
   }
-  
-  if (!module) return false;
-  
-  return module.allowedRoles.includes(userRole);
+
+  // Fallback para paths dentro do /dashboard sem módulo explícito:
+  // permitir apenas para roles que têm acesso geral ao dashboard
+  if (path.startsWith('/dashboard')) {
+    const dashboardModule = ALL_MODULES.find(m => m.id === 'dashboard');
+    return dashboardModule ? dashboardModule.allowedRoles.includes(userRole) : false;
+  }
+
+  return false;
 }
 
 // Definições de perfis
 export const USER_ROLES = {
   ADMIN: 'admin',
-  DIRETOR: 'diretor', 
+  DIRETOR: 'diretor',
   FINANCEIRO: 'financeiro',
   GESTOR: 'gestor',
-  LOGISTICA: 'logistica'
+  LOGISTICA: 'logistica',
+  ADM_CONTRATOS: 'adm_contratos',
 } as const;
 
 export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
