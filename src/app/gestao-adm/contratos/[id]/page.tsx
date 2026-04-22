@@ -166,6 +166,17 @@ export default function AdmContratoDetailPage() {
     return computeAnaliseCompleta({ contrato, financeiro, reajustes, manutencoes })
   }, [contrato, financeiro, reajustes, manutencoes])
 
+  // ── KPIs calculados a partir de valor_mensal + custos cadastrados ────────────
+  const kpiMensal = useMemo(() => {
+    const receita = contrato?.valor_mensal ?? 0
+    const custo = custos
+      .filter((c) => c.ativo && c.periodicidade !== 'unico')
+      .reduce((s, c) => s + custoToMensal(c.valor, c.periodicidade), 0)
+    const lucro = receita - custo
+    const margem = receita > 0 ? (lucro / receita) * 100 : 0
+    return { receita, custo, lucro, margem }
+  }, [contrato, custos])
+
   const handleDeleteContract = async () => {
     if (!contrato?.id) return
     const { ok, message } = await deleteAdmContrato(contrato.id)
@@ -292,39 +303,62 @@ export default function AdmContratoDetailPage() {
 
       {/* ── KPI Cards ────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {(() => {
-          const semPeriodos = !loading && (stats?.periodos ?? 0) === 0
-          const cards = [
-            { label: 'Valor Mensal',  value: fmt(contrato?.valor_mensal), icon: DollarSign,  color: 'text-blue-600',    bg: 'bg-blue-50',    sub: 'Valor contratual atual' },
-            { label: 'Receita Total', value: semPeriodos ? '—' : fmt(stats?.totalReceita),    icon: TrendingUp,  color: 'text-emerald-600', bg: 'bg-emerald-50', sub: semPeriodos ? 'Lance períodos financeiros' : `${stats?.periodos} período(s) registrado(s)` },
-            { label: 'Custo Total',   value: semPeriodos ? '—' : fmt(stats?.totalCusto),      icon: TrendingDown,color: 'text-amber-600',   bg: 'bg-amber-50',   sub: semPeriodos ? 'Aba Financeiro' : undefined },
-            { label: 'Lucro Total',
-              value: semPeriodos ? '—' : fmt(stats?.totalLucro),
-              sub: semPeriodos ? 'Sem registros financeiros' : `Margem: ${stats?.margemMedia?.toFixed(1) ?? 0}%`,
-              icon: TrendingUp,
-              color: semPeriodos ? 'text-slate-400' : (stats?.totalLucro ?? 0) >= 0 ? 'text-emerald-600' : 'text-rose-600',
-              bg:    semPeriodos ? 'bg-slate-50'    : (stats?.totalLucro ?? 0) >= 0 ? 'bg-emerald-50' : 'bg-rose-50' },
-          ]
-          return cards.map((card, i) => {
-            const Icon = card.icon
-            return (
-              <div key={i} className="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-slate-500">{card.label}</p>
-                  <div className={`w-8 h-8 rounded-lg ${card.bg} flex items-center justify-center`}>
-                    <Icon className={`w-4 h-4 ${card.color}`} />
-                  </div>
+        {[
+          {
+            label: 'Receita Mensal',
+            value: fmt(kpiMensal.receita),
+            icon: DollarSign,
+            color: 'text-blue-600',
+            bg: 'bg-blue-50',
+            sub: 'Valor contratual atual',
+          },
+          {
+            label: 'Custo Mensal',
+            value: fmt(kpiMensal.custo),
+            icon: TrendingDown,
+            color: 'text-amber-600',
+            bg: 'bg-amber-50',
+            sub: custos.filter((c) => c.ativo && c.periodicidade !== 'unico').length > 0
+              ? `${custos.filter((c) => c.ativo && c.periodicidade !== 'unico').length} custo(s) ativo(s)`
+              : 'Sem custos cadastrados',
+          },
+          {
+            label: 'Lucro Mensal',
+            value: fmt(kpiMensal.lucro),
+            icon: TrendingUp,
+            color: kpiMensal.lucro < 0 ? 'text-rose-600' : 'text-emerald-600',
+            bg:    kpiMensal.lucro < 0 ? 'bg-rose-50'   : 'bg-emerald-50',
+            sub: `Margem: ${kpiMensal.margem.toFixed(1)}%`,
+          },
+          {
+            label: 'Períodos Financeiros',
+            value: String(stats?.periodos ?? 0),
+            icon: Receipt,
+            color: 'text-violet-600',
+            bg: 'bg-violet-50',
+            sub: (stats?.periodos ?? 0) > 0
+              ? `Acumulado: ${fmt(stats?.totalReceita ?? 0)}`
+              : 'Lance na aba Financeiro',
+          },
+        ].map((card, i) => {
+          const Icon = card.icon
+          return (
+            <div key={i} className="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium text-slate-500">{card.label}</p>
+                <div className={`w-8 h-8 rounded-lg ${card.bg} flex items-center justify-center`}>
+                  <Icon className={`w-4 h-4 ${card.color}`} />
                 </div>
-                {loading ? <SkeletonBlock className="h-6 w-28 rounded" /> : (
-                  <div>
-                    <p className={`text-xl font-bold ${card.color}`}>{card.value}</p>
-                    {card.sub && <p className="text-xs text-slate-400 mt-0.5">{card.sub}</p>}
-                  </div>
-                )}
               </div>
-            )
-          })
-        })()}
+              {loading ? <SkeletonBlock className="h-6 w-28 rounded" /> : (
+                <div>
+                  <p className={`text-xl font-bold ${card.color}`}>{card.value}</p>
+                  {card.sub && <p className="text-xs text-slate-400 mt-0.5">{card.sub}</p>}
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
 
       {/* ── Tabs ─────────────────────────────────────────────────────────────── */}
