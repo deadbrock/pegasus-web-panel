@@ -1,4 +1,4 @@
-// Tipos do módulo Gestão ADM — Fase 1
+// Tipos do módulo Gestão ADM — Fase 1 + Fase 2 + Fase 3
 
 export type AdmContratoStatus = 'ativo' | 'suspenso' | 'encerrado' | 'em_negociacao'
 
@@ -71,4 +71,259 @@ export const ADM_STATUS_COLORS: Record<AdmContratoStatus, { bg: string; text: st
   suspenso: { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500' },
   encerrado: { bg: 'bg-slate-100', text: 'text-slate-600', dot: 'bg-slate-400' },
   em_negociacao: { bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-500' },
+}
+
+// ─── FASE 2: Reajustes ────────────────────────────────────────────────────────
+
+export type AdmReajusteTipo = 'manual' | 'indice' | 'anual' | 'extraordinario'
+
+export interface AdmReajuste {
+  id: string
+  contrato_id: string
+  tipo_reajuste: AdmReajusteTipo
+  indice_referencia?: string | null
+  percentual: number
+  valor_anterior: number
+  valor_novo: number
+  data_aplicacao: string
+  observacoes?: string | null
+  created_by?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type AdmReajusteInsert = Omit<AdmReajuste, 'id' | 'created_at' | 'updated_at'>
+export type AdmReajusteUpdate = Partial<AdmReajusteInsert>
+
+export const ADM_REAJUSTE_TIPO_LABELS: Record<AdmReajusteTipo, string> = {
+  manual: 'Manual',
+  indice: 'Por Índice',
+  anual: 'Reajuste Anual',
+  extraordinario: 'Extraordinário',
+}
+
+export const ADM_REAJUSTE_INDICES = ['IPCA', 'IGP-M', 'INPC', 'IGPM', 'CDI', 'Outro']
+
+// ─── FASE 2: Histórico / Timeline ────────────────────────────────────────────
+
+export type AdmHistoricoTipoEvento =
+  | 'contrato_criado'
+  | 'contrato_editado'
+  | 'status_alterado'
+  | 'reajuste_aplicado'
+  | 'financeiro_atualizado'
+  | 'manutencao_criada'
+  | 'manutencao_concluida'
+  | 'manutencao_editada'
+
+export interface AdmHistoricoContrato {
+  id: string
+  contrato_id: string
+  tipo_evento: AdmHistoricoTipoEvento
+  titulo: string
+  descricao?: string | null
+  metadata_json?: Record<string, unknown> | null
+  usuario_id?: string | null
+  created_at: string
+}
+
+export type AdmHistoricoInsert = Omit<AdmHistoricoContrato, 'id' | 'created_at'>
+
+export const ADM_HISTORICO_LABELS: Record<AdmHistoricoTipoEvento, string> = {
+  contrato_criado: 'Contrato criado',
+  contrato_editado: 'Contrato editado',
+  status_alterado: 'Status alterado',
+  reajuste_aplicado: 'Reajuste aplicado',
+  financeiro_atualizado: 'Financeiro atualizado',
+  manutencao_criada: 'Ocorrência registrada',
+  manutencao_concluida: 'Ocorrência concluída',
+  manutencao_editada: 'Ocorrência editada',
+}
+
+export const ADM_HISTORICO_COLORS: Record<AdmHistoricoTipoEvento, { icon: string; ring: string }> = {
+  contrato_criado:       { icon: 'text-violet-600', ring: 'ring-violet-200 bg-violet-50' },
+  contrato_editado:      { icon: 'text-slate-500',  ring: 'ring-slate-200 bg-slate-50' },
+  status_alterado:       { icon: 'text-blue-600',   ring: 'ring-blue-200 bg-blue-50' },
+  reajuste_aplicado:     { icon: 'text-amber-600',  ring: 'ring-amber-200 bg-amber-50' },
+  financeiro_atualizado: { icon: 'text-emerald-600',ring: 'ring-emerald-200 bg-emerald-50' },
+  manutencao_criada:     { icon: 'text-rose-600',   ring: 'ring-rose-200 bg-rose-50' },
+  manutencao_concluida:  { icon: 'text-emerald-600',ring: 'ring-emerald-200 bg-emerald-50' },
+  manutencao_editada:    { icon: 'text-slate-500',  ring: 'ring-slate-200 bg-slate-50' },
+}
+
+// ─── FASE 2: Manutenção / Ocorrências ────────────────────────────────────────
+
+export type AdmManutencaoTipo =
+  | 'ocorrencia'
+  | 'manutencao'
+  | 'revisao'
+  | 'reclamacao'
+  | 'solicitacao'
+
+export type AdmManutencaoPrioridade = 'baixa' | 'media' | 'alta' | 'critica'
+export type AdmManutencaoStatus = 'aberta' | 'em_andamento' | 'concluida' | 'cancelada'
+
+export interface AdmManutencaoContrato {
+  id: string
+  contrato_id: string
+  tipo: AdmManutencaoTipo
+  titulo: string
+  descricao?: string | null
+  prioridade: AdmManutencaoPrioridade
+  status: AdmManutencaoStatus
+  data_registro: string
+  data_conclusao?: string | null
+  responsavel?: string | null
+  created_by?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type AdmManutencaoInsert = Omit<AdmManutencaoContrato, 'id' | 'created_at' | 'updated_at'>
+export type AdmManutencaoUpdate = Partial<AdmManutencaoInsert>
+
+export const ADM_MANUTENCAO_TIPO_LABELS: Record<AdmManutencaoTipo, string> = {
+  ocorrencia:   'Ocorrência',
+  manutencao:   'Manutenção',
+  revisao:      'Revisão',
+  reclamacao:   'Reclamação',
+  solicitacao:  'Solicitação',
+}
+
+export const ADM_MANUTENCAO_PRIORIDADE_LABELS: Record<AdmManutencaoPrioridade, string> = {
+  baixa:   'Baixa',
+  media:   'Média',
+  alta:    'Alta',
+  critica: 'Crítica',
+}
+
+export const ADM_MANUTENCAO_STATUS_LABELS: Record<AdmManutencaoStatus, string> = {
+  aberta:       'Aberta',
+  em_andamento: 'Em Andamento',
+  concluida:    'Concluída',
+  cancelada:    'Cancelada',
+}
+
+export const ADM_MANUTENCAO_PRIORIDADE_COLORS: Record<
+  AdmManutencaoPrioridade,
+  { bg: string; text: string }
+> = {
+  baixa:   { bg: 'bg-slate-100',  text: 'text-slate-600' },
+  media:   { bg: 'bg-amber-50',   text: 'text-amber-700' },
+  alta:    { bg: 'bg-orange-50',  text: 'text-orange-700' },
+  critica: { bg: 'bg-rose-50',    text: 'text-rose-700' },
+}
+
+export const ADM_MANUTENCAO_STATUS_COLORS: Record<
+  AdmManutencaoStatus,
+  { bg: string; text: string; dot: string }
+> = {
+  aberta:       { bg: 'bg-blue-50',    text: 'text-blue-700',    dot: 'bg-blue-400' },
+  em_andamento: { bg: 'bg-amber-50',   text: 'text-amber-700',   dot: 'bg-amber-400' },
+  concluida:    { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500' },
+  cancelada:    { bg: 'bg-slate-100',  text: 'text-slate-500',   dot: 'bg-slate-400' },
+}
+
+// ─── FASE 3: Saúde, Alertas e Insights ───────────────────────────────────────
+
+export type AdmSaudeStatus = 'saudavel' | 'atencao' | 'critico'
+
+export interface AdmSaudeContrato {
+  status: AdmSaudeStatus
+  score: number          // 0–100
+  totalAlertas: number
+  alertasCriticos: number
+  alertasAltos: number
+}
+
+export type AdmAlertaTipo =
+  | 'vencimento_critico'
+  | 'vencimento_proximo'
+  | 'contrato_vencido'
+  | 'prejuizo'
+  | 'margem_baixa'
+  | 'custo_crescente'
+  | 'sem_dados_financeiros'
+  | 'sem_movimentacao'
+  | 'alta_incidencia_ocorrencias'
+  | 'reajuste_pendente'
+
+export type AdmAlertaSeveridade = 'info' | 'media' | 'alta' | 'critica'
+
+export interface AdmAlerta {
+  tipo: AdmAlertaTipo
+  severidade: AdmAlertaSeveridade
+  titulo: string
+  descricao: string
+  acao?: string
+}
+
+export type AdmInsightTipo = 'positivo' | 'negativo' | 'atencao' | 'oportunidade'
+
+export interface AdmInsight {
+  tipo: AdmInsightTipo
+  titulo: string
+  descricao: string
+}
+
+export interface AdmContratoAnalise {
+  saude: AdmSaudeContrato
+  alertas: AdmAlerta[]
+  insights: AdmInsight[]
+}
+
+// Contrato com análise completa (usado na listagem enriquecida)
+export interface AdmContratoComSaude extends AdmContrato {
+  saude: AdmSaudeContrato
+  alertasResumo: AdmAlerta[]
+}
+
+export const ADM_SAUDE_CONFIG: Record<
+  AdmSaudeStatus,
+  { label: string; bg: string; text: string; border: string; dot: string; icon: string }
+> = {
+  saudavel: {
+    label: 'Saudável',
+    bg: 'bg-emerald-50',
+    text: 'text-emerald-700',
+    border: 'border-emerald-200',
+    dot: 'bg-emerald-500',
+    icon: 'text-emerald-500',
+  },
+  atencao: {
+    label: 'Atenção',
+    bg: 'bg-amber-50',
+    text: 'text-amber-700',
+    border: 'border-amber-200',
+    dot: 'bg-amber-500',
+    icon: 'text-amber-500',
+  },
+  critico: {
+    label: 'Crítico',
+    bg: 'bg-rose-50',
+    text: 'text-rose-700',
+    border: 'border-rose-200',
+    dot: 'bg-rose-500',
+    icon: 'text-rose-500',
+  },
+}
+
+export const ADM_ALERTA_SEVERIDADE_CONFIG: Record<
+  AdmAlertaSeveridade,
+  { bg: string; text: string; border: string; label: string }
+> = {
+  info:    { bg: 'bg-slate-50',  text: 'text-slate-600',  border: 'border-slate-200', label: 'Info' },
+  media:   { bg: 'bg-amber-50',  text: 'text-amber-700',  border: 'border-amber-200', label: 'Média' },
+  alta:    { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200',label: 'Alta' },
+  critica: { bg: 'bg-rose-50',   text: 'text-rose-700',   border: 'border-rose-200',  label: 'Crítica' },
+}
+
+export const ADM_INSIGHT_CONFIG: Record<
+  AdmInsightTipo,
+  { bg: string; text: string; border: string; iconColor: string }
+> = {
+  positivo:    { bg: 'bg-emerald-50', text: 'text-emerald-800', border: 'border-emerald-200', iconColor: 'text-emerald-500' },
+  negativo:    { bg: 'bg-rose-50',    text: 'text-rose-800',    border: 'border-rose-200',    iconColor: 'text-rose-500' },
+  atencao:     { bg: 'bg-amber-50',   text: 'text-amber-800',   border: 'border-amber-200',   iconColor: 'text-amber-500' },
+  oportunidade:{ bg: 'bg-blue-50',    text: 'text-blue-800',    border: 'border-blue-200',    iconColor: 'text-blue-500' },
 }
