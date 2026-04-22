@@ -151,14 +151,24 @@ export default function AdmAnalyticsPage() {
   // ── KPIs globais ─────────────────────────────────────────────────────────────
   const kpis = useMemo(() => {
     const comDados = rows.filter(r => r.stats.periodos > 0)
+    // Acumulado real: soma dos registros em adm_contrato_financeiro
     const totalReceita  = comDados.reduce((s, r) => s + r.stats.totalReceita, 0)
     const totalCusto    = comDados.reduce((s, r) => s + r.stats.totalCusto, 0)
     const totalLucro    = comDados.reduce((s, r) => s + r.stats.totalLucro, 0)
     const margemGlobal  = totalReceita > 0 ? (totalLucro / totalReceita) * 100 : 0
+    const totalPeriodos = comDados.reduce((s, r) => s + r.stats.periodos, 0)
+    // Projeção mensal: soma de valor_mensal dos contratos ativos
+    const receitaMensalProjetada = rows
+      .filter(r => r.contrato.status === 'ativo')
+      .reduce((s, r) => s + (r.contrato.valor_mensal ?? 0), 0)
     const saudaveis     = rows.filter(r => r.saude.status === 'saudavel').length
     const atencao       = rows.filter(r => r.saude.status === 'atencao').length
     const criticos      = rows.filter(r => r.saude.status === 'critico').length
-    return { totalReceita, totalCusto, totalLucro, margemGlobal, comDados: comDados.length, saudaveis, atencao, criticos }
+    return {
+      totalReceita, totalCusto, totalLucro, margemGlobal,
+      receitaMensalProjetada, totalPeriodos,
+      comDados: comDados.length, saudaveis, atencao, criticos,
+    }
   }, [rows])
 
   // ── Dados para gráficos ───────────────────────────────────────────────────────
@@ -238,40 +248,121 @@ export default function AdmAnalyticsPage() {
       </div>
 
       {/* ── KPI Cards ──────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        {[
-          { label: 'Receita Total',   value: fmtK(kpis.totalReceita), icon: TrendingUp,   color: 'text-blue-600',    bg: 'bg-blue-50',    sub: `${kpis.comDados} contratos c/ dados` },
-          { label: 'Custo Total',     value: fmtK(kpis.totalCusto),   icon: TrendingDown, color: 'text-amber-600',   bg: 'bg-amber-50',   sub: null },
-          { label: 'Lucro Total',     value: fmtK(kpis.totalLucro),   icon: DollarSign,
-            color: kpis.totalLucro >= 0 ? 'text-emerald-600' : 'text-rose-600',
-            bg: kpis.totalLucro >= 0 ? 'bg-emerald-50' : 'bg-rose-50',
-            sub: null },
-          { label: 'Margem Global',   value: `${kpis.margemGlobal.toFixed(1)}%`, icon: BarChart3,
-            color: kpis.margemGlobal >= 10 ? 'text-emerald-600' : kpis.margemGlobal >= 0 ? 'text-amber-600' : 'text-rose-600',
-            bg: kpis.margemGlobal >= 10 ? 'bg-emerald-50' : 'bg-amber-50',
-            sub: null },
-          { label: 'Contratos',       value: `${rows.length}`,        icon: BarChart3,   color: 'text-violet-600',  bg: 'bg-violet-50',  sub: `${statusFilter === 'todos' ? 'total' : statusFilter}` },
-        ].map((card, i) => {
-          const Icon = card.icon
-          return (
-            <div key={i} className="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-medium text-slate-500">{card.label}</p>
-                <div className={`w-7 h-7 rounded-lg ${card.bg} flex items-center justify-center`}>
-                  <Icon className={`w-3.5 h-3.5 ${card.color}`} />
-                </div>
-              </div>
-              {loading ? (
-                <div className="h-6 bg-slate-100 rounded animate-pulse" />
-              ) : (
-                <div>
-                  <p className={`text-lg font-bold ${card.color}`}>{card.value}</p>
-                  {card.sub && <p className="text-[11px] text-slate-400 mt-0.5">{card.sub}</p>}
-                </div>
-              )}
+      {/* Nota: "Acumulado" = soma dos lançamentos em adm_contrato_financeiro    */}
+      {/*       "Projetado" = soma de valor_mensal dos contratos ativos           */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        {/* Receita projetada mensal */}
+        <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-slate-500 leading-tight">Receita Mensal<br /><span className="text-[10px] font-normal text-slate-400">Projetada</span></p>
+            <div className="w-7 h-7 rounded-lg bg-violet-50 flex items-center justify-center flex-shrink-0">
+              <TrendingUp className="w-3.5 h-3.5 text-violet-600" />
             </div>
-          )
-        })}
+          </div>
+          {loading ? <div className="h-6 bg-slate-100 rounded animate-pulse" /> : (
+            <div>
+              <p className="text-base font-bold text-violet-600">{fmtK(kpis.receitaMensalProjetada)}</p>
+              <p className="text-[10px] text-slate-400">Soma de valor_mensal (ativos)</p>
+            </div>
+          )}
+        </div>
+
+        {/* Receita acumulada */}
+        <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-slate-500 leading-tight">Receita<br /><span className="text-[10px] font-normal text-slate-400">Acumulada</span></p>
+            <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+              <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
+            </div>
+          </div>
+          {loading ? <div className="h-6 bg-slate-100 rounded animate-pulse" /> : (
+            <div>
+              <p className="text-base font-bold text-blue-600">{fmtK(kpis.totalReceita)}</p>
+              <p className="text-[10px] text-slate-400">{kpis.totalPeriodos} período{kpis.totalPeriodos !== 1 ? 's' : ''} lançado{kpis.totalPeriodos !== 1 ? 's' : ''}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Custo acumulado */}
+        <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-slate-500 leading-tight">Custo<br /><span className="text-[10px] font-normal text-slate-400">Acumulado</span></p>
+            <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+              <TrendingDown className="w-3.5 h-3.5 text-amber-600" />
+            </div>
+          </div>
+          {loading ? <div className="h-6 bg-slate-100 rounded animate-pulse" /> : (
+            <div>
+              <p className="text-base font-bold text-amber-600">{fmtK(kpis.totalCusto)}</p>
+              <p className="text-[10px] text-slate-400">Registrado nos períodos</p>
+            </div>
+          )}
+        </div>
+
+        {/* Lucro acumulado */}
+        <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-slate-500 leading-tight">Lucro<br /><span className="text-[10px] font-normal text-slate-400">Acumulado</span></p>
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${kpis.totalLucro >= 0 ? 'bg-emerald-50' : 'bg-rose-50'}`}>
+              <DollarSign className={`w-3.5 h-3.5 ${kpis.totalLucro >= 0 ? 'text-emerald-600' : 'text-rose-600'}`} />
+            </div>
+          </div>
+          {loading ? <div className="h-6 bg-slate-100 rounded animate-pulse" /> : (
+            <div>
+              <p className={`text-base font-bold ${kpis.totalLucro >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                {kpis.totalLucro >= 0 ? '+' : ''}{fmtK(kpis.totalLucro)}
+              </p>
+              <p className="text-[10px] text-slate-400">Receita − Custo</p>
+            </div>
+          )}
+        </div>
+
+        {/* Margem global */}
+        <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-slate-500 leading-tight">Margem<br /><span className="text-[10px] font-normal text-slate-400">Global</span></p>
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${kpis.margemGlobal >= 10 ? 'bg-emerald-50' : 'bg-amber-50'}`}>
+              <BarChart3 className={`w-3.5 h-3.5 ${kpis.margemGlobal >= 10 ? 'text-emerald-600' : kpis.margemGlobal >= 0 ? 'text-amber-600' : 'text-rose-600'}`} />
+            </div>
+          </div>
+          {loading ? <div className="h-6 bg-slate-100 rounded animate-pulse" /> : (
+            <div>
+              <p className={`text-base font-bold ${kpis.margemGlobal >= 10 ? 'text-emerald-600' : kpis.margemGlobal >= 0 ? 'text-amber-600' : 'text-rose-600'}`}>
+                {kpis.margemGlobal.toFixed(1)}%
+              </p>
+              <p className="text-[10px] text-slate-400">Lucro ÷ Receita</p>
+            </div>
+          )}
+        </div>
+
+        {/* Contratos */}
+        <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-slate-500 leading-tight">Contratos<br /><span className="text-[10px] font-normal text-slate-400">Analisados</span></p>
+            <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+              <BarChart3 className="w-3.5 h-3.5 text-slate-500" />
+            </div>
+          </div>
+          {loading ? <div className="h-6 bg-slate-100 rounded animate-pulse" /> : (
+            <div>
+              <p className="text-base font-bold text-slate-800">{rows.length}</p>
+              <p className="text-[10px] text-slate-400">{kpis.comDados} com dados financeiros</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Legenda das métricas */}
+      <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 flex flex-wrap gap-x-6 gap-y-1.5">
+        <p className="text-[11px] text-slate-500 font-medium w-full">Como interpretar os números:</p>
+        <span className="text-[11px] text-slate-500">
+          <span className="font-semibold text-violet-600">Receita Mensal Projetada</span>
+          {' '}= soma de <code className="bg-slate-200 px-1 rounded text-[10px]">valor_mensal</code> de contratos ativos — o que você tem contratado por mês
+        </span>
+        <span className="text-[11px] text-slate-500">
+          <span className="font-semibold text-blue-600">Receita/Custo/Lucro Acumulado</span>
+          {' '}= soma dos registros lançados na aba Financeiro de cada contrato — o que foi efetivamente registrado
+        </span>
       </div>
 
       {/* ── Gráficos ────────────────────────────────────────────────────────── */}
