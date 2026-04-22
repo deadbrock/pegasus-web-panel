@@ -8,6 +8,8 @@ import {
   FileText, TrendingUp, TrendingDown, DollarSign, Loader2,
   AlertCircle, CheckCircle2, RotateCcw, Wrench, History,
   ShieldCheck, ShieldAlert, ShieldX, Activity,
+  Receipt, Paperclip, ToggleLeft, ToggleRight,
+  FileIcon, ImageIcon, Download, Upload, X as XIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ContractFormDialog } from '@/components/gestao-adm/contract-form-dialog'
@@ -27,16 +29,21 @@ import { fetchReajustes, deleteReajuste, fetchUltimoReajuste } from '@/services/
 import { fetchManutencoes, deleteManutencao, concluirManutencao } from '@/services/admManutencaoService'
 import { fetchHistorico } from '@/services/admHistoricoService'
 import { computeAnaliseCompleta } from '@/services/admAlertsService'
+import { fetchCustos, createCusto, updateCusto, deleteCusto, toggleCustoAtivo } from '@/services/admCustosService'
+import { fetchAnexos, uploadAnexo, deleteAnexo, formatFileSize, getFileIcon } from '@/services/admAnexosService'
+import { CustoDialog } from '@/components/gestao-adm/custo-dialog'
 import type {
   AdmContrato, AdmContratoFinanceiro, AdmContratoStats,
   AdmReajuste, AdmManutencaoContrato, AdmHistoricoContrato,
-  AdmContratoAnalise,
+  AdmContratoAnalise, AdmContratoCusto, AdmContratoAnexo,
 } from '@/types/adm-contratos'
 import {
   ADM_REAJUSTE_TIPO_LABELS,
   ADM_MANUTENCAO_PRIORIDADE_LABELS, ADM_MANUTENCAO_PRIORIDADE_COLORS,
   ADM_MANUTENCAO_STATUS_LABELS, ADM_MANUTENCAO_STATUS_COLORS,
   ADM_MANUTENCAO_TIPO_LABELS, ADM_SAUDE_CONFIG,
+  ADM_CUSTO_TIPO_LABELS, ADM_CUSTO_TIPO_COLORS, ADM_CUSTO_PERIODICIDADE_LABELS,
+  custoToMensal,
 } from '@/types/adm-contratos'
 import { cn } from '@/lib/utils'
 
@@ -60,12 +67,14 @@ function SkeletonBlock({ className }: { className?: string }) {
 }
 
 // ─── Tab System ────────────────────────────────────────────────────────────────
-type TabId = 'geral' | 'financeiro' | 'reajustes' | 'manutencao' | 'historico'
+type TabId = 'geral' | 'financeiro' | 'reajustes' | 'manutencao' | 'custos' | 'anexos' | 'historico'
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'geral',      label: 'Visão Geral',  icon: FileText },
   { id: 'financeiro', label: 'Financeiro',    icon: TrendingUp },
   { id: 'reajustes',  label: 'Reajustes',     icon: RotateCcw },
   { id: 'manutencao', label: 'Manutenção',    icon: Wrench },
+  { id: 'custos',     label: 'Custos',        icon: Receipt },
+  { id: 'anexos',     label: 'Anexos',        icon: Paperclip },
   { id: 'historico',  label: 'Histórico',     icon: History },
 ]
 
@@ -97,6 +106,8 @@ export default function AdmContratoDetailPage() {
   const [ultimoReajuste, setUltimoReajuste] = useState<AdmReajuste | null>(null)
   const [manutencoes, setManutencoes] = useState<AdmManutencaoContrato[]>([])
   const [historico, setHistorico] = useState<AdmHistoricoContrato[]>([])
+  const [custos, setCustos] = useState<AdmContratoCusto[]>([])
+  const [anexos, setAnexos] = useState<AdmContratoAnexo[]>([])
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
 
@@ -106,6 +117,11 @@ export default function AdmContratoDetailPage() {
   const [reajusteOpen, setReajusteOpen] = useState(false)
   const [manutencaoOpen, setManutencaoOpen] = useState(false)
   const [selectedManutencao, setSelectedManutencao] = useState<AdmManutencaoContrato | null>(null)
+  const [custoOpen, setCustoOpen] = useState(false)
+  const [selectedCusto, setSelectedCusto] = useState<AdmContratoCusto | null>(null)
+  const [deletingCustoId, setDeletingCustoId] = useState<string | null>(null)
+  const [uploadingAnexo, setUploadingAnexo] = useState(false)
+  const [deletingAnexoId, setDeletingAnexoId] = useState<string | null>(null)
   const [deleteContractConfirm, setDeleteContractConfirm] = useState(false)
   const [deletingFinId, setDeletingFinId] = useState<string | null>(null)
   const [deletingReajId, setDeletingReajId] = useState<string | null>(null)
@@ -115,7 +131,7 @@ export default function AdmContratoDetailPage() {
   const loadAll = useCallback(async () => {
     setLoading(true)
     try {
-      const [c, fin, st, reaj, ultReaj, man, hist] = await Promise.all([
+      const [c, fin, st, reaj, ultReaj, man, hist, cust, anex] = await Promise.all([
         fetchAdmContratoById(id),
         fetchAdmContratoFinanceiro(id),
         fetchAdmContratoStats(id),
@@ -123,6 +139,8 @@ export default function AdmContratoDetailPage() {
         fetchUltimoReajuste(id),
         fetchManutencoes(id),
         fetchHistorico(id),
+        fetchCustos(id),
+        fetchAnexos(id),
       ])
       if (!c) { setNotFound(true); return }
       setContrato(c)
@@ -132,6 +150,8 @@ export default function AdmContratoDetailPage() {
       setUltimoReajuste(ultReaj)
       setManutencoes(man)
       setHistorico(hist)
+      setCustos(cust)
+      setAnexos(anex)
     } finally {
       setLoading(false)
     }
@@ -173,6 +193,35 @@ export default function AdmContratoDetailPage() {
     const ok = await concluirManutencao(m.id, id)
     setConcludingManId(null)
     if (ok) loadAll()
+  }
+
+  const handleDeleteCusto = async (custoId: string) => {
+    setDeletingCustoId(custoId)
+    const ok = await deleteCusto(custoId)
+    setDeletingCustoId(null)
+    if (ok) setCustos(prev => prev.filter(c => c.id !== custoId))
+  }
+
+  const handleToggleCusto = async (custo: AdmContratoCusto) => {
+    const ok = await toggleCustoAtivo(custo.id, !custo.ativo)
+    if (ok) setCustos(prev => prev.map(c => c.id === custo.id ? { ...c, ativo: !c.ativo } : c))
+  }
+
+  const handleUploadAnexo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingAnexo(true)
+    const result = await uploadAnexo(id, file)
+    setUploadingAnexo(false)
+    e.target.value = ''
+    if (result) setAnexos(prev => [result, ...prev])
+  }
+
+  const handleDeleteAnexo = async (anexo: AdmContratoAnexo) => {
+    setDeletingAnexoId(anexo.id)
+    const ok = await deleteAnexo(anexo)
+    setDeletingAnexoId(null)
+    if (ok) setAnexos(prev => prev.filter(a => a.id !== anexo.id))
   }
 
   if (notFound) {
@@ -268,6 +317,8 @@ export default function AdmContratoDetailPage() {
             const isActive = tab === t.id
             const badge = t.id === 'manutencao' && abertasCount > 0 ? abertasCount
                         : t.id === 'reajustes' && reajustes.length > 0 ? reajustes.length
+                        : t.id === 'custos' && custos.filter(c => c.ativo).length > 0 ? custos.filter(c => c.ativo).length
+                        : t.id === 'anexos' && anexos.length > 0 ? anexos.length
                         : null
             return (
               <button
@@ -709,6 +760,248 @@ export default function AdmContratoDetailPage() {
           </div>
         )}
 
+        {/* ─── Aba: Custos ────────────────────────────────────────────────────── */}
+        {tab === 'custos' && (
+          <div>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Receipt className="w-4 h-4 text-violet-500" />
+                <span className="text-sm font-semibold text-slate-900">
+                  Estrutura de Custos
+                  {!loading && <span className="ml-2 text-xs text-slate-400 font-normal">({custos.length} item{custos.length !== 1 ? 's' : ''})</span>}
+                </span>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => { setSelectedCusto(null); setCustoOpen(true) }} className="gap-1.5 h-8">
+                <Plus className="w-3.5 h-3.5" />Adicionar Custo
+              </Button>
+            </div>
+
+            {/* Resumo de custos mensais */}
+            {!loading && custos.length > 0 && (() => {
+              const ativos = custos.filter(c => c.ativo)
+              const totalMensal = ativos.reduce((s, c) => s + custoToMensal(c.valor, c.periodicidade), 0)
+              const receita = contrato?.valor_mensal ?? 0
+              const margem = receita > 0 ? ((receita - totalMensal) / receita) * 100 : null
+              return (
+                <div className="grid grid-cols-3 gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/60">
+                  <div>
+                    <p className="text-xs text-slate-500">Custo Mensal Total</p>
+                    <p className="text-base font-bold text-amber-600">{fmt(totalMensal)}</p>
+                    <p className="text-[10px] text-slate-400">{ativos.length} item{ativos.length !== 1 ? 's' : ''} ativos</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500">Receita Mensal</p>
+                    <p className="text-base font-bold text-slate-700">{fmt(receita)}</p>
+                    <p className="text-[10px] text-slate-400">valor_mensal do contrato</p>
+                  </div>
+                  {margem !== null && (
+                    <div>
+                      <p className="text-xs text-slate-500">Margem Projetada</p>
+                      <p className={cn('text-base font-bold', margem >= 10 ? 'text-emerald-600' : margem >= 0 ? 'text-amber-600' : 'text-rose-600')}>
+                        {margem.toFixed(1)}%
+                      </p>
+                      <p className="text-[10px] text-slate-400">(receita − custo) ÷ receita</p>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+
+            {loading ? (
+              <div className="p-5 space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => <SkeletonBlock key={i} className="h-16 rounded-lg" />)}
+              </div>
+            ) : custos.length === 0 ? (
+              <div className="py-12 text-center">
+                <div className="flex flex-col items-center gap-3 text-slate-400">
+                  <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+                    <Receipt className="w-5 h-5" />
+                  </div>
+                  <p className="text-sm font-medium">Nenhum custo registrado</p>
+                  <button onClick={() => { setSelectedCusto(null); setCustoOpen(true) }} className="text-xs text-violet-600 hover:underline font-medium">
+                    Adicionar primeiro custo
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-100 bg-slate-50/50">
+                      {['Tipo','Descrição','Valor','Periodicidade','Mensal equiv.','Situação',''].map((h) => (
+                        <th key={h} className={`px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider ${['Valor','Mensal equiv.'].includes(h) ? 'text-right' : 'text-left'}`}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {custos.map((c) => {
+                      const tColors = ADM_CUSTO_TIPO_COLORS[c.tipo_custo]
+                      const mensal  = custoToMensal(c.valor, c.periodicidade)
+                      return (
+                        <tr key={c.id} className={cn('border-b border-slate-50 hover:bg-slate-50/50 transition-colors', !c.ativo && 'opacity-50')}>
+                          <td className="px-4 py-3">
+                            <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full', tColors.bg, tColors.text)}>
+                              {ADM_CUSTO_TIPO_LABELS[c.tipo_custo]}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <p className="font-medium text-slate-800 text-sm">{c.descricao}</p>
+                            {c.observacoes && <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{c.observacoes}</p>}
+                          </td>
+                          <td className="px-4 py-3 text-right tabular-nums font-medium text-slate-700">{fmt(c.valor)}</td>
+                          <td className="px-4 py-3">
+                            <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                              {ADM_CUSTO_PERIODICIDADE_LABELS[c.periodicidade]}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right tabular-nums text-slate-500 text-xs">
+                            {c.periodicidade === 'unico' ? '—' : fmt(mensal)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={() => handleToggleCusto(c)}
+                              className={cn('flex items-center gap-1 text-xs font-medium transition-colors', c.ativo ? 'text-emerald-600 hover:text-emerald-700' : 'text-slate-400 hover:text-slate-600')}
+                            >
+                              {c.ativo ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
+                              {c.ativo ? 'Ativo' : 'Inativo'}
+                            </button>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-slate-400 hover:text-slate-700"
+                                onClick={() => { setSelectedCusto(c); setCustoOpen(true) }}>
+                                <Edit className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600"
+                                onClick={() => handleDeleteCusto(c.id)} disabled={deletingCustoId === c.id}>
+                                {deletingCustoId === c.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                  {custos.filter(c => c.ativo).length > 0 && (
+                    <tfoot>
+                      <tr className="bg-slate-50 border-t border-slate-200">
+                        <td colSpan={4} className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Total Mensal (ativos)</td>
+                        <td className="px-4 py-3 text-right font-bold text-amber-600 tabular-nums">
+                          {fmt(custos.filter(c => c.ativo).reduce((s, c) => s + custoToMensal(c.valor, c.periodicidade), 0))}
+                        </td>
+                        <td colSpan={2} />
+                      </tr>
+                    </tfoot>
+                  )}
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ─── Aba: Anexos ────────────────────────────────────────────────────── */}
+        {tab === 'anexos' && (
+          <div>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Paperclip className="w-4 h-4 text-violet-500" />
+                <span className="text-sm font-semibold text-slate-900">
+                  Documentos & Anexos
+                  {!loading && <span className="ml-2 text-xs text-slate-400 font-normal">({anexos.length} arquivo{anexos.length !== 1 ? 's' : ''})</span>}
+                </span>
+              </div>
+              <label className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors cursor-pointer',
+                uploadingAnexo
+                  ? 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed'
+                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 hover:border-slate-400'
+              )}>
+                {uploadingAnexo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                {uploadingAnexo ? 'Enviando...' : 'Enviar Arquivo'}
+                <input type="file" className="hidden" disabled={uploadingAnexo} onChange={handleUploadAnexo}
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.txt,.zip" />
+              </label>
+            </div>
+
+            <div className="px-5 py-2 bg-slate-50 border-b border-slate-100">
+              <p className="text-[11px] text-slate-400">
+                Formatos aceitos: PDF, Word, Excel, imagens, ZIP. Tamanho máximo: 50 MB por arquivo.
+                Os arquivos são armazenados com segurança no Supabase Storage.
+              </p>
+            </div>
+
+            {loading ? (
+              <div className="p-5 space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => <SkeletonBlock key={i} className="h-14 rounded-lg" />)}
+              </div>
+            ) : anexos.length === 0 ? (
+              <div className="py-12 text-center">
+                <div className="flex flex-col items-center gap-3 text-slate-400">
+                  <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center">
+                    <Paperclip className="w-6 h-6" />
+                  </div>
+                  <p className="text-sm font-medium">Nenhum documento anexado</p>
+                  <p className="text-xs">Clique em "Enviar Arquivo" para adicionar o primeiro documento.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="p-5 space-y-2">
+                {anexos.map((a) => {
+                  const icon = getFileIcon(a.tipo_arquivo)
+                  return (
+                    <div key={a.id} className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl px-4 py-3 hover:border-slate-300 transition-colors">
+                      {/* Ícone */}
+                      <div className={cn(
+                        'w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0',
+                        icon === 'pdf'   ? 'bg-rose-50' :
+                        icon === 'image' ? 'bg-blue-50' :
+                        icon === 'doc'   ? 'bg-blue-50' :
+                        icon === 'sheet' ? 'bg-emerald-50' : 'bg-slate-100'
+                      )}>
+                        {icon === 'image'
+                          ? <ImageIcon className="w-4 h-4 text-blue-500" />
+                          : <FileIcon className={cn('w-4 h-4',
+                              icon === 'pdf'   ? 'text-rose-500' :
+                              icon === 'doc'   ? 'text-blue-500' :
+                              icon === 'sheet' ? 'text-emerald-500' : 'text-slate-500'
+                            )} />
+                        }
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-800 truncate">{a.nome_arquivo}</p>
+                        <div className="flex items-center gap-3 mt-0.5">
+                          {a.descricao && <span className="text-xs text-slate-400">{a.descricao}</span>}
+                          <span className="text-xs text-slate-400">{formatFileSize(a.tamanho_bytes)}</span>
+                          <span className="text-xs text-slate-300">
+                            {new Date(a.created_at).toLocaleDateString('pt-BR')}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Ações */}
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        {a.url_publica && (
+                          <a href={a.url_publica} target="_blank" rel="noopener noreferrer">
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-slate-400 hover:text-blue-600 hover:bg-blue-50" title="Baixar / Visualizar">
+                              <Download className="w-3.5 h-3.5" />
+                            </Button>
+                          </a>
+                        )}
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                          onClick={() => handleDeleteAnexo(a)} disabled={deletingAnexoId === a.id} title="Remover">
+                          {deletingAnexoId === a.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XIcon className="w-3.5 h-3.5" />}
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ─── Aba: Histórico ─────────────────────────────────────────────────── */}
         {tab === 'historico' && (
           <div>
@@ -758,6 +1051,8 @@ export default function AdmContratoDetailPage() {
       )}
       <ManutencaoDialog open={manutencaoOpen} onClose={() => setManutencaoOpen(false)}
         contratoId={id} manutencao={selectedManutencao} onSaved={loadAll} />
+      <CustoDialog open={custoOpen} onClose={() => setCustoOpen(false)}
+        contratoId={id} custo={selectedCusto} onSaved={() => fetchCustos(id).then(setCustos)} />
     </div>
   )
 }

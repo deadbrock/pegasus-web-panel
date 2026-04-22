@@ -1,4 +1,4 @@
-// Tipos do módulo Gestão ADM — Fase 1 + Fase 2 + Fase 3
+// Tipos do módulo Gestão ADM — Fase 1 + Fase 2 + Fase 3 + Fase 4
 
 export type AdmContratoStatus = 'ativo' | 'suspenso' | 'encerrado' | 'em_negociacao'
 
@@ -6,8 +6,25 @@ export interface AdmContrato {
   id: string
   codigo: string
   nome: string
+  // ── Cliente básico ──────────────────────────────────────────────────────────
   cliente_nome: string
   cliente_documento?: string | null
+  // ── Cliente detalhado (Fase 4) ──────────────────────────────────────────────
+  cliente_email?: string | null
+  cliente_telefone?: string | null
+  cliente_contato?: string | null      // nome do contato/interlocutor
+  // ── Endereço (Fase 4) ───────────────────────────────────────────────────────
+  cliente_cep?: string | null
+  cliente_endereco?: string | null
+  cliente_numero?: string | null
+  cliente_complemento?: string | null
+  cliente_bairro?: string | null
+  cliente_cidade?: string | null
+  cliente_uf?: string | null
+  // ── Aprovação (Fase 4) ──────────────────────────────────────────────────────
+  aprovado_por?: string | null
+  data_aprovacao?: string | null
+  // ── Contrato ────────────────────────────────────────────────────────────────
   responsavel?: string | null
   valor_mensal?: number | null
   data_inicio?: string | null
@@ -20,6 +37,91 @@ export interface AdmContrato {
 
 export type AdmContratoInsert = Omit<AdmContrato, 'id' | 'created_at' | 'updated_at'>
 export type AdmContratoUpdate = Partial<AdmContratoInsert>
+
+// ─── FASE 4: Custos do contrato ───────────────────────────────────────────────
+
+export type AdmCustoTipo =
+  | 'mao_de_obra' | 'materiais' | 'terceiros' | 'equipamentos'
+  | 'administrativo' | 'tecnologia' | 'licencas' | 'logistica' | 'outro'
+
+export type AdmCustoPeriodicidade = 'mensal' | 'trimestral' | 'semestral' | 'anual' | 'unico'
+
+export interface AdmContratoCusto {
+  id: string
+  contrato_id: string
+  tipo_custo: AdmCustoTipo
+  descricao: string
+  valor: number
+  periodicidade: AdmCustoPeriodicidade
+  observacoes?: string | null
+  ativo: boolean
+  created_by?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type AdmContratoCustoInsert = Omit<AdmContratoCusto, 'id' | 'created_at' | 'updated_at'>
+export type AdmContratoCustoUpdate = Partial<AdmContratoCustoInsert>
+
+export const ADM_CUSTO_TIPO_LABELS: Record<AdmCustoTipo, string> = {
+  mao_de_obra:    'Mão de Obra',
+  materiais:      'Materiais',
+  terceiros:      'Terceiros / Subcontratados',
+  equipamentos:   'Equipamentos',
+  administrativo: 'Administrativo',
+  tecnologia:     'Tecnologia / TI',
+  licencas:       'Licenças / Software',
+  logistica:      'Logística',
+  outro:          'Outro',
+}
+
+export const ADM_CUSTO_PERIODICIDADE_LABELS: Record<AdmCustoPeriodicidade, string> = {
+  mensal:      'Mensal',
+  trimestral:  'Trimestral',
+  semestral:   'Semestral',
+  anual:       'Anual',
+  unico:       'Único (one-time)',
+}
+
+/** Converte custo para valor mensal equivalente */
+export function custoToMensal(valor: number, periodicidade: AdmCustoPeriodicidade): number {
+  switch (periodicidade) {
+    case 'mensal':     return valor
+    case 'trimestral': return valor / 3
+    case 'semestral':  return valor / 6
+    case 'anual':      return valor / 12
+    case 'unico':      return 0  // não recorrente
+  }
+}
+
+export const ADM_CUSTO_TIPO_COLORS: Record<AdmCustoTipo, { bg: string; text: string }> = {
+  mao_de_obra:    { bg: 'bg-blue-50',    text: 'text-blue-700' },
+  materiais:      { bg: 'bg-amber-50',   text: 'text-amber-700' },
+  terceiros:      { bg: 'bg-purple-50',  text: 'text-purple-700' },
+  equipamentos:   { bg: 'bg-slate-100',  text: 'text-slate-700' },
+  administrativo: { bg: 'bg-orange-50',  text: 'text-orange-700' },
+  tecnologia:     { bg: 'bg-cyan-50',    text: 'text-cyan-700' },
+  licencas:       { bg: 'bg-indigo-50',  text: 'text-indigo-700' },
+  logistica:      { bg: 'bg-emerald-50', text: 'text-emerald-700' },
+  outro:          { bg: 'bg-slate-100',  text: 'text-slate-600' },
+}
+
+// ─── FASE 4: Anexos do contrato ───────────────────────────────────────────────
+
+export interface AdmContratoAnexo {
+  id: string
+  contrato_id: string
+  nome_arquivo: string
+  tipo_arquivo?: string | null
+  tamanho_bytes?: number | null
+  storage_path: string
+  url_publica?: string | null
+  descricao?: string | null
+  created_by?: string | null
+  created_at: string
+}
+
+export type AdmContratoAnexoInsert = Omit<AdmContratoAnexo, 'id' | 'created_at'>
 
 export interface AdmContratoFinanceiro {
   id: string
