@@ -102,17 +102,21 @@ export async function updateAdmContrato(
   return true
 }
 
-export async function deleteAdmContrato(id: string): Promise<boolean> {
-  const { error } = await supabase
+export async function deleteAdmContrato(id: string): Promise<{ ok: boolean; message?: string }> {
+  const { error, count } = await supabase
     .from('adm_contratos')
-    .delete()
+    .delete({ count: 'exact' })
     .eq('id', id)
 
   if (error) {
     console.error('[admContratosService] deleteAdmContrato error:', error.message)
-    return false
+    return { ok: false, message: error.message }
   }
-  return true
+  if (!count || count === 0) {
+    console.warn('[admContratosService] deleteAdmContrato: 0 linhas removidas — possível bloqueio de RLS')
+    return { ok: false, message: 'Sem permissão para excluir este contrato.' }
+  }
+  return { ok: true }
 }
 
 // ─── Financeiro por contrato ──────────────────────────────────────────────────

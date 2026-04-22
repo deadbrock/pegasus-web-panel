@@ -6,7 +6,7 @@ import Link from 'next/link'
 import {
   Edit, Trash2, Plus, ChevronRight, Calendar, User, Building2,
   FileText, TrendingUp, TrendingDown, DollarSign, Loader2,
-  AlertCircle, CheckCircle2, RotateCcw, Wrench, History,
+  AlertCircle, AlertTriangle, CheckCircle2, RotateCcw, Wrench, History,
   ShieldCheck, ShieldAlert, ShieldX, Activity,
   Receipt, Paperclip, ToggleLeft, ToggleRight,
   FileIcon, ImageIcon, Download, Upload, X as XIcon,
@@ -121,6 +121,7 @@ export default function AdmContratoDetailPage() {
   const [selectedCusto, setSelectedCusto] = useState<AdmContratoCusto | null>(null)
   const [deletingCustoId, setDeletingCustoId] = useState<string | null>(null)
   const [uploadingAnexo, setUploadingAnexo] = useState(false)
+  const [uploadAnexoError, setUploadAnexoError] = useState<string | null>(null)
   const [deletingAnexoId, setDeletingAnexoId] = useState<string | null>(null)
   const [deleteContractConfirm, setDeleteContractConfirm] = useState(false)
   const [deletingFinId, setDeletingFinId] = useState<string | null>(null)
@@ -167,8 +168,12 @@ export default function AdmContratoDetailPage() {
 
   const handleDeleteContract = async () => {
     if (!contrato?.id) return
-    const ok = await deleteAdmContrato(contrato.id)
-    if (ok) router.push('/gestao-adm/contratos')
+    const { ok, message } = await deleteAdmContrato(contrato.id)
+    if (ok) {
+      router.push('/gestao-adm/contratos')
+    } else {
+      alert(message ?? 'Não foi possível excluir o contrato.')
+    }
   }
   const handleDeleteFin = async (finId: string) => {
     setDeletingFinId(finId)
@@ -211,10 +216,17 @@ export default function AdmContratoDetailPage() {
     const file = e.target.files?.[0]
     if (!file) return
     setUploadingAnexo(true)
+    setUploadAnexoError(null)
     const result = await uploadAnexo(id, file)
     setUploadingAnexo(false)
     e.target.value = ''
-    if (result) setAnexos(prev => [result, ...prev])
+    if (result) {
+      setAnexos(prev => [result, ...prev])
+    } else {
+      setUploadAnexoError(
+        'Falha ao enviar arquivo. Verifique se o bucket "contratos-anexos" foi criado no Supabase Storage e se as permissões estão corretas.'
+      )
+    }
   }
 
   const handleDeleteAnexo = async (anexo: AdmContratoAnexo) => {
@@ -280,33 +292,39 @@ export default function AdmContratoDetailPage() {
 
       {/* ── KPI Cards ────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Valor Mensal',  value: fmt(contrato?.valor_mensal), icon: DollarSign,  color: 'text-blue-600',    bg: 'bg-blue-50' },
-          { label: 'Receita Total', value: fmt(stats?.totalReceita),    icon: TrendingUp,  color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { label: 'Custo Total',   value: fmt(stats?.totalCusto),      icon: TrendingDown,color: 'text-amber-600',   bg: 'bg-amber-50' },
-          { label: 'Lucro Total', value: fmt(stats?.totalLucro),
-            sub: `Margem: ${stats?.margemMedia?.toFixed(1) ?? 0}%`, icon: TrendingUp,
-            color: (stats?.totalLucro ?? 0) >= 0 ? 'text-emerald-600' : 'text-rose-600',
-            bg:    (stats?.totalLucro ?? 0) >= 0 ? 'bg-emerald-50' : 'bg-rose-50' },
-        ].map((card, i) => {
-          const Icon = card.icon
-          return (
-            <div key={i} className="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-medium text-slate-500">{card.label}</p>
-                <div className={`w-8 h-8 rounded-lg ${card.bg} flex items-center justify-center`}>
-                  <Icon className={`w-4 h-4 ${card.color}`} />
+        {(() => {
+          const semPeriodos = !loading && (stats?.periodos ?? 0) === 0
+          const cards = [
+            { label: 'Valor Mensal',  value: fmt(contrato?.valor_mensal), icon: DollarSign,  color: 'text-blue-600',    bg: 'bg-blue-50',    sub: 'Valor contratual atual' },
+            { label: 'Receita Total', value: semPeriodos ? '—' : fmt(stats?.totalReceita),    icon: TrendingUp,  color: 'text-emerald-600', bg: 'bg-emerald-50', sub: semPeriodos ? 'Lance períodos financeiros' : `${stats?.periodos} período(s) registrado(s)` },
+            { label: 'Custo Total',   value: semPeriodos ? '—' : fmt(stats?.totalCusto),      icon: TrendingDown,color: 'text-amber-600',   bg: 'bg-amber-50',   sub: semPeriodos ? 'Aba Financeiro' : undefined },
+            { label: 'Lucro Total',
+              value: semPeriodos ? '—' : fmt(stats?.totalLucro),
+              sub: semPeriodos ? 'Sem registros financeiros' : `Margem: ${stats?.margemMedia?.toFixed(1) ?? 0}%`,
+              icon: TrendingUp,
+              color: semPeriodos ? 'text-slate-400' : (stats?.totalLucro ?? 0) >= 0 ? 'text-emerald-600' : 'text-rose-600',
+              bg:    semPeriodos ? 'bg-slate-50'    : (stats?.totalLucro ?? 0) >= 0 ? 'bg-emerald-50' : 'bg-rose-50' },
+          ]
+          return cards.map((card, i) => {
+            const Icon = card.icon
+            return (
+              <div key={i} className="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-slate-500">{card.label}</p>
+                  <div className={`w-8 h-8 rounded-lg ${card.bg} flex items-center justify-center`}>
+                    <Icon className={`w-4 h-4 ${card.color}`} />
+                  </div>
                 </div>
+                {loading ? <SkeletonBlock className="h-6 w-28 rounded" /> : (
+                  <div>
+                    <p className={`text-xl font-bold ${card.color}`}>{card.value}</p>
+                    {card.sub && <p className="text-xs text-slate-400 mt-0.5">{card.sub}</p>}
+                  </div>
+                )}
               </div>
-              {loading ? <SkeletonBlock className="h-6 w-28 rounded" /> : (
-                <div>
-                  <p className={`text-xl font-bold ${card.color}`}>{card.value}</p>
-                  {'sub' in card && card.sub && <p className="text-xs text-slate-400 mt-0.5">{card.sub}</p>}
-                </div>
-              )}
-            </div>
-          )
-        })}
+            )
+          })
+        })()}
       </div>
 
       {/* ── Tabs ─────────────────────────────────────────────────────────────── */}
@@ -929,6 +947,17 @@ export default function AdmContratoDetailPage() {
                 Os arquivos são armazenados com segurança no Supabase Storage.
               </p>
             </div>
+
+            {uploadAnexoError && (
+              <div className="mx-5 mt-4 flex items-start gap-3 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3">
+                <AlertTriangle className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-rose-800">Erro ao enviar arquivo</p>
+                  <p className="text-xs text-rose-600 mt-0.5">{uploadAnexoError}</p>
+                </div>
+                <button onClick={() => setUploadAnexoError(null)} className="text-rose-400 hover:text-rose-600 ml-2">✕</button>
+              </div>
+            )}
 
             {loading ? (
               <div className="p-5 space-y-3">

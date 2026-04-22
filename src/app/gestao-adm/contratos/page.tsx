@@ -125,11 +125,16 @@ export default function AdmContratosPage() {
 
   const handleDelete = async () => {
     if (!deleteConfirm?.id) return
-    setDeletingId(deleteConfirm.id)
+    const targetId = deleteConfirm.id
+    setDeletingId(targetId)
     setDeleteConfirm(null)
-    const ok = await deleteAdmContrato(deleteConfirm.id)
+    const { ok, message } = await deleteAdmContrato(targetId)
     setDeletingId(null)
-    if (ok) setContratos((prev) => prev.filter((c) => c.id !== deleteConfirm.id))
+    if (ok) {
+      setContratos((prev) => prev.filter((c) => c.id !== targetId))
+    } else {
+      alert(message ?? 'Não foi possível excluir o contrato.')
+    }
   }
 
   return (
