@@ -460,6 +460,15 @@ export interface AdmAditivo {
   // Aprovação
   aprovado_por?: string | null
   status: AdmAditivoStatus
+  // Escopo do serviço
+  tipo_servico_id?: string | null
+  tipo_servico_nome?: string | null
+  escopo_descricao?: string | null
+  valor_materiais?: number | null
+  per_capita?: number | null
+  valor_mensal_total?: number | null
+  quadro_funcionarios?: AdmQuadroFuncionario[]
+  // Metadados
   created_by?: string | null
   created_at: string
   updated_at: string
@@ -482,4 +491,53 @@ export const ADM_ADITIVO_TIPO_COLORS: Record<AdmAditivoTipo, { bg: string; text:
   escopo:   { bg: 'bg-violet-50',  text: 'text-violet-700',  border: 'border-violet-200' },
   rescisao: { bg: 'bg-rose-50',    text: 'text-rose-700',    border: 'border-rose-200' },
   outros:   { bg: 'bg-slate-50',   text: 'text-slate-700',   border: 'border-slate-200' },
+}
+
+// ─── TIPOS DE SERVIÇO (personalizável) ───────────────────────────────────────
+
+export interface AdmTipoServico {
+  id: string
+  nome: string
+  descricao?: string | null
+  ativo: boolean
+  created_by?: string | null
+  created_at: string
+}
+
+export type AdmTipoServicoInsert = Omit<AdmTipoServico, 'id' | 'created_at'>
+
+// ─── QUADRO DE FUNCIONÁRIOS ───────────────────────────────────────────────────
+
+export type AdmTurno = 'diurno' | 'noturno' | '12x36' | '44h' | 'outros'
+
+export const ADM_TURNO_LABELS: Record<AdmTurno, string> = {
+  diurno:  'Diurno',
+  noturno: 'Noturno',
+  '12x36': '12x36',
+  '44h':   '44h semanais',
+  outros:  'Outros',
+}
+
+export interface AdmQuadroFuncionario {
+  funcao: string
+  quantidade: number
+  valor_unitario: number
+  turno: AdmTurno
+}
+
+/** Calcula total mensal de um item do quadro */
+export function quadroItemTotal(item: AdmQuadroFuncionario): number {
+  return item.quantidade * item.valor_unitario
+}
+
+// Campos de escopo adicionados ao aditivo (Fase Escopo)
+// Estes campos são opcionais e complementam AdmAditivo
+export interface AdmAditivoEscopo {
+  tipo_servico_id?:    string | null
+  tipo_servico_nome?:  string | null
+  escopo_descricao?:   string | null
+  valor_materiais?:    number | null
+  per_capita?:         number | null
+  valor_mensal_total?: number | null
+  quadro_funcionarios?: AdmQuadroFuncionario[]
 }
