@@ -429,3 +429,57 @@ export const ADM_INSIGHT_CONFIG: Record<
   atencao:     { bg: 'bg-amber-50',   text: 'text-amber-800',   border: 'border-amber-200',   iconColor: 'text-amber-500' },
   oportunidade:{ bg: 'bg-blue-50',    text: 'text-blue-800',    border: 'border-blue-200',    iconColor: 'text-blue-500' },
 }
+
+// ─── ADITIVOS DE CONTRATO ─────────────────────────────────────────────────────
+
+export type AdmAditivoTipo =
+  | 'valor'     // Alteração de valor mensal
+  | 'prazo'     // Prorrogação / alteração de prazo
+  | 'escopo'    // Alteração de escopo / objeto
+  | 'rescisao'  // Rescisão amigável
+  | 'outros'
+
+export type AdmAditivoStatus = 'ativo' | 'cancelado'
+
+export interface AdmAditivo {
+  id: string
+  contrato_id: string
+  numero_aditivo: number
+  tipo: AdmAditivoTipo
+  data_assinatura: string
+  data_vigencia?: string | null
+  // Alteração de valor
+  valor_anterior?: number | null
+  valor_novo?: number | null
+  // Alteração de prazo
+  data_fim_anterior?: string | null
+  data_fim_nova?: string | null
+  // Conteúdo
+  objeto: string
+  descricao?: string | null
+  // Aprovação
+  aprovado_por?: string | null
+  status: AdmAditivoStatus
+  created_by?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type AdmAditivoInsert = Omit<AdmAditivo, 'id' | 'created_at' | 'updated_at'>
+export type AdmAditivoUpdate = Partial<AdmAditivoInsert>
+
+export const ADM_ADITIVO_TIPO_LABELS: Record<AdmAditivoTipo, string> = {
+  valor:    'Alteração de Valor',
+  prazo:    'Prorrogação de Prazo',
+  escopo:   'Alteração de Escopo',
+  rescisao: 'Rescisão Amigável',
+  outros:   'Outros',
+}
+
+export const ADM_ADITIVO_TIPO_COLORS: Record<AdmAditivoTipo, { bg: string; text: string; border: string }> = {
+  valor:    { bg: 'bg-blue-50',    text: 'text-blue-700',    border: 'border-blue-200' },
+  prazo:    { bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200' },
+  escopo:   { bg: 'bg-violet-50',  text: 'text-violet-700',  border: 'border-violet-200' },
+  rescisao: { bg: 'bg-rose-50',    text: 'text-rose-700',    border: 'border-rose-200' },
+  outros:   { bg: 'bg-slate-50',   text: 'text-slate-700',   border: 'border-slate-200' },
+}

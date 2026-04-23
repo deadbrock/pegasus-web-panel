@@ -10,6 +10,7 @@ import {
   ShieldCheck, ShieldAlert, ShieldX, Activity,
   Receipt, Paperclip, ToggleLeft, ToggleRight,
   FileIcon, ImageIcon, Download, Upload, X as XIcon,
+  FilePlus2, FileSignature, Ban,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ContractFormDialog } from '@/components/gestao-adm/contract-form-dialog'
@@ -32,10 +33,12 @@ import { computeAnaliseCompleta } from '@/services/admAlertsService'
 import { fetchCustos, createCusto, updateCusto, deleteCusto, toggleCustoAtivo } from '@/services/admCustosService'
 import { fetchAnexos, uploadAnexo, deleteAnexo, formatFileSize, getFileIcon } from '@/services/admAnexosService'
 import { CustoDialog } from '@/components/gestao-adm/custo-dialog'
+import { AditivoDialog } from '@/components/gestao-adm/aditivo-dialog'
 import type {
   AdmContrato, AdmContratoFinanceiro, AdmContratoStats,
   AdmReajuste, AdmManutencaoContrato, AdmHistoricoContrato,
   AdmContratoAnalise, AdmContratoCusto, AdmContratoAnexo,
+  AdmAditivo,
 } from '@/types/adm-contratos'
 import {
   ADM_REAJUSTE_TIPO_LABELS,
@@ -43,8 +46,10 @@ import {
   ADM_MANUTENCAO_STATUS_LABELS, ADM_MANUTENCAO_STATUS_COLORS,
   ADM_MANUTENCAO_TIPO_LABELS, ADM_SAUDE_CONFIG,
   ADM_CUSTO_TIPO_LABELS, ADM_CUSTO_TIPO_COLORS, ADM_CUSTO_PERIODICIDADE_LABELS,
+  ADM_ADITIVO_TIPO_LABELS, ADM_ADITIVO_TIPO_COLORS,
   custoToMensal,
 } from '@/types/adm-contratos'
+import { fetchAditivos, createAditivo, deleteAditivo } from '@/services/admAditivosService'
 import { cn } from '@/lib/utils'
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -67,11 +72,12 @@ function SkeletonBlock({ className }: { className?: string }) {
 }
 
 // ─── Tab System ────────────────────────────────────────────────────────────────
-type TabId = 'geral' | 'financeiro' | 'reajustes' | 'manutencao' | 'custos' | 'anexos' | 'historico'
+type TabId = 'geral' | 'financeiro' | 'reajustes' | 'aditivos' | 'manutencao' | 'custos' | 'anexos' | 'historico'
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'geral',      label: 'Visão Geral',  icon: FileText },
   { id: 'financeiro', label: 'Financeiro',    icon: TrendingUp },
   { id: 'reajustes',  label: 'Reajustes',     icon: RotateCcw },
+  { id: 'aditivos',   label: 'Aditivos',      icon: FilePlus2 },
   { id: 'manutencao', label: 'Manutenção',    icon: Wrench },
   { id: 'custos',     label: 'Custos',        icon: Receipt },
   { id: 'anexos',     label: 'Anexos',        icon: Paperclip },
@@ -108,6 +114,7 @@ export default function AdmContratoDetailPage() {
   const [historico, setHistorico] = useState<AdmHistoricoContrato[]>([])
   const [custos, setCustos] = useState<AdmContratoCusto[]>([])
   const [anexos, setAnexos] = useState<AdmContratoAnexo[]>([])
+  const [aditivos, setAditivos] = useState<AdmAditivo[]>([])
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
 
@@ -123,6 +130,9 @@ export default function AdmContratoDetailPage() {
   const [uploadingAnexo, setUploadingAnexo] = useState(false)
   const [uploadAnexoError, setUploadAnexoError] = useState<string | null>(null)
   const [deletingAnexoId, setDeletingAnexoId] = useState<string | null>(null)
+  const [aditivoOpen, setAditivoOpen] = useState(false)
+  const [selectedAditivo, setSelectedAditivo] = useState<AdmAditivo | null>(null)
+  const [deletingAditivoId, setDeletingAditivoId] = useState<string | null>(null)
   const [deleteContractConfirm, setDeleteContractConfirm] = useState(false)
   const [deletingFinId, setDeletingFinId] = useState<string | null>(null)
   const [deletingReajId, setDeletingReajId] = useState<string | null>(null)
@@ -132,7 +142,7 @@ export default function AdmContratoDetailPage() {
   const loadAll = useCallback(async () => {
     setLoading(true)
     try {
-      const [c, fin, st, reaj, ultReaj, man, hist, cust, anex] = await Promise.all([
+      const [c, fin, st, reaj, ultReaj, man, hist, cust, anex, adit] = await Promise.all([
         fetchAdmContratoById(id),
         fetchAdmContratoFinanceiro(id),
         fetchAdmContratoStats(id),
@@ -142,6 +152,7 @@ export default function AdmContratoDetailPage() {
         fetchHistorico(id),
         fetchCustos(id),
         fetchAnexos(id),
+        fetchAditivos(id),
       ])
       if (!c) { setNotFound(true); return }
       setContrato(c)
@@ -153,6 +164,7 @@ export default function AdmContratoDetailPage() {
       setHistorico(hist)
       setCustos(cust)
       setAnexos(anex)
+      setAditivos(adit)
     } finally {
       setLoading(false)
     }
@@ -245,6 +257,24 @@ export default function AdmContratoDetailPage() {
     const ok = await deleteAnexo(anexo)
     setDeletingAnexoId(null)
     if (ok) setAnexos(prev => prev.filter(a => a.id !== anexo.id))
+  }
+
+  const handleAditivoSaved = (a: AdmAditivo) => {
+    setAditivos((prev) => {
+      const exists = prev.find((x) => x.id === a.id)
+      return exists
+        ? prev.map((x) => (x.id === a.id ? a : x))
+        : [...prev, a].sort((x, y) => x.numero_aditivo - y.numero_aditivo)
+    })
+    setAditivoOpen(false)
+    setSelectedAditivo(null)
+  }
+
+  const handleDeleteAditivo = async (aditivoId: string) => {
+    setDeletingAditivoId(aditivoId)
+    const ok = await deleteAditivo(aditivoId)
+    setDeletingAditivoId(null)
+    if (ok) setAditivos((prev) => prev.filter((a) => a.id !== aditivoId))
   }
 
   if (notFound) {
@@ -369,6 +399,7 @@ export default function AdmContratoDetailPage() {
             const isActive = tab === t.id
             const badge = t.id === 'manutencao' && abertasCount > 0 ? abertasCount
                         : t.id === 'reajustes' && reajustes.length > 0 ? reajustes.length
+                        : t.id === 'aditivos' && aditivos.length > 0 ? aditivos.length
                         : t.id === 'custos' && custos.filter(c => c.ativo).length > 0 ? custos.filter(c => c.ativo).length
                         : t.id === 'anexos' && anexos.length > 0 ? anexos.length
                         : null
@@ -716,6 +747,195 @@ export default function AdmContratoDetailPage() {
                 <p className="text-xs text-slate-400">
                   Remover um reajuste não reverte o valor do contrato automaticamente. Para corrigir, aplique um novo reajuste compensatório.
                 </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ─── Aba: Aditivos ──────────────────────────────────────────────────── */}
+        {tab === 'aditivos' && (
+          <div>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <FilePlus2 className="w-4 h-4 text-violet-500" />
+                <span className="text-sm font-semibold text-slate-900">
+                  Aditivos Contratuais
+                  {!loading && (
+                    <span className="ml-2 text-xs text-slate-400 font-normal">
+                      ({aditivos.length} aditivo{aditivos.length !== 1 ? 's' : ''})
+                    </span>
+                  )}
+                </span>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => { setSelectedAditivo(null); setAditivoOpen(true) }}
+                disabled={!contrato}
+                className="gap-1.5 h-8 bg-violet-600 hover:bg-violet-700 text-white border-0"
+              >
+                <Plus className="w-3.5 h-3.5" />Novo Aditivo
+              </Button>
+            </div>
+
+            {/* Lista */}
+            {loading ? (
+              <div className="p-5 space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="border border-slate-100 rounded-xl p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-2 flex-1">
+                        <div className="h-4 w-32 bg-slate-100 rounded animate-pulse" />
+                        <div className="h-3 w-56 bg-slate-100 rounded animate-pulse" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : aditivos.length === 0 ? (
+              <div className="py-14 text-center">
+                <div className="flex flex-col items-center gap-3 text-slate-400">
+                  <div className="w-14 h-14 rounded-full bg-violet-50 flex items-center justify-center">
+                    <FileSignature className="w-7 h-7 text-violet-300" />
+                  </div>
+                  <p className="text-sm font-medium">Nenhum aditivo registrado</p>
+                  <p className="text-xs max-w-xs">
+                    Registre alterações de valor, prorrogações de prazo, mudanças de escopo e demais aditivos contratuais.
+                  </p>
+                  <Button
+                    size="sm"
+                    onClick={() => { setSelectedAditivo(null); setAditivoOpen(true) }}
+                    className="mt-1 gap-1.5 bg-violet-600 hover:bg-violet-700 text-white border-0"
+                  >
+                    <Plus className="w-3.5 h-3.5" />Registrar Primeiro Aditivo
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-5 space-y-3">
+                {aditivos.map((a) => {
+                  const tipoColor = ADM_ADITIVO_TIPO_COLORS[a.tipo]
+                  const tipoLabel = ADM_ADITIVO_TIPO_LABELS[a.tipo]
+                  const isCanceled = a.status === 'cancelado'
+                  return (
+                    <div
+                      key={a.id}
+                      className={cn(
+                        'border rounded-xl p-4 transition-colors',
+                        isCanceled
+                          ? 'border-slate-100 bg-slate-50 opacity-60'
+                          : 'border-slate-200 bg-white hover:border-slate-300'
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                          {/* Número */}
+                          <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center flex-shrink-0">
+                            <span className="text-sm font-bold text-violet-700">{a.numero_aditivo}º</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <span className={cn(
+                                'text-xs font-semibold px-2 py-0.5 rounded-full border',
+                                tipoColor.bg, tipoColor.text, tipoColor.border
+                              )}>
+                                {tipoLabel}
+                              </span>
+                              {isCanceled && (
+                                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
+                                  Cancelado
+                                </span>
+                              )}
+                              <span className="text-xs text-slate-400">
+                                Assinado em {fmtDate(a.data_assinatura)}
+                              </span>
+                              {a.data_vigencia && (
+                                <span className="text-xs text-slate-400">
+                                  · Vigência: {fmtDate(a.data_vigencia)}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm font-semibold text-slate-900 truncate">{a.objeto}</p>
+                            {a.descricao && (
+                              <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{a.descricao}</p>
+                            )}
+                            {/* Detalhes específicos por tipo */}
+                            {a.tipo === 'valor' && (a.valor_anterior != null || a.valor_novo != null) && (
+                              <div className="flex items-center gap-2 mt-2">
+                                <span className="text-xs text-slate-400">{fmt(a.valor_anterior)}</span>
+                                <span className="text-slate-300">→</span>
+                                <span className="text-sm font-bold text-emerald-700">{fmt(a.valor_novo)}</span>
+                                {a.valor_anterior != null && a.valor_novo != null && a.valor_anterior > 0 && (
+                                  <span className={cn(
+                                    'text-xs font-semibold px-1.5 py-0.5 rounded-full',
+                                    a.valor_novo >= a.valor_anterior ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                                  )}>
+                                    {a.valor_novo >= a.valor_anterior ? '+' : ''}
+                                    {(((a.valor_novo - a.valor_anterior) / a.valor_anterior) * 100).toFixed(2)}%
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {a.tipo === 'prazo' && (a.data_fim_anterior || a.data_fim_nova) && (
+                              <div className="flex items-center gap-2 mt-2">
+                                <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                                <span className="text-xs text-slate-400">{fmtDate(a.data_fim_anterior)}</span>
+                                <span className="text-slate-300">→</span>
+                                <span className="text-sm font-semibold text-amber-700">{fmtDate(a.data_fim_nova)}</span>
+                              </div>
+                            )}
+                            {a.aprovado_por && (
+                              <div className="flex items-center gap-1.5 mt-2">
+                                <User className="w-3 h-3 text-slate-400" />
+                                <span className="text-xs text-slate-400">Aprovado por {a.aprovado_por}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        {/* Ações */}
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <Button
+                            variant="ghost" size="sm"
+                            className="h-7 w-7 p-0 text-slate-400 hover:text-violet-600"
+                            onClick={() => { setSelectedAditivo(a); setAditivoOpen(true) }}
+                            title="Editar aditivo"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost" size="sm"
+                            className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600"
+                            onClick={() => handleDeleteAditivo(a.id)}
+                            disabled={deletingAditivoId === a.id}
+                            title="Remover aditivo"
+                          >
+                            {deletingAditivoId === a.id
+                              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              : <Trash2 className="w-3.5 h-3.5" />}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Resumo */}
+            {aditivos.length > 0 && !loading && (
+              <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex flex-wrap gap-4 text-xs text-slate-500">
+                <span>
+                  <strong className="text-slate-700">{aditivos.filter(a => a.tipo === 'valor').length}</strong> de valor
+                </span>
+                <span>
+                  <strong className="text-slate-700">{aditivos.filter(a => a.tipo === 'prazo').length}</strong> de prazo
+                </span>
+                <span>
+                  <strong className="text-slate-700">{aditivos.filter(a => a.tipo === 'escopo').length}</strong> de escopo
+                </span>
+                <span>
+                  <strong className="text-slate-700">{aditivos.filter(a => a.status === 'cancelado').length}</strong> cancelado(s)
+                </span>
               </div>
             )}
           </div>
@@ -1116,6 +1336,15 @@ export default function AdmContratoDetailPage() {
         contratoId={id} manutencao={selectedManutencao} onSaved={loadAll} />
       <CustoDialog open={custoOpen} onClose={() => setCustoOpen(false)}
         contratoId={id} custo={selectedCusto} onSaved={() => fetchCustos(id).then(setCustos)} />
+      {contrato && (
+        <AditivoDialog
+          open={aditivoOpen}
+          onClose={() => { setAditivoOpen(false); setSelectedAditivo(null) }}
+          contrato={contrato}
+          aditivo={selectedAditivo}
+          onSaved={handleAditivoSaved}
+        />
+      )}
     </div>
   )
 }
