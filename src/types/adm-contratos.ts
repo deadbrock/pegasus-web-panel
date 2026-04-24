@@ -24,6 +24,14 @@ export interface AdmContrato {
   // ── Aprovação (Fase 4) ──────────────────────────────────────────────────────
   aprovado_por?: string | null
   data_aprovacao?: string | null
+  // ── Escopo do Serviço ────────────────────────────────────────────────────────
+  tipo_servico_id?: string | null
+  tipo_servico_nome?: string | null
+  escopo_descricao?: string | null
+  valor_materiais?: number | null
+  per_capita?: number | null
+  valor_mensal_escopo?: number | null
+  quadro_funcionarios?: AdmQuadroFuncionario[]
   // ── Contrato ────────────────────────────────────────────────────────────────
   responsavel?: string | null
   valor_mensal?: number | null
