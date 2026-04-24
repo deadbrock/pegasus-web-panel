@@ -161,13 +161,21 @@ export function ContractFormDialog({ open, onClose, contrato, onSaved }: Contrac
   const totalServico      = totalQuadro + materiaisNum
   const perCapitaCalc     = totalFuncionarios > 0 ? totalServico / totalFuncionarios : 0
 
-  // Sincronizar valor_mensal_escopo e per_capita calculados
+  // Sincronizar valor_mensal_escopo e per_capita automaticamente
   useEffect(() => {
-    if (quadro.length > 0 || materiaisNum > 0) {
-      setForm((prev) => ({ ...prev, valor_mensal_escopo: totalServico || null }))
-    }
+    setForm((prev) => ({
+      ...prev,
+      // total mensal = mão de obra + materiais
+      ...(quadro.length > 0 || materiaisNum > 0
+        ? { valor_mensal_escopo: totalServico || null }
+        : {}),
+      // per capita = custo de mão de obra por funcionário
+      ...(totalFuncionarios > 0
+        ? { per_capita: Math.round((totalQuadro / totalFuncionarios) * 100) / 100 }
+        : {}),
+    }))
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [totalServico])
+  }, [totalQuadro, totalFuncionarios, totalServico])
 
   // ── Tipo de serviço (multi-seleção) ─────────────────────────────────────────
   const toggleTipoServico = (id: string, nome: string) => {

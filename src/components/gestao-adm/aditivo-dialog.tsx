@@ -213,13 +213,21 @@ export function AditivoDialog({ open, onClose, contrato, aditivo, onSaved }: Pro
   // Per capita automático
   const perCapitaCalc = totalFuncionarios > 0 ? totalServico / totalFuncionarios : 0
 
-  // ── Sincronizar valor_mensal_total automaticamente ──────────────────────────
+  // ── Sincronizar valor_mensal_total e per_capita automaticamente ──────────────
   useEffect(() => {
-    if (quadro.length > 0 || materiaisNum > 0) {
-      setForm((prev) => ({ ...prev, valor_mensal_total: totalServico.toFixed(2) }))
-    }
+    setForm((prev) => ({
+      ...prev,
+      // total mensal = mão de obra + materiais
+      ...(quadro.length > 0 || materiaisNum > 0
+        ? { valor_mensal_total: totalServico.toFixed(2) }
+        : {}),
+      // per capita = custo de mão de obra por funcionário
+      ...(totalFuncionarios > 0
+        ? { per_capita: String(Math.round((totalQuadro / totalFuncionarios) * 100) / 100) }
+        : {}),
+    }))
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [totalServico])
+  }, [totalQuadro, totalFuncionarios, totalServico])
 
   // ── Novo tipo de serviço ────────────────────────────────────────────────────
   const handleSaveTipo = async () => {
