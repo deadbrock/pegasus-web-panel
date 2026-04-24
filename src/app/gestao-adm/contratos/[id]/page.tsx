@@ -10,7 +10,7 @@ import {
   ShieldCheck, ShieldAlert, ShieldX, Activity,
   Receipt, Paperclip, ToggleLeft, ToggleRight,
   FileIcon, ImageIcon, Download, Upload, X as XIcon,
-  FilePlus2, FileSignature, Ban,
+  FilePlus2, FileSignature, Ban, Settings2, Users2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ContractFormDialog } from '@/components/gestao-adm/contract-form-dialog'
@@ -47,6 +47,7 @@ import {
   ADM_MANUTENCAO_TIPO_LABELS, ADM_SAUDE_CONFIG,
   ADM_CUSTO_TIPO_LABELS, ADM_CUSTO_TIPO_COLORS, ADM_CUSTO_PERIODICIDADE_LABELS,
   ADM_ADITIVO_TIPO_LABELS, ADM_ADITIVO_TIPO_COLORS,
+  ADM_TURNO_LABELS, quadroItemTotal,
   custoToMensal,
 } from '@/types/adm-contratos'
 import { fetchAditivos, createAditivo, deleteAditivo } from '@/services/admAditivosService'
@@ -72,9 +73,10 @@ function SkeletonBlock({ className }: { className?: string }) {
 }
 
 // ─── Tab System ────────────────────────────────────────────────────────────────
-type TabId = 'geral' | 'financeiro' | 'reajustes' | 'aditivos' | 'manutencao' | 'custos' | 'anexos' | 'historico'
+type TabId = 'geral' | 'escopo' | 'financeiro' | 'reajustes' | 'aditivos' | 'manutencao' | 'custos' | 'anexos' | 'historico'
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'geral',      label: 'Visão Geral',  icon: FileText },
+  { id: 'escopo',     label: 'Escopo',        icon: Settings2 },
   { id: 'financeiro', label: 'Financeiro',    icon: TrendingUp },
   { id: 'reajustes',  label: 'Reajustes',     icon: RotateCcw },
   { id: 'aditivos',   label: 'Aditivos',      icon: FilePlus2 },
@@ -582,6 +584,147 @@ export default function AdmContratoDetailPage() {
               </div>
             )}
 
+          </div>
+        )}
+
+        {/* ─── Aba: Escopo ────────────────────────────────────────────────────── */}
+        {tab === 'escopo' && (
+          <div className="p-5 space-y-6">
+
+            {/* Cabeçalho + botão editar */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Settings2 className="w-4 h-4 text-violet-500" />
+                <span className="text-sm font-semibold text-slate-800">Escopo do Serviço</span>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => setEditOpen(true)} className="gap-1.5 h-8">
+                <Edit className="w-3.5 h-3.5" />Editar Escopo
+              </Button>
+            </div>
+
+            {!contrato || (!contrato.tipos_servico_nomes?.length && !contrato.escopo_descricao && !contrato.quadro_funcionarios?.length) ? (
+              <div className="py-14 text-center">
+                <div className="flex flex-col items-center gap-3 text-slate-400">
+                  <div className="w-14 h-14 rounded-full bg-violet-50 flex items-center justify-center">
+                    <Settings2 className="w-7 h-7 text-violet-300" />
+                  </div>
+                  <p className="text-sm font-medium">Nenhum escopo cadastrado</p>
+                  <p className="text-xs max-w-xs">Clique em "Editar Escopo" para definir tipo de serviço, quadro de funcionários e demais detalhes.</p>
+                  <Button size="sm" variant="outline" onClick={() => setEditOpen(true)} className="mt-1 gap-1.5">
+                    <Edit className="w-3.5 h-3.5" />Cadastrar Escopo
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+
+                {/* Tipos de serviço */}
+                {(contrato.tipos_servico_nomes ?? []).length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Tipo(s) de Serviço</p>
+                    <div className="flex flex-wrap gap-2">
+                      {(contrato.tipos_servico_nomes ?? []).map((nome) => (
+                        <span key={nome} className="px-3 py-1.5 rounded-lg bg-violet-100 text-violet-800 border border-violet-200 text-sm font-semibold">
+                          {nome}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Descrição do escopo */}
+                {contrato.escopo_descricao && (
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Descrição do Escopo</p>
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                      <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{contrato.escopo_descricao}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Quadro de funcionários */}
+                {(contrato.quadro_funcionarios ?? []).length > 0 && (() => {
+                  const quadro = contrato.quadro_funcionarios!
+                  const totalFunc = quadro.reduce((s, r) => s + r.quantidade, 0)
+                  const totalMO   = quadro.reduce((s, r) => s + quadroItemTotal(r), 0)
+                  return (
+                    <div>
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+                        <Users2 className="w-3.5 h-3.5" />Quadro de Funcionários
+                      </p>
+                      <div className="overflow-x-auto rounded-xl border border-slate-200">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="bg-slate-50 border-b border-slate-100">
+                              {['Função', 'Turno', 'Quantidade', 'Valor Unitário', 'Total'].map((h) => (
+                                <th key={h} className="px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wide text-left last:text-right">{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {quadro.map((r, i) => (
+                              <tr key={i} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                                <td className="px-4 py-3 font-medium text-slate-800">{r.funcao || '—'}</td>
+                                <td className="px-4 py-3">
+                                  <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+                                    {ADM_TURNO_LABELS[r.turno] ?? r.turno}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <span className="font-bold text-violet-700">{r.quantidade}</span>
+                                </td>
+                                <td className="px-4 py-3 text-slate-600 tabular-nums">{fmt(r.valor_unitario)}</td>
+                                <td className="px-4 py-3 text-right font-semibold text-slate-800 tabular-nums">{fmt(quadroItemTotal(r))}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                          <tfoot>
+                            <tr className="bg-violet-50 border-t border-violet-100">
+                              <td className="px-4 py-2.5 text-xs font-semibold text-violet-700" colSpan={2}>Total</td>
+                              <td className="px-4 py-2.5 text-center font-bold text-violet-700">{totalFunc}</td>
+                              <td />
+                              <td className="px-4 py-2.5 text-right font-bold text-violet-800 tabular-nums">{fmt(totalMO)}</td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {/* Cards financeiros do escopo */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    {
+                      label: 'Mão de Obra',
+                      value: (contrato.quadro_funcionarios ?? []).reduce((s, r) => s + quadroItemTotal(r), 0),
+                      color: 'text-violet-700', bg: 'bg-violet-50', border: 'border-violet-100',
+                    },
+                    {
+                      label: 'Materiais',
+                      value: contrato.valor_materiais ?? 0,
+                      color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-100',
+                    },
+                    {
+                      label: 'Per Capita',
+                      value: contrato.per_capita ?? 0,
+                      color: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-100',
+                    },
+                    {
+                      label: 'Total Mensal',
+                      value: contrato.valor_mensal_escopo ?? 0,
+                      color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-100',
+                    },
+                  ].map((card) => (
+                    <div key={card.label} className={`rounded-xl border ${card.border} ${card.bg} p-4 text-center`}>
+                      <p className={`text-[11px] font-medium mb-1 ${card.color} opacity-70`}>{card.label}</p>
+                      <p className={`text-lg font-bold ${card.color}`}>{card.value > 0 ? fmt(card.value) : '—'}</p>
+                    </div>
+                  ))}
+                </div>
+
+              </div>
+            )}
           </div>
         )}
 

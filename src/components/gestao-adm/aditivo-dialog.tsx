@@ -65,8 +65,8 @@ interface FormState {
   data_fim_nova: string
   status: 'ativo' | 'cancelado'
   // escopo
-  tipo_servico_id: string
-  tipo_servico_nome: string
+  tipos_servico_ids: string[]
+  tipos_servico_nomes: string[]
   escopo_descricao: string
   valor_materiais: string
   per_capita: string
@@ -86,8 +86,8 @@ const emptyForm = (nextNum: number, contrato: AdmContrato): FormState => ({
   data_fim_anterior: contrato.data_fim ?? '',
   data_fim_nova:     '',
   status:            'ativo',
-  tipo_servico_id:   '',
-  tipo_servico_nome: '',
+  tipos_servico_ids:   [],
+  tipos_servico_nomes: [],
   escopo_descricao:  '',
   valor_materiais:   '',
   per_capita:        '',
@@ -158,8 +158,8 @@ export function AditivoDialog({ open, onClose, contrato, aditivo, onSaved }: Pro
         data_fim_anterior: aditivo.data_fim_anterior ?? '',
         data_fim_nova:     aditivo.data_fim_nova ?? '',
         status:            aditivo.status,
-        tipo_servico_id:   aditivo.tipo_servico_id ?? '',
-        tipo_servico_nome: aditivo.tipo_servico_nome ?? '',
+        tipos_servico_ids:   aditivo.tipos_servico_ids   ?? [],
+        tipos_servico_nomes: aditivo.tipos_servico_nomes ?? [],
         escopo_descricao:  aditivo.escopo_descricao ?? '',
         valor_materiais:   aditivo.valor_materiais?.toString() ?? '',
         per_capita:        aditivo.per_capita?.toString() ?? '',
@@ -229,20 +229,26 @@ export function AditivoDialog({ open, onClose, contrato, aditivo, onSaved }: Pro
     setSavingTipo(false)
     if (created) {
       setTiposServico((prev) => [...prev, created].sort((a, b) => a.nome.localeCompare(b.nome)))
-      setForm((prev) => ({ ...prev, tipo_servico_id: created.id, tipo_servico_nome: created.nome }))
+      setForm((prev) => ({
+        ...prev,
+        tipos_servico_ids:   [...(prev.tipos_servico_ids ?? []), created.id],
+        tipos_servico_nomes: [...(prev.tipos_servico_nomes ?? []), created.nome],
+      }))
       setAddingTipo(false)
       setNovoTipoNome('')
       setNovoTipoDesc('')
     }
   }
 
-  const handleSelectTipo = (id: string) => {
-    const t = tiposServico.find((x) => x.id === id)
-    setForm((prev) => ({
-      ...prev,
-      tipo_servico_id:   t?.id ?? '',
-      tipo_servico_nome: t?.nome ?? '',
-    }))
+  const toggleTipoServico = (id: string, nome: string) => {
+    setForm((prev) => {
+      const ids   = prev.tipos_servico_ids   ?? []
+      const nomes = prev.tipos_servico_nomes ?? []
+      if (ids.includes(id)) {
+        return { ...prev, tipos_servico_ids: ids.filter((x) => x !== id), tipos_servico_nomes: nomes.filter((x) => x !== nome) }
+      }
+      return { ...prev, tipos_servico_ids: [...ids, id], tipos_servico_nomes: [...nomes, nome] }
+    })
   }
 
   // ── Validação ───────────────────────────────────────────────────────────────
@@ -276,8 +282,8 @@ export function AditivoDialog({ open, onClose, contrato, aditivo, onSaved }: Pro
       data_fim_anterior: form.tipo === 'prazo' ? (form.data_fim_anterior || null) : null,
       data_fim_nova:     form.tipo === 'prazo' ? (form.data_fim_nova || null)     : null,
       // escopo
-      tipo_servico_id:   form.tipo_servico_id || null,
-      tipo_servico_nome: form.tipo_servico_nome || null,
+      tipos_servico_ids:   form.tipos_servico_ids?.length   ? form.tipos_servico_ids   : null,
+      tipos_servico_nomes: form.tipos_servico_nomes?.length ? form.tipos_servico_nomes : null,
       escopo_descricao:  form.escopo_descricao.trim() || null,
       valor_materiais:   parseNum(form.valor_materiais),
       per_capita:        form.per_capita ? parseNum(form.per_capita) : (perCapitaCalc > 0 ? perCapitaCalc : null),
@@ -481,27 +487,32 @@ export function AditivoDialog({ open, onClose, contrato, aditivo, onSaved }: Pro
 
                   {/* Grid de tipos */}
                   <div className="flex flex-wrap gap-2 mb-2">
-                    {tiposServico.map((t) => (
+                  <p className="text-xs text-slate-400 mb-1 w-full">
+                    Selecione um ou mais tipos. Clique novamente para desmarcar.
+                  </p>
+                  {tiposServico.map((t) => {
+                    const sel = (form.tipos_servico_ids ?? []).includes(t.id)
+                    return (
                       <button key={t.id} type="button"
-                        onClick={() => handleSelectTipo(t.id)}
+                        onClick={() => toggleTipoServico(t.id, t.nome)}
                         className={cn(
                           'flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-all',
-                          form.tipo_servico_id === t.id
+                          sel
                             ? 'border-violet-500 bg-violet-100 text-violet-800'
                             : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
                         )}>
-                        {form.tipo_servico_id === t.id && <Check className="w-3.5 h-3.5" />}
+                        {sel && <Check className="w-3.5 h-3.5" />}
                         {t.nome}
                       </button>
-                    ))}
-                    {/* Limpar seleção */}
-                    {form.tipo_servico_id && (
-                      <button type="button"
-                        onClick={() => setForm((p) => ({ ...p, tipo_servico_id: '', tipo_servico_nome: '' }))}
-                        className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-400 hover:text-rose-500 hover:border-rose-200 transition-colors">
-                        <X className="w-3 h-3" />Limpar
-                      </button>
-                    )}
+                    )
+                  })}
+                  {(form.tipos_servico_ids ?? []).length > 0 && (
+                    <button type="button"
+                      onClick={() => setForm((p) => ({ ...p, tipos_servico_ids: [], tipos_servico_nomes: [] }))}
+                      className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-400 hover:text-rose-500 hover:border-rose-200 transition-colors">
+                      <X className="w-3 h-3" />Limpar
+                    </button>
+                  )}
                   </div>
 
                   {/* Adicionar novo tipo */}

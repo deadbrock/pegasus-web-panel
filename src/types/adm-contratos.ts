@@ -25,8 +25,8 @@ export interface AdmContrato {
   aprovado_por?: string | null
   data_aprovacao?: string | null
   // ── Escopo do Serviço ────────────────────────────────────────────────────────
-  tipo_servico_id?: string | null
-  tipo_servico_nome?: string | null
+  tipos_servico_ids?: string[] | null    // multi-seleção
+  tipos_servico_nomes?: string[] | null
   escopo_descricao?: string | null
   valor_materiais?: number | null
   per_capita?: number | null
@@ -469,8 +469,8 @@ export interface AdmAditivo {
   aprovado_por?: string | null
   status: AdmAditivoStatus
   // Escopo do serviço
-  tipo_servico_id?: string | null
-  tipo_servico_nome?: string | null
+  tipos_servico_ids?: string[] | null
+  tipos_servico_nomes?: string[] | null
   escopo_descricao?: string | null
   valor_materiais?: number | null
   per_capita?: number | null

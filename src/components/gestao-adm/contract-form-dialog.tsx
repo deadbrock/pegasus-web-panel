@@ -58,7 +58,7 @@ const emptyForm = (): AdmContratoInsert => ({
   responsavel: '', valor_mensal: undefined,
   data_inicio: '', data_fim: '',
   status: 'ativo', observacoes: '',
-  tipo_servico_id: null, tipo_servico_nome: null,
+  tipos_servico_ids: [], tipos_servico_nomes: [],
   escopo_descricao: null, valor_materiais: null,
   per_capita: null, valor_mensal_escopo: null,
   quadro_funcionarios: [],
@@ -124,9 +124,9 @@ export function ContractFormDialog({ open, onClose, contrato, onSaved }: Contrac
         data_fim: contrato.data_fim ?? '',
         status: contrato.status ?? 'ativo',
         observacoes: contrato.observacoes ?? '',
-        tipo_servico_id:    contrato.tipo_servico_id    ?? null,
-        tipo_servico_nome:  contrato.tipo_servico_nome  ?? null,
-        escopo_descricao:   contrato.escopo_descricao   ?? null,
+        tipos_servico_ids:   contrato.tipos_servico_ids   ?? [],
+        tipos_servico_nomes: contrato.tipos_servico_nomes ?? [],
+        escopo_descricao:    contrato.escopo_descricao   ?? null,
         valor_materiais:    contrato.valor_materiais    ?? null,
         per_capita:         contrato.per_capita         ?? null,
         valor_mensal_escopo:contrato.valor_mensal_escopo?? null,
@@ -169,10 +169,16 @@ export function ContractFormDialog({ open, onClose, contrato, onSaved }: Contrac
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalServico])
 
-  // ── Tipo de serviço ──────────────────────────────────────────────────────────
-  const handleSelectTipo = (id: string) => {
-    const t = tiposServico.find((x) => x.id === id)
-    setForm((prev) => ({ ...prev, tipo_servico_id: t?.id ?? null, tipo_servico_nome: t?.nome ?? null }))
+  // ── Tipo de serviço (multi-seleção) ─────────────────────────────────────────
+  const toggleTipoServico = (id: string, nome: string) => {
+    setForm((prev) => {
+      const ids   = prev.tipos_servico_ids   ?? []
+      const nomes = prev.tipos_servico_nomes ?? []
+      if (ids.includes(id)) {
+        return { ...prev, tipos_servico_ids: ids.filter((x) => x !== id), tipos_servico_nomes: nomes.filter((x) => x !== nome) }
+      }
+      return { ...prev, tipos_servico_ids: [...ids, id], tipos_servico_nomes: [...nomes, nome] }
+    })
   }
 
   const handleSaveTipo = async () => {
@@ -182,7 +188,7 @@ export function ContractFormDialog({ open, onClose, contrato, onSaved }: Contrac
     setSavingTipo(false)
     if (created) {
       setTiposServico((p) => [...p, created].sort((a, b) => a.nome.localeCompare(b.nome)))
-      setForm((prev) => ({ ...prev, tipo_servico_id: created.id, tipo_servico_nome: created.nome }))
+      toggleTipoServico(created.id, created.nome)
       setAddingTipo(false)
       setNovoTipoNome('')
       setNovoTipoDesc('')
@@ -232,8 +238,8 @@ export function ContractFormDialog({ open, onClose, contrato, onSaved }: Contrac
         responsavel:         form.responsavel         || null,
         observacoes:         form.observacoes         || null,
         // escopo
-        tipo_servico_id:     form.tipo_servico_id     || null,
-        tipo_servico_nome:   form.tipo_servico_nome   || null,
+        tipos_servico_ids:   form.tipos_servico_ids?.length   ? form.tipos_servico_ids   : null,
+        tipos_servico_nomes: form.tipos_servico_nomes?.length ? form.tipos_servico_nomes : null,
         escopo_descricao:    form.escopo_descricao    || null,
         valor_materiais:     form.valor_materiais     || null,
         per_capita:          form.per_capita ? Number(form.per_capita) : (perCapitaCalc > 0 ? perCapitaCalc : null),
@@ -383,26 +389,39 @@ export function ContractFormDialog({ open, onClose, contrato, onSaved }: Contrac
               <div className="space-y-5">
                 <SectionTitle icon={Settings2} title="Tipo de Serviço" />
 
-                {/* Chips de tipo */}
-                <div className="flex flex-wrap gap-2">
-                  {tiposServico.map((t) => (
-                    <button key={t.id} type="button" onClick={() => handleSelectTipo(t.id)}
-                      className={cn(
-                        'flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-all',
-                        form.tipo_servico_id === t.id
-                          ? 'border-violet-500 bg-violet-100 text-violet-800'
-                          : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                      )}>
-                      {form.tipo_servico_id === t.id && <Check className="w-3.5 h-3.5" />}
-                      {t.nome}
-                    </button>
-                  ))}
-                  {form.tipo_servico_id && (
-                    <button type="button"
-                      onClick={() => setForm((p) => ({ ...p, tipo_servico_id: null, tipo_servico_nome: null }))}
-                      className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-400 hover:text-rose-500 hover:border-rose-200 transition-colors">
-                      <X className="w-3 h-3" />Limpar
-                    </button>
+                {/* Multi-seleção de tipos */}
+                <div>
+                  <p className="text-xs text-slate-400 mb-2">
+                    Selecione um ou mais tipos de serviço. Clique novamente para desmarcar.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {tiposServico.map((t) => {
+                      const sel = (form.tipos_servico_ids ?? []).includes(t.id)
+                      return (
+                        <button key={t.id} type="button" onClick={() => toggleTipoServico(t.id, t.nome)}
+                          className={cn(
+                            'flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-all',
+                            sel
+                              ? 'border-violet-500 bg-violet-100 text-violet-800'
+                              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                          )}>
+                          {sel && <Check className="w-3.5 h-3.5" />}
+                          {t.nome}
+                        </button>
+                      )
+                    })}
+                    {(form.tipos_servico_ids ?? []).length > 0 && (
+                      <button type="button"
+                        onClick={() => setForm((p) => ({ ...p, tipos_servico_ids: [], tipos_servico_nomes: [] }))}
+                        className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-400 hover:text-rose-500 hover:border-rose-200 transition-colors">
+                        <X className="w-3 h-3" />Limpar tudo
+                      </button>
+                    )}
+                  </div>
+                  {(form.tipos_servico_ids ?? []).length > 0 && (
+                    <p className="text-xs text-violet-600 font-medium mt-2">
+                      {(form.tipos_servico_nomes ?? []).join(', ')} selecionado(s)
+                    </p>
                   )}
                 </div>
 
@@ -684,7 +703,7 @@ export function ContractFormDialog({ open, onClose, contrato, onSaved }: Contrac
                       ['Cliente',       form.cliente_nome || '—'],
                       ['Responsável',   form.responsavel || '—'],
                       ['Valor Mensal',  form.valor_mensal ? fmt(Number(form.valor_mensal)) : '—'],
-                      ['Tipo Serviço',  form.tipo_servico_nome || '—'],
+                      ['Tipo(s) Serviço', (form.tipos_servico_nomes ?? []).join(', ') || '—'],
                       ['Total Escopo',  form.valor_mensal_escopo ? fmt(Number(form.valor_mensal_escopo)) : '—'],
                       ['Funcionários',  totalFuncionarios > 0 ? `${totalFuncionarios} pessoa(s)` : '—'],
                     ].map(([k, v]) => (
