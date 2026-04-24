@@ -39,19 +39,19 @@ interface ContratoRow {
   saude: AdmSaudeContrato
   // financeiro do escopo
   receitaMensal:  number   // valor_mensal
-  custoEscopo:    number   // valor_mensal_escopo (MO + materiais)
+  custoEscopo:    number   // alias de custoMaterial — apenas materiais são considerados custo
   custoMaterial:  number   // valor_materiais
-  lucroMensal:    number   // receita - custoEscopo
+  lucroMensal:    number   // receita - custoMaterial
   margem:         number   // lucro / receita * 100
   totalFunc:      number   // soma de quadro_funcionarios[].quantidade
   perCapita:      number   // per_capita
 }
 
 function computeRow(c: AdmContrato): ContratoRow {
-  const receitaMensal = c.valor_mensal ?? 0
-  const custoEscopo   = c.valor_mensal_escopo ?? 0
-  const custoMaterial = c.valor_materiais ?? 0
-  const lucroMensal   = receitaMensal - custoEscopo
+  const receitaMensal = c.valor_mensal   ?? 0
+  const custoMaterial = c.valor_materiais ?? 0   // único item considerado custo
+  const custoEscopo   = custoMaterial             // alias para manter o resto do código
+  const lucroMensal   = receitaMensal - custoMaterial
   const margem        = receitaMensal > 0 ? (lucroMensal / receitaMensal) * 100 : 0
   const totalFunc     = (c.quadro_funcionarios ?? []).reduce((s, r) => s + (r.quantidade ?? 0), 0)
   const perCapita     = c.per_capita ?? 0
@@ -197,12 +197,12 @@ export default function AdmAnalyticsPage() {
   // 2. Receita vs Custo por contrato (top 10 por receita)
   const chartReceitaCusto = useMemo(() =>
     [...sorted]
-      .filter(r => r.receitaMensal > 0 || r.custoEscopo > 0)
+      .filter(r => r.receitaMensal > 0 || r.custoMaterial > 0)
       .slice(0, 10)
       .map(r => ({
-        name:    abbrev(r.contrato.nome),
-        Receita: r.receitaMensal,
-        Custo:   r.custoEscopo,
+        name:      abbrev(r.contrato.nome),
+        Receita:   r.receitaMensal,
+        Materiais: r.custoMaterial,
       })),
   [sorted])
 
@@ -275,12 +275,12 @@ export default function AdmAnalyticsPage() {
             icon: TrendingUp, color: 'text-violet-600', bg: 'bg-violet-50',
           },
           {
-            label: 'Custo de Escopo', sub: 'MO + Materiais',
+            label: 'Custo de Materiais', sub: 'Insumos dos contratos ativos',
             value: fmtK(kpis.custoMensalTotal),
             icon: TrendingDown, color: 'text-amber-600', bg: 'bg-amber-50',
           },
           {
-            label: 'Lucro Mensal', sub: 'Receita − Custo',
+            label: 'Lucro Mensal', sub: 'Receita − Materiais',
             value: (kpis.lucroMensalTotal >= 0 ? '+' : '') + fmtK(kpis.lucroMensalTotal),
             icon: DollarSign,
             color: kpis.lucroMensalTotal >= 0 ? 'text-emerald-600' : 'text-rose-600',
@@ -417,8 +417,8 @@ export default function AdmAnalyticsPage() {
         {/* Receita vs Custo por Contrato */}
         <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
           <div>
-            <h3 className="text-sm font-semibold text-slate-800">Receita vs Custo Mensal</h3>
-            <p className="text-xs text-slate-400 mt-0.5">Valor mensal do contrato vs custo de escopo (top 10)</p>
+            <h3 className="text-sm font-semibold text-slate-800">Receita vs Custo de Materiais</h3>
+            <p className="text-xs text-slate-400 mt-0.5">Valor mensal do contrato vs custo de materiais (top 10)</p>
           </div>
           {loading ? (
             <div className="h-56 bg-slate-50 rounded-lg animate-pulse" />
@@ -435,8 +435,8 @@ export default function AdmAnalyticsPage() {
                 <Tooltip content={<TooltipCurrency />} />
                 <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
                   formatter={(v) => <span className="text-slate-600">{v}</span>} />
-                <Bar dataKey="Receita" fill="#7c3aed" radius={[3, 3, 0, 0]} maxBarSize={26} />
-                <Bar dataKey="Custo"   fill="#f59e0b" radius={[3, 3, 0, 0]} maxBarSize={26} />
+                <Bar dataKey="Receita"   fill="#7c3aed" radius={[3, 3, 0, 0]} maxBarSize={26} />
+                <Bar dataKey="Materiais" fill="#f59e0b" radius={[3, 3, 0, 0]} maxBarSize={26} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -505,10 +505,10 @@ export default function AdmAnalyticsPage() {
                     <SortIcon k="receita" /> Receita/Mês
                   </button>
                 </th>
-                {/* Custo escopo */}
+                {/* Custo materiais */}
                 <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   <button className="flex items-center gap-1 ml-auto hover:text-slate-800 transition-colors" onClick={() => toggleSort('custo')}>
-                    <SortIcon k="custo" /> Custo Escopo
+                    <SortIcon k="custo" /> Materiais
                   </button>
                 </th>
                 {/* Lucro */}
