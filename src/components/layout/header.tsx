@@ -32,7 +32,7 @@ const breadcrumbMap: Record<string, { label: string; parent?: string }> = {
   '/dashboard/financeiro':           { label: 'Financeiro',       parent: 'Financeiro' },
   '/dashboard/estoque':              { label: 'Estoque',          parent: 'Operações' },
   '/dashboard/contratos':            { label: 'Contratos',        parent: 'Operações' },
-  '/dashboard/pedidos-materiais':    { label: 'Ped. de Materiais', parent: 'Operações' },
+  '/operacional':                    { label: 'Operacional',        parent: 'Operações' },
   '/dashboard/supervisores':         { label: 'Supervisores',     parent: 'Administração' },
   '/dashboard/configuracoes-periodo':{ label: 'Período de Pedidos',parent: 'Administração' },
   '/dashboard/configuracoes':        { label: 'Configurações',    parent: 'Administração' },

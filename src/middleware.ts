@@ -3,6 +3,12 @@ import { NextRequest, NextResponse } from 'next/server'
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // Portal operacional (encarregados/supervisores): sem redirect, a página
+  // controla autenticação internamente com LoginScreen.
+  if (pathname.startsWith('/operacional')) {
+    return NextResponse.next()
+  }
+
   // Rotas protegidas (verificação real de role/auth acontece nos guards client-side)
   const protectedPaths = ['/dashboard', '/gestao-adm']
   const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path))

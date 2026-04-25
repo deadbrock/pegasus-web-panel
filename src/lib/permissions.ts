@@ -77,7 +77,7 @@ export const ALL_MODULES: ModulePermission[] = [
     id: 'pedidos-materiais',
     name: 'Pedidos de Materiais',
     icon: 'ClipboardList',
-    path: '/dashboard/pedidos-materiais',
+    path: '/operacional',
     allowedRoles: ['admin', 'diretor', 'gestor', 'logistica', 'supervisor', 'encarregado'],
   },
   {
@@ -260,7 +260,7 @@ export function getDefaultRouteForRole(role: string): string {
       return '/gestao-adm/contratos';
     case 'encarregado':
     case 'supervisor':
-      return '/dashboard/pedidos-materiais';
+      return '/operacional';
     default:
       return '/dashboard';
   }
@@ -268,6 +268,11 @@ export function getDefaultRouteForRole(role: string): string {
 
 export function canAccessRoute(userRole: string, path: string): boolean {
   if (path === '/login' || path === '/' || path.startsWith('/_next')) {
+    return true;
+  }
+
+  // Portal operacional: qualquer autenticado pode acessar
+  if (path.startsWith('/operacional')) {
     return true;
   }
 

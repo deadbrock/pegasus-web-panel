@@ -53,7 +53,7 @@ const moduleGroups: ModuleGroup[] = [
     icon: Briefcase,
     modules: [
       { name: 'Pedidos', path: '/dashboard/pedidos', icon: ShoppingCart },
-      { name: 'Ped. de Materiais', path: '/dashboard/pedidos-materiais', icon: PackageSearch },
+      { name: 'Ped. de Materiais', path: '/operacional', icon: PackageSearch },
       { name: 'Estoque', path: '/dashboard/estoque', icon: Package },
       { name: 'Contratos', path: '/dashboard/contratos', icon: FileText },
       { name: 'Rastreamento', path: '/dashboard/rastreamento', icon: MapPin },
