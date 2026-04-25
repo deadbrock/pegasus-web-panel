@@ -1,325 +1,378 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
-import { Plus, UserPlus, Search, Mail, Shield, Trash2, Eye, EyeOff } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
-import { type ContractRecord, updateContract } from '@/services/contractsService'
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  Copy,
+  KeyRound,
+  Loader2,
+  Plus,
+  Search,
+  Shield,
+  Trash2,
+  UserPlus,
+  Users,
+  X,
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
 
-type Supervisor = {
+// ─── Tipos ────────────────────────────────────────────────────────────────────
+
+interface PortalSupervisor {
   id: string
-  email: string
   nome: string
-  status: 'ativo' | 'inativo'
+  telefone?: string | null
+  setor?: string | null
+  ativo: boolean
   created_at: string
-  total_pedidos?: number
+  encarregados?: PortalEncarregado[]
 }
 
+interface PortalEncarregado {
+  id: string
+  supervisor_id: string
+  nome: string
+  telefone?: string | null
+  setor?: string | null
+  ativo: boolean
+  created_at: string
+}
+
+// ─── Componente: Card de Supervisor ──────────────────────────────────────────
+function SupervisorCard({
+  supervisor,
+  onToggleAtivo,
+  onDelete,
+  onAddEncarregado,
+  onDeleteEncarregado,
+  onToggleEncarregadoAtivo,
+  onRegenerarCodigo,
+}: {
+  supervisor: PortalSupervisor
+  onToggleAtivo: (sup: PortalSupervisor) => void
+  onDelete: (sup: PortalSupervisor) => void
+  onAddEncarregado: (sup: PortalSupervisor) => void
+  onDeleteEncarregado: (enc: PortalEncarregado) => void
+  onToggleEncarregadoAtivo: (enc: PortalEncarregado) => void
+  onRegenerarCodigo: (sup: PortalSupervisor) => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const encarregados = supervisor.encarregados ?? []
+  const ativos = encarregados.filter((e) => e.ativo).length
+
+  return (
+    <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
+      {/* Header do supervisor */}
+      <div
+        className="flex items-center gap-4 p-4 cursor-pointer hover:bg-slate-50 transition-colors select-none"
+        onClick={() => setExpanded((v) => !v)}
+      >
+        <div className={cn(
+          'w-11 h-11 rounded-xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0',
+          supervisor.ativo ? 'bg-gradient-to-br from-emerald-500 to-emerald-700' : 'bg-slate-300'
+        )}>
+          {supervisor.nome.charAt(0).toUpperCase()}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-slate-900">{supervisor.nome}</span>
+            <Badge variant={supervisor.ativo ? 'default' : 'secondary'} className="text-[10px]">
+              {supervisor.ativo ? 'Ativo' : 'Inativo'}
+            </Badge>
+          </div>
+          {supervisor.setor && <p className="text-sm text-slate-500">{supervisor.setor}</p>}
+          {supervisor.telefone && <p className="text-xs text-slate-400">{supervisor.telefone}</p>}
+          <p className="text-xs text-slate-400 mt-0.5">
+            {ativos} encarregado{ativos !== 1 ? 's' : ''} ativo{ativos !== 1 ? 's' : ''}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1"
+            onClick={(e) => { e.stopPropagation(); onRegenerarCodigo(supervisor) }}>
+            <KeyRound className="w-3 h-3" />Código
+          </Button>
+          <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); onToggleAtivo(supervisor) }}>
+            {supervisor.ativo ? 'Desativar' : 'Ativar'}
+          </Button>
+          <Button variant="ghost" size="sm" className="text-rose-600 hover:text-rose-700"
+            onClick={(e) => { e.stopPropagation(); onDelete(supervisor) }}>
+            <Trash2 className="w-4 h-4" />
+          </Button>
+          {expanded
+            ? <ChevronDown className="w-4 h-4 text-slate-400" />
+            : <ChevronRight className="w-4 h-4 text-slate-400" />}
+        </div>
+      </div>
+
+      {/* Encarregados */}
+      {expanded && (
+        <div className="border-t border-slate-100 bg-slate-50 px-4 py-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5" />
+              Encarregados ({encarregados.length})
+            </p>
+            <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
+              onClick={() => onAddEncarregado(supervisor)}>
+              <Plus className="w-3 h-3" />Adicionar
+            </Button>
+          </div>
+
+          {encarregados.length === 0 ? (
+            <div className="text-center py-6 text-slate-400">
+              <Users className="w-6 h-6 mx-auto mb-1 text-slate-300" />
+              <p className="text-sm">Nenhum encarregado cadastrado</p>
+              <p className="text-xs mt-0.5">Adicione os encarregados deste supervisor</p>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {encarregados.map((enc) => (
+                <div key={enc.id}
+                  className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg px-3 py-2.5">
+                  <div className={cn(
+                    'w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0',
+                    enc.ativo ? 'bg-blue-500' : 'bg-slate-300'
+                  )}>
+                    {enc.nome.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-800 truncate">{enc.nome}</p>
+                    {enc.setor && <p className="text-xs text-slate-400 truncate">{enc.setor}</p>}
+                    {enc.telefone && <p className="text-xs text-slate-400">{enc.telefone}</p>}
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <Badge variant={enc.ativo ? 'default' : 'secondary'} className="text-[10px]">
+                      {enc.ativo ? 'Ativo' : 'Inativo'}
+                    </Badge>
+                    <button className="p-1 rounded-md text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                      title={enc.ativo ? 'Desativar' : 'Ativar'}
+                      onClick={() => onToggleEncarregadoAtivo(enc)}>
+                      {enc.ativo
+                        ? <X className="w-3.5 h-3.5" />
+                        : <CheckCircle2 className="w-3.5 h-3.5" />}
+                    </button>
+                    <button className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                      title="Remover"
+                      onClick={() => onDeleteEncarregado(enc)}>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Página Principal ─────────────────────────────────────────────────────────
 export default function SupervisoresPage() {
   const { toast } = useToast()
+  const [supervisores, setSupervisores] = useState<PortalSupervisor[]>([])
   const [loading, setLoading] = useState(true)
-  const [supervisores, setSupervisores] = useState<Supervisor[]>([])
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [formData, setFormData] = useState({
-    nome: '',
-    email: '',
-    senha: '',
-    confirmarSenha: ''
-  })
-  const [showPassword, setShowPassword] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const [detalhesAberto, setDetalhesAberto] = useState(false)
-  const [supervisorSelecionado, setSupervisorSelecionado] = useState<Supervisor | null>(null)
-  const [contratosSupervisor, setContratosSupervisor] = useState<ContractRecord[]>([])
-  const [loadingDetalhes, setLoadingDetalhes] = useState(false)
+  // Dialog: Criar Supervisor
+  const [criandoSup, setCriandoSup] = useState(false)
+  const [formSup, setFormSup] = useState({ nome: '', telefone: '', setor: '' })
+  const [submetendoSup, setSubmetendoSup] = useState(false)
+  const [codigoCriado, setCodigoCriado] = useState<{ supervisor: PortalSupervisor; codigo: string } | null>(null)
 
-  useEffect(() => {
-    loadSupervisores()
-  }, [])
+  // Dialog: Adicionar Encarregado
+  const [supAlvo, setSupAlvo] = useState<PortalSupervisor | null>(null)
+  const [formEnc, setFormEnc] = useState({ nome: '', telefone: '', setor: '' })
+  const [submetendoEnc, setSubmetendoEnc] = useState(false)
 
-  const loadSupervisores = async () => {
+  const loadSupervisores = useCallback(async () => {
+    setLoading(true)
     try {
-      setLoading(true)
+      const [supRes, encRes] = await Promise.all([
+        fetch('/api/portal/supervisores').then((r) => r.json()),
+        fetch('/api/portal/encarregados').then((r) => r.json()),
+      ])
+      const sups: PortalSupervisor[] = supRes.supervisores ?? []
+      const encs: PortalEncarregado[] = encRes.encarregados ?? []
 
-      // Buscar supervisores via API (usa service_role key)
-      const response = await fetch('/api/supervisores')
-      
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Erro ao buscar supervisores')
-      }
-
-      const { supervisores: supervisoresData } = await response.json()
-      setSupervisores(supervisoresData)
-    } catch (error: any) {
-      console.error('Erro ao carregar supervisores:', error)
-      toast({
-        title: 'Erro ao carregar supervisores',
-        description: error.message,
-        variant: 'destructive'
-      })
+      const supComEnc = sups.map((s) => ({
+        ...s,
+        encarregados: encs.filter((e) => e.supervisor_id === s.id),
+      }))
+      setSupervisores(supComEnc)
+    } catch (err: unknown) {
+      toast({ title: 'Erro ao carregar dados', description: err instanceof Error ? err.message : 'Erro inesperado', variant: 'destructive' })
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast])
 
-  const handleCreateSupervisor = async () => {
-    // Validações
-    if (!formData.nome || !formData.email || !formData.senha) {
-      toast({
-        title: 'Campos obrigatórios',
-        description: 'Preencha todos os campos obrigatórios',
-        variant: 'destructive'
-      })
+  useEffect(() => { loadSupervisores() }, [loadSupervisores])
+
+  // ── Criar supervisor ──────────────────────────────────────────────────────
+  const handleCriarSupervisor = async () => {
+    if (!formSup.nome.trim()) {
+      toast({ title: 'Nome obrigatório', description: 'Informe o nome do supervisor.', variant: 'destructive' })
       return
     }
-
-    if (formData.senha !== formData.confirmarSenha) {
-      toast({
-        title: 'Senhas não conferem',
-        description: 'A senha e confirmação devem ser iguais',
-        variant: 'destructive'
-      })
-      return
-    }
-
-    if (formData.senha.length < 6) {
-      toast({
-        title: 'Senha muito curta',
-        description: 'A senha deve ter no mínimo 6 caracteres',
-        variant: 'destructive'
-      })
-      return
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(formData.email)) {
-      toast({
-        title: 'Email inválido',
-        description: 'Digite um email válido',
-        variant: 'destructive'
-      })
-      return
-    }
-
-    setIsSubmitting(true)
-
+    setSubmetendoSup(true)
     try {
-      // Criar usuário via API (usa service_role key)
-      const response = await fetch('/api/supervisores', {
+      const r = await fetch('/api/portal/supervisores', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          nome: formData.nome,
-          email: formData.email,
-          senha: formData.senha
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome: formSup.nome.trim(), telefone: formSup.telefone.trim() || undefined, setor: formSup.setor.trim() || undefined }),
       })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao criar supervisor')
-      }
-
-      toast({
-        title: '✅ Supervisor criado!',
-        description: `${formData.nome} foi cadastrado com sucesso e já pode fazer login no app mobile.`
-      })
-
-      // Limpar formulário e fechar dialog
-      setFormData({ nome: '', email: '', senha: '', confirmarSenha: '' })
-      setIsDialogOpen(false)
-
-      // Recarregar lista
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error || 'Erro ao criar')
+      setCriandoSup(false)
+      setFormSup({ nome: '', telefone: '', setor: '' })
+      setCodigoCriado({ supervisor: d.supervisor, codigo: d.codigo })
       await loadSupervisores()
-    } catch (error: any) {
-      console.error('Erro ao criar supervisor:', error)
-      
-      let mensagemErro = error.message
-      if (error.message?.includes('User already registered') || error.message?.includes('already')) {
-        mensagemErro = 'Este email já está cadastrado no sistema'
-      }
-
-      toast({
-        title: 'Erro ao criar supervisor',
-        description: mensagemErro,
-        variant: 'destructive'
-      })
+    } catch (err: unknown) {
+      toast({ title: 'Erro ao criar supervisor', description: err instanceof Error ? err.message : 'Erro', variant: 'destructive' })
     } finally {
-      setIsSubmitting(false)
+      setSubmetendoSup(false)
     }
   }
 
-  const handleToggleStatus = async (supervisorId: string, currentStatus: string) => {
-    const newStatus = currentStatus === 'ativo' ? 'inativo' : 'ativo'
-
+  // ── Toggle ativo supervisor ───────────────────────────────────────────────
+  const handleToggleSupervisor = async (sup: PortalSupervisor) => {
     try {
-      // Atualizar status via API (usa service_role key)
-      const response = await fetch('/api/supervisores', {
+      const r = await fetch('/api/portal/supervisores', {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          supervisorId,
-          status: newStatus
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: sup.id, ativo: !sup.ativo }),
       })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao atualizar status')
-      }
-
-      toast({
-        title: 'Status atualizado',
-        description: `Supervisor ${newStatus === 'ativo' ? 'ativado' : 'desativado'} com sucesso`
-      })
-
+      if (!r.ok) throw new Error('Erro ao atualizar')
+      toast({ title: sup.ativo ? 'Supervisor desativado' : 'Supervisor ativado' })
       await loadSupervisores()
-    } catch (error: any) {
-      console.error('Erro ao atualizar status:', error)
-      toast({
-        title: 'Erro ao atualizar status',
-        description: error.message,
-        variant: 'destructive'
-      })
+    } catch (err: unknown) {
+      toast({ title: 'Erro', description: err instanceof Error ? err.message : 'Erro', variant: 'destructive' })
     }
   }
 
-  const carregarDetalhesSupervisor = async (supervisor: Supervisor) => {
+  // ── Excluir supervisor ────────────────────────────────────────────────────
+  const handleDeleteSupervisor = async (sup: PortalSupervisor) => {
+    if (!confirm(`Excluir supervisor "${sup.nome}"? Os encarregados vinculados também serão removidos.`)) return
     try {
-      setSupervisorSelecionado(supervisor)
-      setDetalhesAberto(true)
-      setLoadingDetalhes(true)
-
-      const { data, error } = await supabase
-        .from('contracts')
-        .select('*')
-        .eq('supervisor_id', supervisor.id)
-        .order('nome', { ascending: true })
-
-      if (error) throw error
-
-      setContratosSupervisor((data || []) as ContractRecord[])
-    } catch (error: any) {
-      console.error('Erro ao carregar contratos do supervisor:', error)
-      toast({
-        title: 'Erro ao carregar contratos',
-        description: error.message || 'Não foi possível carregar os contratos deste supervisor',
-        variant: 'destructive'
-      })
-    } finally {
-      setLoadingDetalhes(false)
-    }
-  }
-
-  const handleReatribuirContrato = async (contrato: ContractRecord, novoSupervisorId: string) => {
-    if (!novoSupervisorId || !contrato.id) return
-
-    const novoSupervisor = supervisores.find((s) => s.id === novoSupervisorId)
-
-    try {
-      const ok = await updateContract(String(contrato.id), {
-        supervisor_id: novoSupervisorId,
-        responsavel: novoSupervisor?.nome || null
-      })
-
-      if (!ok) {
-        throw new Error('Não foi possível atualizar o contrato')
-      }
-
-      toast({
-        title: 'Contrato atualizado',
-        description: `Contrato agora está vinculado a ${novoSupervisor?.nome || 'outro supervisor'}.`
-      })
-
-      if (supervisorSelecionado) {
-        await carregarDetalhesSupervisor(supervisorSelecionado)
-      }
-    } catch (error: any) {
-      console.error('Erro ao reatribuir contrato:', error)
-      toast({
-        title: 'Erro ao reatribuir contrato',
-        description: error.message || 'Não foi possível reatribuir o contrato',
-        variant: 'destructive'
-      })
-    }
-  }
-
-  const handleDeleteSupervisor = async (supervisor: Supervisor) => {
-    const confirmDelete = window.confirm(
-      `Tem certeza que deseja excluir o supervisor "${supervisor.nome}"?\n\n` +
-      'Esta ação é permanente. Se existirem contratos vinculados a ele, a exclusão será bloqueada.'
-    )
-    if (!confirmDelete) return
-
-    try {
-      const response = await fetch('/api/supervisores', {
+      const r = await fetch('/api/portal/supervisores', {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ supervisorId: supervisor.id })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: sup.id }),
       })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao excluir supervisor')
-      }
-
-      toast({
-        title: 'Supervisor excluído',
-        description: `${supervisor.nome} foi removido com sucesso.`
-      })
-
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error || 'Erro ao excluir')
+      toast({ title: `${sup.nome} removido com sucesso.` })
       await loadSupervisores()
-      if (supervisorSelecionado?.id === supervisor.id) {
-        setDetalhesAberto(false)
-        setContratosSupervisor([])
-        setSupervisorSelecionado(null)
-      }
-    } catch (error: any) {
-      console.error('Erro ao excluir supervisor:', error)
-      toast({
-        title: 'Erro ao excluir supervisor',
-        description: error.message,
-        variant: 'destructive'
-      })
+    } catch (err: unknown) {
+      toast({ title: 'Erro ao excluir', description: err instanceof Error ? err.message : 'Erro', variant: 'destructive' })
     }
   }
 
-  const filteredSupervisores = supervisores.filter(s =>
-    s.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.email.toLowerCase().includes(searchQuery.toLowerCase())
+  // ── Adicionar encarregado ─────────────────────────────────────────────────
+  const handleAdicionarEncarregado = async () => {
+    if (!supAlvo || !formEnc.nome.trim()) {
+      toast({ title: 'Nome obrigatório', variant: 'destructive' })
+      return
+    }
+    setSubmetendoEnc(true)
+    try {
+      const r = await fetch('/api/portal/encarregados', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ supervisor_id: supAlvo.id, nome: formEnc.nome.trim(), telefone: formEnc.telefone.trim() || undefined, setor: formEnc.setor.trim() || undefined }),
+      })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error || 'Erro')
+      toast({ title: `${formEnc.nome} adicionado!` })
+      setSupAlvo(null)
+      setFormEnc({ nome: '', telefone: '', setor: '' })
+      await loadSupervisores()
+    } catch (err: unknown) {
+      toast({ title: 'Erro ao adicionar encarregado', description: err instanceof Error ? err.message : 'Erro', variant: 'destructive' })
+    } finally {
+      setSubmetendoEnc(false)
+    }
+  }
+
+  // ── Toggle ativo encarregado ──────────────────────────────────────────────
+  const handleToggleEncarregado = async (enc: PortalEncarregado) => {
+    try {
+      const r = await fetch('/api/portal/encarregados', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: enc.id, ativo: !enc.ativo }),
+      })
+      if (!r.ok) throw new Error('Erro')
+      await loadSupervisores()
+    } catch (err: unknown) {
+      toast({ title: 'Erro', description: err instanceof Error ? err.message : 'Erro', variant: 'destructive' })
+    }
+  }
+
+  // ── Excluir encarregado ───────────────────────────────────────────────────
+  const handleDeleteEncarregado = async (enc: PortalEncarregado) => {
+    if (!confirm(`Remover encarregado "${enc.nome}"?`)) return
+    try {
+      const r = await fetch('/api/portal/encarregados', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: enc.id }),
+      })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error || 'Erro')
+      await loadSupervisores()
+    } catch (err: unknown) {
+      toast({ title: 'Erro ao remover', description: err instanceof Error ? err.message : 'Erro', variant: 'destructive' })
+    }
+  }
+
+  // ── Regenerar código ──────────────────────────────────────────────────────
+  const handleRegenerarCodigo = async (sup: PortalSupervisor) => {
+    if (!confirm(`Regenerar o código de validação de "${sup.nome}"? O código antigo será invalidado imediatamente.`)) return
+    try {
+      const r = await fetch('/api/portal/supervisores', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: sup.id, regenerar_codigo: true }),
+      })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error || 'Erro')
+      setCodigoCriado({ supervisor: { ...sup }, codigo: d.codigo })
+    } catch (err: unknown) {
+      toast({ title: 'Erro ao regenerar código', description: err instanceof Error ? err.message : 'Erro', variant: 'destructive' })
+    }
+  }
+
+  const filteredSupervisores = supervisores.filter(
+    (s) => s.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.setor?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const supervisoresAtivos = supervisores.filter(s => s.status === 'ativo').length
-  const totalPedidos = supervisores.reduce((acc, s) => acc + (s.total_pedidos || 0), 0)
+  const totalAtivos = supervisores.filter((s) => s.ativo).length
+  const totalEncarregados = supervisores.reduce((acc, s) => acc + (s.encarregados?.length ?? 0), 0)
 
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Supervisores</h1>
-          <p className="text-gray-600 mt-1">Gerencie os supervisores do app mobile</p>
+          <h1 className="text-3xl font-bold text-gray-900">Supervisores do Portal</h1>
+          <p className="text-gray-600 mt-1">Gerencie supervisores e encarregados do Portal Operacional</p>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)} className="gap-2">
+        <Button onClick={() => setCriandoSup(true)} className="gap-2">
           <Plus className="w-4 h-4" />
           Novo Supervisor
         </Button>
@@ -335,38 +388,51 @@ export default function SupervisoresPage() {
             <div className="text-3xl font-bold">{supervisores.length}</div>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-gray-600">Supervisores Ativos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-600">{supervisoresAtivos}</div>
+            <div className="text-3xl font-bold text-emerald-600">{totalAtivos}</div>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600">Total de Pedidos</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Total de Encarregados</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-blue-600">{totalPedidos}</div>
+            <div className="text-3xl font-bold text-blue-600">{totalEncarregados}</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Search */}
+      {/* Informativo */}
+      <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <Shield className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+        <div className="text-sm text-blue-800 space-y-1">
+          <strong>Como funciona o Portal Operacional</strong>
+          <ul className="list-disc list-inside space-y-0.5 text-blue-700 mt-1">
+            <li>Cada supervisor possui um <strong>código único de validação</strong> — gerado automaticamente e mostrado apenas uma vez.</li>
+            <li>O supervisor cadastra os encarregados da sua equipe (usuários filhos).</li>
+            <li>No portal, o encarregado seleciona seu supervisor e nome para criar pedidos.</li>
+            <li>Os pedidos ficam com status <em>"Aguardando Validação"</em> até o supervisor validar com seu código.</li>
+            <li>Após validação, o pedido entra no sistema como <em>"Pendente"</em> e segue o fluxo normal.</li>
+          </ul>
+        </div>
+      </div>
+
+      {/* Lista */}
       <Card>
         <CardHeader>
-          <CardTitle>Lista de Supervisores</CardTitle>
-          <CardDescription>Supervisores cadastrados no sistema mobile</CardDescription>
+          <CardTitle>Supervisores Cadastrados</CardTitle>
+          <CardDescription>Clique em um supervisor para ver e gerenciar seus encarregados</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="mb-4">
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Buscar por nome ou email..."
+                placeholder="Buscar por nome ou setor..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -375,255 +441,177 @@ export default function SupervisoresPage() {
           </div>
 
           {loading ? (
-            <div className="text-center py-8 text-gray-500">Carregando supervisores...</div>
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-5 h-5 animate-spin text-slate-400 mr-2" />
+              <p className="text-slate-500">Carregando supervisores...</p>
+            </div>
           ) : filteredSupervisores.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-12 text-gray-500">
               {searchQuery ? 'Nenhum supervisor encontrado' : 'Nenhum supervisor cadastrado'}
+              {!searchQuery && (
+                <div className="mt-3">
+                  <Button onClick={() => setCriandoSup(true)} size="sm">
+                    <Plus className="w-4 h-4 mr-1" />Criar primeiro supervisor
+                  </Button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-3">
-              {filteredSupervisores.map((supervisor) => (
-                <div
-                  key={supervisor.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white font-bold text-lg">
-                      {supervisor.nome.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <div className="font-semibold text-gray-900">{supervisor.nome}</div>
-                      <div className="text-sm text-gray-500 flex items-center gap-2">
-                        <Mail className="w-3 h-3" />
-                        {supervisor.email}
-                      </div>
-                      <div className="text-xs text-gray-400 mt-1">
-                        {supervisor.total_pedidos || 0} pedidos realizados
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <Badge variant={supervisor.status === 'ativo' ? 'default' : 'secondary'}>
-                      {supervisor.status === 'ativo' ? '✓ Ativo' : '✕ Inativo'}
-                    </Badge>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => carregarDetalhesSupervisor(supervisor)}
-                    >
-                      Detalhes
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleToggleStatus(supervisor.id, supervisor.status)}
-                    >
-                      {supervisor.status === 'ativo' ? 'Desativar' : 'Ativar'}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-600 hover:text-red-700"
-                      onClick={() => handleDeleteSupervisor(supervisor)}
-                    >
-                      <Trash2 className="w-4 h-4 mr-1" />
-                      Excluir
-                    </Button>
-                  </div>
-                </div>
+              {filteredSupervisores.map((sup) => (
+                <SupervisorCard
+                  key={sup.id}
+                  supervisor={sup}
+                  onToggleAtivo={handleToggleSupervisor}
+                  onDelete={handleDeleteSupervisor}
+                  onAddEncarregado={(s) => { setSupAlvo(s); setFormEnc({ nome: '', telefone: '', setor: '' }) }}
+                  onDeleteEncarregado={handleDeleteEncarregado}
+                  onToggleEncarregadoAtivo={handleToggleEncarregado}
+                  onRegenerarCodigo={handleRegenerarCodigo}
+                />
               ))}
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Dialog de Criar Supervisor */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+      {/* ── Dialog: Criar Supervisor ── */}
+      <Dialog open={criandoSup} onOpenChange={setCriandoSup}>
+        <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <UserPlus className="w-5 h-5" />
               Cadastrar Novo Supervisor
             </DialogTitle>
             <DialogDescription>
-              Crie uma conta de supervisor para acesso ao aplicativo mobile
+              Um código único de validação será gerado automaticamente e mostrado uma única vez.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="nome">Nome Completo *</Label>
-              <Input
-                id="nome"
-                placeholder="Ex: João Silva"
-                value={formData.nome}
-                onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                disabled={isSubmitting}
-              />
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="sup-nome">Nome Completo *</Label>
+              <Input id="sup-nome" placeholder="Ex.: João Silva" value={formSup.nome}
+                onChange={(e) => setFormSup((p) => ({ ...p, nome: e.target.value }))}
+                disabled={submetendoSup} />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Corporativo *</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="Ex: joao.silva@empresa.com.br"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value.toLowerCase() })}
-                disabled={isSubmitting}
-              />
-              <p className="text-xs text-gray-500">Este será o login do supervisor no app</p>
+            <div className="space-y-1.5">
+              <Label htmlFor="sup-setor">Setor / Área</Label>
+              <Input id="sup-setor" placeholder="Ex.: Limpeza, Portaria..." value={formSup.setor}
+                onChange={(e) => setFormSup((p) => ({ ...p, setor: e.target.value }))}
+                disabled={submetendoSup} />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="senha">Senha *</Label>
-              <div className="relative">
-                <Input
-                  id="senha"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Mínimo 6 caracteres"
-                  value={formData.senha}
-                  onChange={(e) => setFormData({ ...formData, senha: e.target.value })}
-                  disabled={isSubmitting}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="confirmarSenha">Confirmar Senha *</Label>
-              <Input
-                id="confirmarSenha"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Digite a senha novamente"
-                value={formData.confirmarSenha}
-                onChange={(e) => setFormData({ ...formData, confirmarSenha: e.target.value })}
-                disabled={isSubmitting}
-              />
-            </div>
-
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <div className="flex gap-2">
-                <Shield className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-blue-800">
-                  <strong>Isolamento de Dados:</strong> Cada supervisor verá apenas seus próprios pedidos e contratos no aplicativo mobile.
-                </div>
-              </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sup-tel">Telefone</Label>
+              <Input id="sup-tel" placeholder="Ex.: (11) 99999-9999" value={formSup.telefone}
+                onChange={(e) => setFormSup((p) => ({ ...p, telefone: e.target.value }))}
+                disabled={submetendoSup} />
             </div>
           </div>
 
           <div className="flex justify-end gap-3">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsDialogOpen(false)
-                setFormData({ nome: '', email: '', senha: '', confirmarSenha: '' })
-              }}
-              disabled={isSubmitting}
-            >
-              Cancelar
-            </Button>
-            <Button onClick={handleCreateSupervisor} disabled={isSubmitting}>
-              {isSubmitting ? 'Criando...' : 'Criar Supervisor'}
+            <Button variant="outline" onClick={() => setCriandoSup(false)} disabled={submetendoSup}>Cancelar</Button>
+            <Button onClick={handleCriarSupervisor} disabled={submetendoSup}>
+              {submetendoSup ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Criando...</> : 'Criar Supervisor'}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Dialog de Detalhes do Supervisor */}
-      <Dialog open={detalhesAberto} onOpenChange={setDetalhesAberto}>
-        <DialogContent className="max-w-3xl">
+      {/* ── Dialog: Mostrar Código (uma única vez) ── */}
+      <Dialog open={!!codigoCriado} onOpenChange={(v) => !v && setCodigoCriado(null)}>
+        <DialogContent className="sm:max-w-[460px]">
           <DialogHeader>
-            <DialogTitle>Detalhes do Supervisor</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 text-emerald-700">
+              <KeyRound className="w-5 h-5" />
+              Código de Validação Gerado
+            </DialogTitle>
             <DialogDescription>
-              Informações do supervisor e contratos vinculados.
+              <strong>Guarde este código agora</strong> — ele não será exibido novamente por segurança.
+              Entregue pessoalmente ao supervisor.
             </DialogDescription>
           </DialogHeader>
 
-          {supervisorSelecionado && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-lg">{supervisorSelecionado.nome}</div>
-                  <div className="text-sm text-gray-500 flex items-center gap-2">
-                    <Mail className="w-3 h-3" />
-                    {supervisorSelecionado.email}
-                  </div>
-                  <div className="text-xs text-gray-400 mt-1">
-                    Criado em {new Date(supervisorSelecionado.created_at).toLocaleDateString('pt-BR')}
-                  </div>
+          {codigoCriado && (
+            <div className="space-y-4 py-2">
+              <div className="text-center">
+                <p className="text-sm text-slate-500 mb-2">Supervisor: <strong>{codigoCriado.supervisor.nome}</strong></p>
+                <div className="inline-flex items-center gap-3 bg-emerald-50 border-2 border-emerald-300 rounded-2xl px-8 py-5">
+                  <span className="text-4xl font-mono font-bold tracking-[0.3em] text-emerald-800">
+                    {codigoCriado.codigo}
+                  </span>
                 </div>
-                <Badge variant={supervisorSelecionado.status === 'ativo' ? 'default' : 'secondary'}>
-                  {supervisorSelecionado.status === 'ativo' ? '✓ Ativo' : '✕ Inativo'}
-                </Badge>
               </div>
 
-              <div className="border-t pt-4 space-y-2">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm">Contratos Vinculados</CardTitle>
-                    <CardDescription>
-                      Realoque contratos para outros supervisores quando necessário.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {loadingDetalhes ? (
-                      <div className="text-center py-4 text-gray-500">Carregando contratos...</div>
-                    ) : contratosSupervisor.length === 0 ? (
-                      <div className="text-center py-4 text-gray-500">
-                        Nenhum contrato vinculado a este supervisor.
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {contratosSupervisor.map((contrato) => (
-                          <div
-                            key={contrato.id}
-                            className="flex items-center justify-between border rounded-lg p-3"
-                          >
-                            <div>
-                              <div className="font-medium">{contrato.nome}</div>
-                              <div className="text-xs text-gray-500">
-                                {contrato.cidade}/{contrato.estado} • Status: {contrato.status}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Select
-                                value={contrato.supervisor_id || supervisorSelecionado.id}
-                                onValueChange={(value) => handleReatribuirContrato(contrato, value)}
-                              >
-                                <SelectTrigger className="w-48">
-                                  <SelectValue placeholder="Reatribuir para..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {supervisores.map((s) => (
-                                    <SelectItem key={s.id} value={s.id}>
-                                      {s.nome}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+              <Button className="w-full" variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(codigoCriado.codigo)
+                  toast({ title: 'Código copiado!' })
+                }}>
+                <Copy className="w-4 h-4 mr-2" />
+                Copiar Código
+              </Button>
+
+              <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-800">
+                  Este código é <strong>único e secreto</strong>. O supervisor o usará para validar pedidos no portal.
+                  Se perdido, use o botão "Regenerar Código" para criar um novo.
+                </p>
               </div>
+
+              <Button className="w-full bg-emerald-600 hover:bg-emerald-700" onClick={() => setCodigoCriado(null)}>
+                <CheckCircle2 className="w-4 h-4 mr-2" />
+                Entendido — Anotei o Código
+              </Button>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* ── Dialog: Adicionar Encarregado ── */}
+      <Dialog open={!!supAlvo} onOpenChange={(v) => !v && setSupAlvo(null)}>
+        <DialogContent className="sm:max-w-[460px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="w-5 h-5" />
+              Adicionar Encarregado
+            </DialogTitle>
+            <DialogDescription>
+              Vinculado ao supervisor: <strong>{supAlvo?.nome}</strong>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="enc-nome">Nome Completo *</Label>
+              <Input id="enc-nome" placeholder="Ex.: Maria Souza" value={formEnc.nome}
+                onChange={(e) => setFormEnc((p) => ({ ...p, nome: e.target.value }))}
+                disabled={submetendoEnc} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="enc-setor">Setor / Contrato</Label>
+              <Input id="enc-setor" placeholder="Ex.: Limpeza — Contrato XYZ" value={formEnc.setor}
+                onChange={(e) => setFormEnc((p) => ({ ...p, setor: e.target.value }))}
+                disabled={submetendoEnc} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="enc-tel">Telefone</Label>
+              <Input id="enc-tel" placeholder="Ex.: (11) 99999-9999" value={formEnc.telefone}
+                onChange={(e) => setFormEnc((p) => ({ ...p, telefone: e.target.value }))}
+                disabled={submetendoEnc} />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setSupAlvo(null)} disabled={submetendoEnc}>Cancelar</Button>
+            <Button onClick={handleAdicionarEncarregado} disabled={submetendoEnc}>
+              {submetendoEnc ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Adicionando...</> : 'Adicionar'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   )
 }
-

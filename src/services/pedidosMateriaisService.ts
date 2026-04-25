@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabaseClient'
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
 export type PedidoMaterialStatus =
+  | 'Aguardando Validação'
   | 'Pendente'
   | 'Em Análise'
   | 'Aprovado'
@@ -32,6 +33,8 @@ export interface PedidoMaterial {
   solicitante_nome: string
   solicitante_email?: string | null
   solicitante_setor?: string | null
+  portal_supervisor_id?: string | null
+  portal_encarregado_id?: string | null
   supervisor_id?: string | null
   supervisor_nome?: string | null
   aprovado_por?: string | null
@@ -51,6 +54,7 @@ export interface PedidoMaterialInsert
 // ─── Labels / helpers ─────────────────────────────────────────────────────────
 
 export const STATUS_LABELS: Record<PedidoMaterialStatus, string> = {
+  'Aguardando Validação': 'Aguardando Validação',
   'Pendente': 'Pendente',
   'Em Análise': 'Em Análise',
   'Aprovado': 'Aprovado',
@@ -62,6 +66,7 @@ export const STATUS_LABELS: Record<PedidoMaterialStatus, string> = {
 }
 
 export const STATUS_COLORS: Record<PedidoMaterialStatus, string> = {
+  'Aguardando Validação': 'bg-yellow-100 text-yellow-800 border-yellow-200',
   'Pendente':      'bg-amber-100 text-amber-700 border-amber-200',
   'Em Análise':    'bg-blue-100 text-blue-700 border-blue-200',
   'Aprovado':      'bg-emerald-100 text-emerald-700 border-emerald-200',
