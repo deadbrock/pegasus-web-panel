@@ -106,6 +106,7 @@ export async function fetchPedidosMateriais(): Promise<PedidoMaterial[]> {
     .select(`
       id, numero_pedido,
       solicitante_id, solicitante_nome, solicitante_email, solicitante_setor,
+      portal_supervisor_id, portal_encarregado_id,
       supervisor_id, supervisor_nome,
       aprovado_por, data_aprovacao, motivo_rejeicao,
       urgencia, status, observacoes,
@@ -119,7 +120,7 @@ export async function fetchPedidosMateriais(): Promise<PedidoMaterial[]> {
 
   if (error) {
     console.error('[pedidosMateriaisService] fetchPedidosMateriais error:', error.message)
-    return []
+    throw new Error(error.message)
   }
   return (data ?? []) as PedidoMaterial[]
 }

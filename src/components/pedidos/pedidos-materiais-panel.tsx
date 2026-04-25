@@ -278,6 +278,7 @@ export function PedidosMateriaisPanel() {
 
   const [pedidos, setPedidos] = useState<PedidoMaterial[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const [filterStatus, setFilterStatus] = useState<PedidoMaterialStatus | typeof STATUS_ALL>(STATUS_ALL)
   const [search, setSearch] = useState('')
@@ -287,9 +288,17 @@ export function PedidosMateriaisPanel() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const data = await fetchPedidosMateriais()
-    setPedidos(data)
-    setLoading(false)
+    setFetchError(null)
+    try {
+      const data = await fetchPedidosMateriais()
+      setPedidos(data)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erro desconhecido'
+      setFetchError(msg)
+      console.error('[PedidosMateriaisPanel] load error:', msg)
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -368,6 +377,21 @@ export function PedidosMateriaisPanel() {
           </div>
         ))}
       </div>
+
+      {/* Banner de erro de carregamento */}
+      {fetchError && (
+        <div className="flex items-start gap-3 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3">
+          <AlertTriangle className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-rose-800">Erro ao carregar pedidos</p>
+            <p className="text-xs text-rose-700 mt-0.5 break-all">{fetchError}</p>
+            <p className="text-xs text-rose-600 mt-1">
+              Verifique se o script <code className="bg-rose-100 px-1 rounded">portal_operacional.sql</code> foi executado no Supabase.
+            </p>
+          </div>
+          <button onClick={load} className="text-xs text-rose-700 underline whitespace-nowrap">Tentar novamente</button>
+        </div>
+      )}
 
       {/* Filtros */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">

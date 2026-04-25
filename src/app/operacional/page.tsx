@@ -856,6 +856,8 @@ function PortalApp({ session, onLogout }: { session: PortalSession; onLogout: ()
   const isSupervisor = session.tipo === 'supervisor'
   const [pedidos, setPedidos] = useState<PedidoPortal[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
   const [novoPedidoOpen, setNovoPedidoOpen] = useState(false)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const [filterStatus, setFilterStatus] = useState<PedidoMaterialStatus | 'todos'>('todos')
@@ -865,15 +867,20 @@ function PortalApp({ session, onLogout }: { session: PortalSession; onLogout: ()
 
   const load = useCallback(async () => {
     setLoading(true)
+    setLoadError(null)
     try {
       const param = isSupervisor
         ? `supervisor_id=${session.supervisor.id}`
         : `encarregado_id=${session.encarregado!.id}`
       const r = await fetch(`/api/portal/pedidos?${param}`)
       const d = await r.json()
+      if (!r.ok) throw new Error(d.error ?? `Erro ${r.status}`)
       setPedidos(d.pedidos ?? [])
-    } catch { setPedidos([]) }
-    finally { setLoading(false) }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erro ao carregar pedidos'
+      setLoadError(msg)
+      setPedidos([])
+    } finally { setLoading(false) }
   }, [isSupervisor, session])
 
   useEffect(() => { load() }, [load])
@@ -903,28 +910,28 @@ function PortalApp({ session, onLogout }: { session: PortalSession; onLogout: ()
   async function handleAction(pedido: PedidoPortal, acao: string) {
     if (acao === 'rejeitar') { setPedidoParaRejeitar(pedido); return }
     setActionLoadingId(pedido.id)
+    setActionError(null)
 
     try {
+      let body: Record<string, unknown> = {}
       if (acao === 'validar') {
-        // Supervisor valida → pedido entra no sistema como "Pendente"
-        await fetch('/api/portal/pedidos', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: pedido.id,
-            status: 'Pendente',
-            supervisor_nome: session.supervisor.nome,
-          }),
-        })
+        body = { id: pedido.id, status: 'Pendente', supervisor_nome: session.supervisor.nome }
       } else if (acao === 'cancelar') {
-        // Encarregado cancela pedido ainda não validado
-        await fetch('/api/portal/pedidos', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: pedido.id, status: 'Cancelado' }),
-        })
+        body = { id: pedido.id, status: 'Cancelado' }
       }
+
+      const r = await fetch('/api/portal/pedidos', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error ?? `Erro ${r.status}`)
+
       await load()
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Falha na operação'
+      setActionError(msg)
     } finally { setActionLoadingId(null) }
   }
 
@@ -957,6 +964,25 @@ function PortalApp({ session, onLogout }: { session: PortalSession; onLogout: ()
             </Button>
           )}
         </div>
+
+        {/* Erros de carregamento ou ação */}
+        {(loadError || actionError) && (
+          <div className="flex items-start gap-3 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3">
+            <AlertTriangle className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-rose-800">
+                {loadError ? 'Erro ao carregar pedidos' : 'Falha na operação'}
+              </p>
+              <p className="text-xs text-rose-700 mt-0.5 break-all">{loadError ?? actionError}</p>
+            </div>
+            <button
+              onClick={() => { setLoadError(null); setActionError(null); load() }}
+              className="text-xs text-rose-700 underline whitespace-nowrap"
+            >
+              Tentar novamente
+            </button>
+          </div>
+        )}
 
         {/* KPIs */}
         <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">

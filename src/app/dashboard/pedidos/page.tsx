@@ -1,158 +1,112 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
-import { 
-  Package, 
-  Plus,
-  Search,
-  Filter,
-  Download,
-  Upload,
+import {
+  AlertCircle,
   CheckCircle,
   Clock,
-  Truck,
-  AlertCircle,
+  Download,
+  Package,
   TrendingUp,
-  Calendar,
-  DollarSign
 } from 'lucide-react'
 import { MetricCard } from '@/components/dashboard/metric-card'
-import { OrdersTable } from '@/components/pedidos/orders-table'
-import { OrdersImportExport } from '@/components/pedidos/orders-import-export'
-import { exportRelatorioPedidos, exportProdutosMaisPedidos } from '@/components/pedidos/orders-reports'
-import { fetchOrders, subscribeOrders, fetchOrdersQuery, type OrderStatus } from '@/services/ordersService'
-import { fetchPedidosMobile, subscribePedidosMobile, calcularEstatisticasPedidos, type PedidoMobile } from '@/services/pedidosMobileService'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Calendar as CalendarComp } from '@/components/ui/calendar'
-import { OrderDialog } from '@/components/pedidos/order-dialog'
-import { MobileOrderViewDialog } from '@/components/pedidos/mobile-order-view-dialog'
+import { PedidosMateriaisPanel } from '@/components/pedidos/pedidos-materiais-panel'
 import { OrderStatusChart } from '@/components/pedidos/order-status-chart'
 import { OrderTimelineChart } from '@/components/pedidos/order-timeline-chart'
-import { OrderDeliveryMap } from '@/components/pedidos/order-delivery-map'
-import { OrdersKanban } from '@/components/pedidos/orders-kanban'
-import { PedidosMateriaisPanel } from '@/components/pedidos/pedidos-materiais-panel'
+import {
+  calcularStatsPedidos,
+  fetchPedidosMateriais,
+  STATUS_LABELS,
+  type PedidoMaterial,
+  type PedidoMaterialStatus,
+} from '@/services/pedidosMateriaisService'
+import { cn } from '@/lib/utils'
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function calcularTimeline(pedidos: PedidoMaterial[]) {
+  const hoje = new Date()
+  return Array.from({ length: 30 }, (_, idx) => {
+    const d = new Date(hoje)
+    d.setDate(d.getDate() - (29 - idx))
+    const ds = d.toISOString().split('T')[0]
+    const doDia = pedidos.filter((p) => p.created_at.startsWith(ds))
+    return {
+      dia: `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`,
+      pedidos: doDia.length,
+      entregues: doDia.filter((p) => p.status === 'Entregue').length,
+      cancelados: doDia.filter((p) => p.status === 'Cancelado' || p.status === 'Rejeitado').length,
+    }
+  })
+}
+
+function buildPorStatus(pedidos: PedidoMaterial[]) {
+  const count = (s: PedidoMaterialStatus) => pedidos.filter((p) => p.status === s).length
+  return {
+    Pendente: count('Pendente') + pedidos.filter((p) => p.status === 'Aguardando Validação').length,
+    Aprovado: count('Aprovado'),
+    'Em Separação': count('Em Separação') + count('Separado'),
+    'Saiu para Entrega': 0,
+    Entregue: count('Entregue'),
+    Cancelado: count('Cancelado'),
+    Rejeitado: count('Rejeitado'),
+  }
+}
+
+// ─── Status helpers ───────────────────────────────────────────────────────────
+
+const BADGE_COLORS: Partial<Record<PedidoMaterialStatus, string>> = {
+  'Aguardando Validação': 'bg-yellow-50 text-yellow-700',
+  Pendente:              'bg-slate-100 text-slate-600',
+  'Em Análise':          'bg-blue-50 text-blue-700',
+  Aprovado:              'bg-indigo-50 text-indigo-700',
+  'Em Separação':        'bg-violet-50 text-violet-700',
+  Separado:              'bg-purple-50 text-purple-700',
+  Entregue:              'bg-emerald-50 text-emerald-700',
+  Rejeitado:             'bg-rose-50 text-rose-600',
+  Cancelado:             'bg-rose-50 text-rose-600',
+}
+
+// ─── Página ───────────────────────────────────────────────────────────────────
 
 export default function PedidosPage() {
-  const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false)
-  const [isMobileOrderDialogOpen, setIsMobileOrderDialogOpen] = useState(false)
-  const [selectedOrder, setSelectedOrder] = useState<any>(null)
-  const [orders, setOrders] = useState<any[]>([])
-  const [pedidosMobile, setPedidosMobile] = useState<PedidoMobile[]>([])
-  const [stats, setStats] = useState<any>(null)
-  const [timelineData, setTimelineData] = useState<any[]>([])
-  const [search, setSearch] = useState('')
-  const [status, setStatus] = useState<OrderStatus | undefined>(undefined)
-  const [range, setRange] = useState<{ from?: Date; to?: Date }>({ from: new Date(new Date().getFullYear(), new Date().getMonth(), 1), to: new Date() })
-  
-  useEffect(() => {
-    const loadPedidos = async () => {
-      // Buscar pedidos do web panel (ordersService) - DESABILITADO TEMPORARIAMENTE
-      // const webOrders = await fetchOrders()
-      
-      // Buscar pedidos do mobile (supervisores)
-      const mobilePedidos = await fetchPedidosMobile()
-      
-      console.log('[PedidosPage] Pedidos mobile carregados:', mobilePedidos.length)
-      setPedidosMobile(mobilePedidos)
-      
-      // APENAS PEDIDOS MOBILE POR ENQUANTO
-      // Pedidos web serão implementados posteriormente
-      setOrders(mobilePedidos)
-      
-      // Calcular estatísticas
-      const statistics = calcularEstatisticasPedidos(mobilePedidos)
-      setStats(statistics)
-      
-      // Calcular dados da timeline (últimos 30 dias)
-      const timeline = calcularTimelineData(mobilePedidos)
-      setTimelineData(timeline)
-    }
-    
-    loadPedidos()
-    
-    // Subscribe para mudanças em tempo real
-    // const unsubWeb = subscribeOrders(loadPedidos) - DESABILITADO
-    const unsubMobile = subscribePedidosMobile(loadPedidos)
-    
-    return () => {
-      // unsubWeb()
-      unsubMobile()
+  const [pedidos, setPedidos]           = useState<PedidoMaterial[]>([])
+  const [loading, setLoading]           = useState(true)
+  const [timelineData, setTimelineData] = useState<ReturnType<typeof calcularTimeline>>([])
+
+  const stats    = useMemo(() => calcularStatsPedidos(pedidos), [pedidos])
+  const porStatus = useMemo(() => buildPorStatus(pedidos), [pedidos])
+  const recentes = useMemo(() => pedidos.slice(0, 5), [pedidos])
+
+  const emAndamento = stats.emAnalise + stats.aprovados
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const data = await fetchPedidosMateriais()
+      setPedidos(data)
+      setTimelineData(calcularTimeline(data))
+    } catch {
+      // erros são exibidos dentro do PedidosMateriaisPanel
+    } finally {
+      setLoading(false)
     }
   }, [])
 
-  // Função auxiliar para calcular dados da timeline
-  const calcularTimelineData = (pedidos: PedidoMobile[]) => {
-    const hoje = new Date()
-    const timeline: any[] = []
-    
-    for (let i = 29; i >= 0; i--) {
-      const data = new Date(hoje)
-      data.setDate(data.getDate() - i)
-      const dataStr = data.toISOString().split('T')[0]
-      
-      const pedidosDoDia = pedidos.filter(p => {
-        const pedidoData = new Date(p.data_solicitacao).toISOString().split('T')[0]
-        return pedidoData === dataStr
-      })
-      
-      const entreguesDoDia = pedidosDoDia.filter(p => p.status === 'Entregue').length
-      const canceladosDoDia = pedidosDoDia.filter(p => p.status === 'Cancelado' || p.status === 'Rejeitado').length
-      
-      timeline.push({
-        dia: `${String(data.getDate()).padStart(2, '0')}/${String(data.getMonth() + 1).padStart(2, '0')}`,
-        pedidos: pedidosDoDia.length,
-        entregues: entreguesDoDia,
-        cancelados: canceladosDoDia
-      })
-    }
-    
-    return timeline
-  }
-
-  const handleNewOrder = () => {
-    setSelectedOrder(null)
-    setIsOrderDialogOpen(true)
-  }
-
-  const handleEditOrder = (order: any) => {
-    setSelectedOrder(order)
-    // Verificar se é pedido mobile (tem supervisor_id) ou pedido web
-    if (order.supervisor_id) {
-      setIsMobileOrderDialogOpen(true)
-    } else {
-      setIsOrderDialogOpen(true)
-    }
-  }
-
-  const handleExportRelatorio = async () => {
-    const data = orders.length ? orders : await fetchOrders()
-    exportRelatorioPedidos(data as any)
-  }
-
-  const handleBuscar = async () => {
-    const rows = await fetchOrdersQuery({ search, status, from: range.from, to: range.to })
-    setOrders(rows as any)
-  }
+  useEffect(() => { load() }, [load])
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
+      {/* Header */}
       <div className="flex items-center justify-between bg-white p-6 rounded-lg shadow-sm border">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Gestão de Pedidos</h1>
           <p className="text-gray-600 mt-1">
-            Controle completo dos pedidos e entregas
+            Pedidos de materiais criados pelo Portal Operacional
           </p>
-        </div>
-        <div className="flex gap-3">
-          <OrdersImportExport />
-          <Button onClick={handleNewOrder}>
-            <Plus className="w-4 h-4 mr-2" />
-            Novo Pedido
-          </Button>
         </div>
       </div>
 
@@ -160,64 +114,61 @@ export default function PedidosPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
           title="Total de Pedidos"
-          value={stats?.total?.toString() || '0'}
-          change={stats?.total > 0 ? `+${stats.total}` : '0'}
+          value={loading ? '—' : stats.total.toString()}
+          change={stats.total > 0 ? `+${stats.total}` : '0'}
           changeType="positive"
           icon={Package}
           description="Todos os pedidos"
         />
         <MetricCard
           title="Pedidos Entregues"
-          value={stats?.entregues?.toString() || '0'}
-          change={stats?.taxaEntrega || '0'}
+          value={loading ? '—' : stats.entregues.toString()}
+          change={stats.total > 0 ? `${Math.round((stats.entregues / stats.total) * 100)}%` : '0%'}
           changeType="positive"
           icon={CheckCircle}
-          description={`Taxa: ${stats?.taxaEntrega || '0'}%`}
+          description={`Taxa: ${stats.total > 0 ? Math.round((stats.entregues / stats.total) * 100) : 0}%`}
         />
         <MetricCard
           title="Em Andamento"
-          value={stats?.emAndamento?.toString() || '0'}
-          change={stats?.emAndamento > 0 ? `+${stats.emAndamento}` : '0'}
+          value={loading ? '—' : emAndamento.toString()}
+          change={emAndamento > 0 ? `+${emAndamento}` : '0'}
           changeType="neutral"
           icon={Clock}
-          description="Em processamento"
+          description="Em análise ou aprovados"
         />
         <MetricCard
           title="Pendentes"
-          value={stats?.pendentes?.toString() || '0'}
-          change={stats?.requeremAutorizacao > 0 ? `${stats.requeremAutorizacao} requer autorização` : '0'}
-          changeType={stats?.requeremAutorizacao > 0 ? 'negative' : 'neutral'}
+          value={loading ? '—' : stats.pendentes.toString()}
+          change={stats.pendentes > 0 ? `${stats.pendentes} aguardando` : '0'}
+          changeType={stats.pendentes > 0 ? 'negative' : 'neutral'}
           icon={AlertCircle}
           description="Aguardando ação"
         />
       </div>
 
-      {/* Orders Management Tabs */}
+      {/* Tabs */}
       <Tabs defaultValue="dashboard" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="orders">Pedidos</TabsTrigger>
-          <TabsTrigger value="materiais">Materiais</TabsTrigger>
-          <TabsTrigger value="kanban">Kanban</TabsTrigger>
-          <TabsTrigger value="tracking">Rastreamento</TabsTrigger>
+          <TabsTrigger value="pedidos">Pedidos</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="reports">Relatórios</TabsTrigger>
         </TabsList>
 
-        {/* Dashboard Tab */}
+        {/* ── Dashboard Tab ─────────────────────────────────────────────── */}
         <TabsContent value="dashboard" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Order Status Chart */}
+            {/* Gráfico de status */}
             <Card>
               <CardHeader>
                 <CardTitle>Status dos Pedidos</CardTitle>
               </CardHeader>
               <CardContent>
-                <OrderStatusChart data={stats?.porStatus} />
+                <OrderStatusChart data={porStatus} />
               </CardContent>
             </Card>
 
-            {/* Recent Orders */}
+            {/* Pedidos recentes */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -226,50 +177,45 @@ export default function PedidosPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {pedidosMobile.length === 0 ? (
+                {recentes.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <Package className="w-12 h-12 mx-auto mb-3 opacity-50" />
                     <p className="text-sm">Nenhum pedido recente</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {pedidosMobile.slice(0, 3).map((pedido) => {
-                      const statusConfig = {
-                        'Pendente': { bg: 'bg-gray-50', icon: Clock, color: 'text-gray-600' },
-                        'Aprovado': { bg: 'bg-indigo-50', icon: CheckCircle, color: 'text-indigo-600' },
-                        'Em Separação': { bg: 'bg-blue-50', icon: Package, color: 'text-blue-600' },
-                        'Saiu para Entrega': { bg: 'bg-yellow-50', icon: Truck, color: 'text-yellow-600' },
-                        'Entregue': { bg: 'bg-green-50', icon: CheckCircle, color: 'text-green-600' },
-                        'Cancelado': { bg: 'bg-red-50', icon: AlertCircle, color: 'text-red-600' },
-                        'Rejeitado': { bg: 'bg-red-50', icon: AlertCircle, color: 'text-red-600' },
-                      }
-                      const config = statusConfig[pedido.status as keyof typeof statusConfig] || statusConfig['Pendente']
-                      const IconComponent = config.icon
-                      
-                      return (
-                        <div key={pedido.id} className={`flex items-center justify-between p-3 ${config.bg} rounded-lg`}>
-                          <div>
-                            <p className="font-medium">{pedido.numero_pedido}</p>
-                            <p className="text-sm text-gray-600">
-                              {pedido.supervisor_nome} - {pedido.itens?.length || 0} {pedido.itens?.length === 1 ? 'item' : 'itens'}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <IconComponent className={`w-4 h-4 ${config.color}`} />
-                            <span className={`text-sm font-medium ${config.color}`}>{pedido.status}</span>
-                          </div>
+                  <div className="space-y-3">
+                    {recentes.map((pedido) => (
+                      <div
+                        key={pedido.id}
+                        className="flex items-center justify-between p-3 bg-slate-50 rounded-lg gap-2"
+                      >
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm text-slate-900 truncate">
+                            {pedido.numero_pedido}
+                          </p>
+                          <p className="text-xs text-slate-500 truncate">
+                            {pedido.solicitante_nome}
+                            {pedido.solicitante_setor ? ` · ${pedido.solicitante_setor}` : ''}
+                            {' · '}{pedido.itens?.length ?? 0} {pedido.itens?.length === 1 ? 'item' : 'itens'}
+                          </p>
                         </div>
-                      )
-                    })}
+                        <span className={cn(
+                          'text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap',
+                          BADGE_COLORS[pedido.status as PedidoMaterialStatus] ?? 'bg-slate-100 text-slate-600'
+                        )}>
+                          {STATUS_LABELS[pedido.status as PedidoMaterialStatus] ?? pedido.status}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            {/* Order Timeline */}
+            {/* Timeline */}
             <Card className="lg:col-span-2">
               <CardHeader>
-                <CardTitle>Evolução de Pedidos - Últimos 30 dias</CardTitle>
+                <CardTitle>Evolução de Pedidos — Últimos 30 dias</CardTitle>
               </CardHeader>
               <CardContent>
                 <OrderTimelineChart data={timelineData} />
@@ -278,79 +224,14 @@ export default function PedidosPage() {
           </div>
         </TabsContent>
 
-        {/* Orders Tab */}
-        <TabsContent value="orders" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Lista de Pedidos Mobile</CardTitle>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Pedidos realizados pelos supervisores via aplicativo mobile
-                  </p>
-                </div>
-                <div className="flex gap-2 items-center">
-                  <input className="border rounded px-3 py-1 text-sm" placeholder="Buscar número, cliente, endereço" value={search} onChange={(e) => setSearch(e.target.value)} />
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Calendar className="w-4 h-4 mr-2" /> Período
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <CalendarComp mode="range" selected={range as any} onSelect={(r: any) => setRange(r)} />
-                      <div className="p-2 flex justify-end"><Button size="sm" onClick={handleBuscar}>Aplicar</Button></div>
-                    </PopoverContent>
-                  </Popover>
-                  <Button variant="outline" size="sm" onClick={handleBuscar}>
-                    <Search className="w-4 h-4 mr-2" />
-                    Buscar
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <OrdersTable onEdit={handleEditOrder} data={orders} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Materiais Tab — pedidos do Portal Operacional */}
-        <TabsContent value="materiais">
+        {/* ── Pedidos Tab (antigo Materiais) ────────────────────────────── */}
+        <TabsContent value="pedidos">
           <PedidosMateriaisPanel />
         </TabsContent>
 
-        {/* Kanban Tab */}
-        <TabsContent value="kanban" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Pedidos - Visão Kanban</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <OrdersKanban onEdit={handleEditOrder} data={orders} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Tracking Tab */}
-        <TabsContent value="tracking" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Truck className="w-5 h-5" />
-                Rastreamento de Entregas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <OrderDeliveryMap />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Analytics Tab */}
+        {/* ── Analytics Tab ─────────────────────────────────────────────── */}
         <TabsContent value="analytics" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Performance Metrics */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -360,47 +241,37 @@ export default function PedidosPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Taxa de Entrega</span>
-                      <span>{stats?.taxaEntrega || '0'}%</span>
+                  {[
+                    {
+                      label: 'Taxa de Entrega',
+                      value: stats.total > 0 ? Math.round((stats.entregues / stats.total) * 100) : 0,
+                      color: 'bg-emerald-600',
+                    },
+                    {
+                      label: 'Em Andamento',
+                      value: stats.total > 0 ? Math.round((emAndamento / stats.total) * 100) : 0,
+                      color: 'bg-blue-600',
+                    },
+                    {
+                      label: 'Cancelados / Rejeitados',
+                      value: stats.total > 0 ? Math.round((stats.rejeitados / stats.total) * 100) : 0,
+                      color: 'bg-rose-500',
+                    },
+                  ].map(({ label, value, color }) => (
+                    <div key={label}>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span>{label}</span>
+                        <span>{value}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className={cn('h-2 rounded-full transition-all', color)} style={{ width: `${value}%` }} />
+                      </div>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-green-600 h-2 rounded-full" style={{ width: `${stats?.taxaEntrega || 0}%` }}></div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Pedidos Entregues</span>
-                      <span>{stats?.entregues || 0} de {stats?.total || 0}</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${stats?.taxaEntrega || 0}%` }}></div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Em Andamento</span>
-                      <span>{stats?.emAndamento || 0} pedidos</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-purple-600 h-2 rounded-full" style={{ width: `${stats?.total > 0 ? (stats.emAndamento / stats.total * 100).toFixed(0) : 0}%` }}></div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Cancelados/Rejeitados</span>
-                      <span>{stats?.cancelados || 0} pedidos</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-red-600 h-2 rounded-full" style={{ width: `${stats?.total > 0 ? (stats.cancelados / stats.total * 100).toFixed(0) : 0}%` }}></div>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
 
-            {/* Status Summary */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -409,32 +280,23 @@ export default function PedidosPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Pendentes</span>
-                    <span className="font-semibold text-gray-600">{stats?.porStatus?.Pendente || 0} pedidos</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Aprovados</span>
-                    <span className="font-semibold text-indigo-600">{stats?.porStatus?.Aprovado || 0} pedidos</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Em Separação</span>
-                    <span className="font-semibold text-blue-600">{stats?.porStatus?.['Em Separação'] || 0} pedidos</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Saiu para Entrega</span>
-                    <span className="font-semibold text-yellow-600">{stats?.porStatus?.['Saiu para Entrega'] || 0} pedidos</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Entregues</span>
-                    <span className="font-semibold text-green-600">{stats?.porStatus?.Entregue || 0} pedidos</span>
-                  </div>
-                  <div className="pt-2 border-t">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Requerem Autorização</span>
-                      <span className="font-semibold text-orange-600">{stats?.requeremAutorizacao || 0} pedidos</span>
+                <div className="space-y-3">
+                  {([
+                    ['Aguardando Validação', pedidos.filter((p) => p.status === 'Aguardando Validação').length, 'text-yellow-600'],
+                    ['Pendente',             stats.pendentes,  'text-slate-600'],
+                    ['Em Análise',           stats.emAnalise,  'text-blue-600'],
+                    ['Aprovados+Separação',  stats.aprovados,  'text-indigo-600'],
+                    ['Entregues',            stats.entregues,  'text-emerald-600'],
+                    ['Rejeitados/Cancelados',stats.rejeitados, 'text-rose-600'],
+                  ] as [string, number, string][]).map(([label, value, color]) => (
+                    <div key={label} className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">{label}</span>
+                      <span className={cn('font-semibold text-sm', color)}>{value} pedidos</span>
                     </div>
+                  ))}
+                  <div className="pt-2 border-t flex justify-between items-center">
+                    <span className="text-sm font-semibold text-gray-700">Total</span>
+                    <span className="font-bold text-gray-900">{stats.total} pedidos</span>
                   </div>
                 </div>
               </CardContent>
@@ -442,7 +304,7 @@ export default function PedidosPage() {
           </div>
         </TabsContent>
 
-        {/* Reports Tab */}
+        {/* ── Relatórios Tab ────────────────────────────────────────────── */}
         <TabsContent value="reports" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
@@ -450,25 +312,28 @@ export default function PedidosPage() {
                 <CardTitle>Relatórios Disponíveis</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button variant="outline" className="w-full justify-start" onClick={handleExportRelatorio}>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    const rows = pedidos.map((p) => ({
+                      Número: p.numero_pedido,
+                      Solicitante: p.solicitante_nome,
+                      Setor: p.solicitante_setor ?? '',
+                      Urgência: p.urgencia,
+                      Status: p.status,
+                      Itens: p.itens?.length ?? 0,
+                      Data: new Date(p.created_at).toLocaleDateString('pt-BR'),
+                    }))
+                    const csv = [Object.keys(rows[0] ?? {}).join(','), ...rows.map((r) => Object.values(r).join(','))].join('\n')
+                    const a = document.createElement('a')
+                    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+                    a.download = `pedidos-${new Date().toISOString().split('T')[0]}.csv`
+                    a.click()
+                  }}
+                >
                   <Download className="w-4 h-4 mr-2" />
-                  Relatório de Pedidos
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <Download className="w-4 h-4 mr-2" />
-                  Performance de Entrega
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <Download className="w-4 h-4 mr-2" />
-                  Resumo Financeiro
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <Download className="w-4 h-4 mr-2" />
-                  Análise de Contratos
-                </Button>
-                <Button variant="outline" className="w-full justify-start" onClick={() => exportProdutosMaisPedidos(orders as any)}>
-                  <Download className="w-4 h-4 mr-2" />
-                  Produtos Mais Pedidos
+                  Exportar Pedidos (CSV)
                 </Button>
               </CardContent>
             </Card>
@@ -479,65 +344,55 @@ export default function PedidosPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {stats?.requeremAutorizacao > 0 && (
-                    <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg">
-                      <AlertCircle className="w-5 h-5 text-orange-600" />
+                  {pedidos.filter((p) => p.status === 'Aguardando Validação').length > 0 && (
+                    <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
+                      <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0" />
                       <div>
-                        <p className="font-medium text-orange-800">{stats.requeremAutorizacao} {stats.requeremAutorizacao === 1 ? 'pedido requer' : 'pedidos requerem'} autorização</p>
-                        <p className="text-sm text-orange-600">Ação necessária</p>
+                        <p className="font-medium text-yellow-800 text-sm">
+                          {pedidos.filter((p) => p.status === 'Aguardando Validação').length} pedido(s) aguardando validação no portal
+                        </p>
+                        <p className="text-xs text-yellow-600">Supervisor precisa validar</p>
                       </div>
                     </div>
                   )}
-                  {stats?.pendentes > 0 && (
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <Clock className="w-5 h-5 text-gray-600" />
+                  {stats.pendentes > 0 && (
+                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                      <Clock className="w-5 h-5 text-slate-600 flex-shrink-0" />
                       <div>
-                        <p className="font-medium text-gray-800">{stats.pendentes} {stats.pendentes === 1 ? 'pedido pendente' : 'pedidos pendentes'}</p>
-                        <p className="text-sm text-gray-600">Aguardando processamento</p>
+                        <p className="font-medium text-slate-800 text-sm">
+                          {stats.pendentes} pedido(s) pendente(s)
+                        </p>
+                        <p className="text-xs text-slate-600">Aguardando processamento</p>
                       </div>
                     </div>
                   )}
-                  {stats?.emAndamento > 0 && (
+                  {emAndamento > 0 && (
                     <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                      <Truck className="w-5 h-5 text-blue-600" />
+                      <Package className="w-5 h-5 text-blue-600 flex-shrink-0" />
                       <div>
-                        <p className="font-medium text-blue-800">{stats.emAndamento} {stats.emAndamento === 1 ? 'pedido em andamento' : 'pedidos em andamento'}</p>
-                        <p className="text-sm text-blue-600">Acompanhar progresso</p>
+                        <p className="font-medium text-blue-800 text-sm">
+                          {emAndamento} pedido(s) em andamento
+                        </p>
+                        <p className="text-xs text-blue-600">Em análise ou aprovados</p>
                       </div>
                     </div>
                   )}
-                  {(!stats || (stats.requeremAutorizacao === 0 && stats.pendentes === 0 && stats.emAndamento === 0)) && (
+                  {stats.total === 0 || (
+                    pedidos.filter((p) => p.status === 'Aguardando Validação').length === 0 &&
+                    stats.pendentes === 0 &&
+                    emAndamento === 0
+                  ) ? (
                     <div className="text-center py-8 text-gray-500">
                       <CheckCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
                       <p className="text-sm">Nenhum alerta no momento</p>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
       </Tabs>
-
-      {/* Order Dialog (Web Panel) */}
-      <OrderDialog
-        open={isOrderDialogOpen}
-        onClose={() => {
-          setIsOrderDialogOpen(false)
-          setSelectedOrder(null)
-        }}
-        order={selectedOrder}
-      />
-
-      {/* Mobile Order View Dialog (App Mobile) */}
-      <MobileOrderViewDialog
-        open={isMobileOrderDialogOpen}
-        onClose={() => {
-          setIsMobileOrderDialogOpen(false)
-          setSelectedOrder(null)
-        }}
-        order={selectedOrder as PedidoMobile}
-      />
     </div>
   )
-} 
+}
