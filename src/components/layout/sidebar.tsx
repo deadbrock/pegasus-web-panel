@@ -27,7 +27,8 @@ import {
   Briefcase,
   ClipboardList,
   MapPin,
-  Zap
+  Zap,
+  PackageSearch,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth/auth-context'
@@ -52,6 +53,7 @@ const moduleGroups: ModuleGroup[] = [
     icon: Briefcase,
     modules: [
       { name: 'Pedidos', path: '/dashboard/pedidos', icon: ShoppingCart },
+      { name: 'Ped. de Materiais', path: '/dashboard/pedidos-materiais', icon: PackageSearch },
       { name: 'Estoque', path: '/dashboard/estoque', icon: Package },
       { name: 'Contratos', path: '/dashboard/contratos', icon: FileText },
       { name: 'Rastreamento', path: '/dashboard/rastreamento', icon: MapPin },

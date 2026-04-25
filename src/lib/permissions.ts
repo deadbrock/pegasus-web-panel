@@ -74,6 +74,13 @@ export const ALL_MODULES: ModulePermission[] = [
     allowedRoles: ['admin', 'diretor', 'gestor', 'logistica']
   },
   {
+    id: 'pedidos-materiais',
+    name: 'Pedidos de Materiais',
+    icon: 'ClipboardList',
+    path: '/dashboard/pedidos-materiais',
+    allowedRoles: ['admin', 'diretor', 'gestor', 'logistica', 'supervisor', 'encarregado'],
+  },
+  {
     id: 'estoque',
     name: 'Estoque',
     icon: 'Warehouse',
@@ -237,38 +244,33 @@ export const ALL_MODULES: ModulePermission[] = [
   },
 ];
 
-// Função para verificar se um usuário tem acesso a um módulo
 export function hasModuleAccess(userRole: string, moduleId: string): boolean {
   const module = ALL_MODULES.find(m => m.id === moduleId);
   if (!module) return false;
-  
   return module.allowedRoles.includes(userRole);
 }
 
-// Função para obter todos os módulos permitidos para um perfil
 export function getModulesForRole(userRole: string): ModulePermission[] {
   return ALL_MODULES.filter(module => module.allowedRoles.includes(userRole));
 }
 
-// Retorna a rota padrão de entrada de acordo com o perfil do usuário
 export function getDefaultRouteForRole(role: string): string {
   switch (role) {
     case 'adm_contratos':
       return '/gestao-adm/contratos';
+    case 'encarregado':
+    case 'supervisor':
+      return '/dashboard/pedidos-materiais';
     default:
       return '/dashboard';
   }
 }
 
-// Função para verificar se um usuário pode acessar uma rota
 export function canAccessRoute(userRole: string, path: string): boolean {
-  // Rotas públicas sempre permitidas
   if (path === '/login' || path === '/' || path.startsWith('/_next')) {
     return true;
   }
 
-  // Encontra o módulo mais específico que corresponde ao caminho
-  // Ordena por comprimento do path (desc) para encontrar o mais específico primeiro
   const sortedModules = [...ALL_MODULES].sort((a, b) => b.path.length - a.path.length);
   const module = sortedModules.find(m => path === m.path || path.startsWith(m.path + '/'));
 
@@ -276,8 +278,6 @@ export function canAccessRoute(userRole: string, path: string): boolean {
     return module.allowedRoles.includes(userRole);
   }
 
-  // Fallback para paths dentro do /dashboard sem módulo explícito:
-  // permitir apenas para roles que têm acesso geral ao dashboard
   if (path.startsWith('/dashboard')) {
     const dashboardModule = ALL_MODULES.find(m => m.id === 'dashboard');
     return dashboardModule ? dashboardModule.allowedRoles.includes(userRole) : false;
@@ -294,6 +294,8 @@ export const USER_ROLES = {
   GESTOR: 'gestor',
   LOGISTICA: 'logistica',
   ADM_CONTRATOS: 'adm_contratos',
+  SUPERVISOR: 'supervisor',
+  ENCARREGADO: 'encarregado',
 } as const;
 
 export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
