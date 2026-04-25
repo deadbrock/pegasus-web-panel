@@ -14,12 +14,9 @@ import {
   KeyRound,
   Loader2,
   LogOut,
-  Package,
-  PackageCheck,
   PackageSearch,
   Plus,
   Search,
-  ShieldAlert,
   ShieldCheck,
   Trash2,
   UserCheck,
@@ -571,13 +568,13 @@ function PedidoCard({
             </div>
           )}
 
-          {/* Ações do supervisor */}
+          {/* Ações — portal só permite validar ou rejeitar */}
           <div className="px-4 pb-4 pt-1 flex flex-wrap gap-2">
             {isSupervisor && pedido.status === 'Aguardando Validação' && (
               <>
                 <button onClick={() => onAction(pedido, 'validar')}
                   className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
-                  <CheckCircle2 className="w-3.5 h-3.5" />Validar Pedido
+                  <CheckCircle2 className="w-3.5 h-3.5" />Validar e Enviar
                 </button>
                 <button onClick={() => onAction(pedido, 'rejeitar')}
                   className="flex-1 min-w-[100px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 transition-colors">
@@ -585,47 +582,16 @@ function PedidoCard({
                 </button>
               </>
             )}
-            {isSupervisor && pedido.status === 'Pendente' && (
-              <button onClick={() => onAction(pedido, 'em-analise')}
-                className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors">
-                <ShieldAlert className="w-3.5 h-3.5" />Em Análise
-              </button>
-            )}
-            {isSupervisor && pedido.status === 'Em Análise' && (
-              <>
-                <button onClick={() => onAction(pedido, 'aprovar')}
-                  className="flex-1 min-w-[100px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
-                  <CheckCircle2 className="w-3.5 h-3.5" />Aprovar
-                </button>
-                <button onClick={() => onAction(pedido, 'rejeitar-analise')}
-                  className="flex-1 min-w-[100px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 transition-colors">
-                  <XCircle className="w-3.5 h-3.5" />Rejeitar
-                </button>
-              </>
-            )}
-            {isSupervisor && pedido.status === 'Aprovado' && (
-              <button onClick={() => onAction(pedido, 'separacao')}
-                className="flex-1 min-w-[140px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-violet-600 text-white hover:bg-violet-700 transition-colors">
-                <Package className="w-3.5 h-3.5" />Iniciar Separação
-              </button>
-            )}
-            {isSupervisor && pedido.status === 'Em Separação' && (
-              <button onClick={() => onAction(pedido, 'separado')}
-                className="flex-1 min-w-[140px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">
-                <PackageCheck className="w-3.5 h-3.5" />Marcar Separado
-              </button>
-            )}
-            {isSupervisor && pedido.status === 'Separado' && (
-              <button onClick={() => onAction(pedido, 'entregar')}
-                className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-green-600 text-white hover:bg-green-700 transition-colors">
-                <PackageCheck className="w-3.5 h-3.5" />Entregar
-              </button>
-            )}
             {pedido.status === 'Aguardando Validação' && !isSupervisor && (
               <button onClick={() => onAction(pedido, 'cancelar')}
                 className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors">
                 <Trash2 className="w-3.5 h-3.5" />Cancelar
               </button>
+            )}
+            {pedido.status !== 'Aguardando Validação' && pedido.status !== 'Rejeitado' && pedido.status !== 'Cancelado' && (
+              <p className="w-full text-xs text-slate-400 italic py-1">
+                Pedido enviado ao sistema · acompanhe pelo painel principal
+              </p>
             )}
           </div>
         </div>
@@ -935,12 +901,12 @@ function PortalApp({ session, onLogout }: { session: PortalSession; onLogout: ()
   }
 
   async function handleAction(pedido: PedidoPortal, acao: string) {
-    if (acao === 'rejeitar' || acao === 'rejeitar-analise') { setPedidoParaRejeitar(pedido); return }
+    if (acao === 'rejeitar') { setPedidoParaRejeitar(pedido); return }
     setActionLoadingId(pedido.id)
 
     try {
       if (acao === 'validar') {
-        // Supervisor já autenticado — envia pedido para o sistema (status Pendente)
+        // Supervisor valida → pedido entra no sistema como "Pendente"
         await fetch('/api/portal/pedidos', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -950,35 +916,21 @@ function PortalApp({ session, onLogout }: { session: PortalSession; onLogout: ()
             supervisor_nome: session.supervisor.nome,
           }),
         })
-      } else {
-        const statusMap: Record<string, PedidoMaterialStatus> = {
-          'em-analise': 'Em Análise',
-          'aprovar': 'Aprovado',
-          'separacao': 'Em Separação',
-          'separado': 'Separado',
-          'entregar': 'Entregue',
-          'cancelar': 'Cancelado',
-        }
-        const newStatus = statusMap[acao]
-        if (newStatus) {
-          await fetch('/api/portal/pedidos', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              id: pedido.id,
-              status: newStatus,
-              supervisor_nome: isSupervisor ? session.supervisor.nome : undefined,
-            }),
-          })
-        }
+      } else if (acao === 'cancelar') {
+        // Encarregado cancela pedido ainda não validado
+        await fetch('/api/portal/pedidos', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: pedido.id, status: 'Cancelado' }),
+        })
       }
       await load()
     } finally { setActionLoadingId(null) }
   }
 
   const STATUS_OPTIONS: (PedidoMaterialStatus | 'todos')[] = [
-    'todos', 'Aguardando Validação', 'Pendente', 'Em Análise', 'Aprovado',
-    'Rejeitado', 'Em Separação', 'Separado', 'Entregue', 'Cancelado',
+    'todos', 'Aguardando Validação', 'Pendente', 'Rejeitado', 'Cancelado',
+    'Em Análise', 'Aprovado', 'Em Separação', 'Separado', 'Entregue',
   ]
 
   return (
