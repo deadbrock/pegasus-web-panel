@@ -33,6 +33,7 @@ import { OrderStatusChart } from '@/components/pedidos/order-status-chart'
 import { OrderTimelineChart } from '@/components/pedidos/order-timeline-chart'
 import { OrderDeliveryMap } from '@/components/pedidos/order-delivery-map'
 import { OrdersKanban } from '@/components/pedidos/orders-kanban'
+import { PedidosMateriaisPanel } from '@/components/pedidos/pedidos-materiais-panel'
 
 export default function PedidosPage() {
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false)
@@ -193,9 +194,10 @@ export default function PedidosPage() {
 
       {/* Orders Management Tabs */}
       <Tabs defaultValue="dashboard" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="orders">Pedidos</TabsTrigger>
+          <TabsTrigger value="materiais">Materiais</TabsTrigger>
           <TabsTrigger value="kanban">Kanban</TabsTrigger>
           <TabsTrigger value="tracking">Rastreamento</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -311,6 +313,11 @@ export default function PedidosPage() {
               <OrdersTable onEdit={handleEditOrder} data={orders} />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Materiais Tab — pedidos do Portal Operacional */}
+        <TabsContent value="materiais">
+          <PedidosMateriaisPanel />
         </TabsContent>
 
         {/* Kanban Tab */}

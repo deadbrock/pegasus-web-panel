@@ -74,13 +74,6 @@ export const ALL_MODULES: ModulePermission[] = [
     allowedRoles: ['admin', 'diretor', 'gestor', 'logistica']
   },
   {
-    id: 'pedidos-materiais',
-    name: 'Pedidos de Materiais',
-    icon: 'ClipboardList',
-    path: '/operacional',
-    allowedRoles: ['admin', 'diretor', 'gestor', 'logistica', 'supervisor', 'encarregado'],
-  },
-  {
     id: 'estoque',
     name: 'Estoque',
     icon: 'Warehouse',
