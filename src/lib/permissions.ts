@@ -197,7 +197,7 @@ export const ALL_MODULES: ModulePermission[] = [
     name: 'Configurações',
     icon: 'Settings',
     path: '/dashboard/configuracoes',
-    allowedRoles: ['admin', 'diretor', 'financeiro', 'gestor']
+    allowedRoles: ['admin', 'diretor', 'financeiro', 'gestor', 'logistica', 'adm_contratos']
   },
   {
     id: 'supervisores',

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { FileCheck2, Zap, LogOut, BarChart3 } from 'lucide-react'
+import { FileCheck2, Zap, LogOut, BarChart3, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useRouter } from 'next/navigation'
@@ -17,6 +17,11 @@ const navItems = [
     label: 'Analytics',
     path: '/gestao-adm/analytics',
     icon: BarChart3,
+  },
+  {
+    label: 'Configurações',
+    path: '/dashboard/configuracoes',
+    icon: Settings,
   },
 ]
 
