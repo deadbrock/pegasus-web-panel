@@ -9,11 +9,13 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { CalendarIcon, MapPin, Clock, Route, Navigation, Filter, Loader2, User, Truck as TruckIcon, UserPlus } from 'lucide-react'
+import { CalendarIcon, MapPin, Clock, Route, Navigation, Filter, Loader2, User, Truck as TruckIcon, UserPlus, Plus, ExternalLink, Package } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { fetchRotas, type RotaEntrega } from '@/lib/services/rotas-service'
 import { AtribuirRotaDialog } from './atribuir-rota-dialog'
+import { CriarRotaDialog } from './criar-rota-dialog'
+import { fetchPedidosMobile, type PedidoMobile } from '@/services/pedidosMobileService'
 
 interface RouteHistoryProps {
   selectedVehicle?: any
@@ -28,20 +30,29 @@ export function RouteHistory({ selectedVehicle }: RouteHistoryProps) {
   const [loading, setLoading] = useState(true)
   const [atribuirDialogOpen, setAtribuirDialogOpen] = useState(false)
   const [rotaSelecionada, setRotaSelecionada] = useState<RotaEntrega | null>(null)
+  const [criarRotaOpen, setCriarRotaOpen] = useState(false)
+  const [pedidoParaRota, setPedidoParaRota] = useState<PedidoMobile | null>(null)
+  const [pedidosSeparados, setPedidosSeparados] = useState<PedidoMobile[]>([])
 
-  // Carregar rotas reais do banco
-  useEffect(() => {
-    loadRotas()
-  }, [])
+  useEffect(() => { loadAll() }, [])
 
-  const loadRotas = async () => {
+  const loadAll = async () => {
     setLoading(true)
     try {
-      const rotasData = await fetchRotas()
-      console.log('[RouteHistory] Rotas carregadas:', rotasData.length)
+      const [rotasData, pedidosData] = await Promise.all([
+        fetchRotas(),
+        fetchPedidosMobile(),
+      ])
       setRotas(rotasData)
+      // Pedidos em Separado ou Em Separação que ainda não têm rota
+      const pedidosComRota = new Set(rotasData.map((r) => r.pedido_id))
+      setPedidosSeparados(
+        pedidosData.filter(
+          (p) => (p.status === 'Separado' || p.status === 'Em Separação') && !pedidosComRota.has(p.id)
+        )
+      )
     } catch (error) {
-      console.error('[RouteHistory] Erro ao carregar rotas:', error)
+      console.error('[RouteHistory] Erro ao carregar:', error)
     } finally {
       setLoading(false)
     }
@@ -52,8 +63,11 @@ export function RouteHistory({ selectedVehicle }: RouteHistoryProps) {
     setAtribuirDialogOpen(true)
   }
 
-  const handleAtribuicaoSuccess = () => {
-    loadRotas() // Recarregar rotas após atribuição
+  const handleAtribuicaoSuccess = () => { loadAll() }
+
+  const handleCriarRota = (pedido: PedidoMobile) => {
+    setPedidoParaRota(pedido)
+    setCriarRotaOpen(true)
   }
 
   const filteredRoutes = rotas.filter(rota => {
@@ -182,6 +196,40 @@ export function RouteHistory({ selectedVehicle }: RouteHistoryProps) {
         </CardContent>
       </Card>
 
+      {/* Pedidos aguardando criação de rota */}
+      {!loading && pedidosSeparados.length > 0 && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Package className="w-4 h-4 text-amber-600" />
+                <span className="font-semibold text-sm text-amber-800">
+                  {pedidosSeparados.length} pedido{pedidosSeparados.length !== 1 ? 's' : ''} aguardando rota
+                </span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {pedidosSeparados.map((pedido) => (
+                <div key={pedido.id} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-amber-100">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-800 truncate">{pedido.numero_pedido}</p>
+                    <p className="text-xs text-slate-500 truncate">{pedido.supervisor_nome}{pedido.contrato_nome ? ` · ${pedido.contrato_nome}` : ''}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => handleCriarRota(pedido)}
+                    className="ml-3 flex-shrink-0 bg-blue-600 hover:bg-blue-700 gap-1 text-xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Criar Rota
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Lista de Rotas */}
       <div className="space-y-3">
         {loading ? (
@@ -220,19 +268,67 @@ export function RouteHistory({ selectedVehicle }: RouteHistoryProps) {
                     {getStatusBadge(rota.status)}
                   </div>
 
-                  {/* Destino */}
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-red-500" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Endereço de Entrega</p>
-                      <p className="text-xs text-gray-600">{rota.endereco_completo}</p>
-                      {(rota.endereco_cidade || rota.endereco_estado) && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          {rota.endereco_cidade} - {rota.endereco_estado}
-                        </p>
-                      )}
+                  {/* Ponto de partida → Destino */}
+                  <div className="space-y-1.5">
+                    {rota.ponto_partida && (
+                      <div className="flex items-start gap-2">
+                        <Navigation className="w-3.5 h-3.5 text-blue-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-xs text-gray-500">Partida</p>
+                          <p className="text-sm font-medium">{rota.ponto_partida}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Paradas */}
+                    {Array.isArray(rota.paradas) && rota.paradas.length > 0 && (
+                      <div className="flex items-start gap-2">
+                        <div className="w-3.5 flex-shrink-0 mt-0.5 flex flex-col items-center gap-0.5">
+                          {rota.paradas.map((_, i) => (
+                            <span key={i} className="w-2 h-2 rounded-full bg-amber-400 block" />
+                          ))}
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">{rota.paradas.length} parada{rota.paradas.length !== 1 ? 's' : ''}</p>
+                          {rota.paradas.map((p: any, i: number) => (
+                            <p key={i} className="text-xs text-gray-600">{p.endereco}</p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-start gap-2">
+                      <MapPin className="w-3.5 h-3.5 text-red-500 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-gray-500">Entrega</p>
+                        <p className="text-sm font-medium truncate">{rota.endereco_completo}</p>
+                        {(rota.endereco_cidade || rota.endereco_estado) && (
+                          <p className="text-xs text-gray-500">{rota.endereco_cidade} - {rota.endereco_estado}</p>
+                        )}
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rota.endereco_completo)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline mt-0.5"
+                        >
+                          <ExternalLink className="w-3 h-3" />Ver no mapa
+                        </a>
+                      </div>
                     </div>
                   </div>
+
+                  {/* Destinatário */}
+                  {(rota.destinatario_nome || rota.destinatario_tel) && (
+                    <div className="flex items-start gap-2 bg-slate-50 rounded-lg px-3 py-2 text-sm">
+                      <User className="w-3.5 h-3.5 text-slate-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-xs text-gray-500">Destinatário</p>
+                        {rota.destinatario_nome && <p className="font-medium">{rota.destinatario_nome}</p>}
+                        {rota.destinatario_tel && <p className="text-xs text-gray-600">{rota.destinatario_tel}</p>}
+                        {rota.destinatario_doc && <p className="text-xs text-gray-500">Doc: {rota.destinatario_doc}</p>}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Informações da Rota */}
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
@@ -242,7 +338,7 @@ export function RouteHistory({ selectedVehicle }: RouteHistoryProps) {
                         Motorista:
                       </span>
                       <p className="font-medium">
-                        {rota.motorista_id ? 'Atribuído' : 'Aguardando'}
+                        {(rota as any).motorista?.nome ?? (rota.motorista_id ? 'Atribuído' : 'Aguardando')}
                       </p>
                     </div>
                     <div>
@@ -251,7 +347,7 @@ export function RouteHistory({ selectedVehicle }: RouteHistoryProps) {
                         Veículo:
                       </span>
                       <p className="font-medium">
-                        {rota.veiculo_id ? 'Atribuído' : 'Aguardando'}
+                        {(rota as any).veiculo?.placa ?? (rota.veiculo_id ? 'Atribuído' : 'Aguardando')}
                       </p>
                     </div>
                     <div>
@@ -265,6 +361,18 @@ export function RouteHistory({ selectedVehicle }: RouteHistoryProps) {
                         {rota.prioridade}
                       </p>
                     </div>
+                    {rota.distancia_est_km && (
+                      <div>
+                        <span className="text-gray-600">Distância:</span>
+                        <p className="font-medium">{rota.distancia_est_km} km</p>
+                      </div>
+                    )}
+                    {rota.tempo_est_min && (
+                      <div>
+                        <span className="text-gray-600">Tempo est.:</span>
+                        <p className="font-medium">{rota.tempo_est_min} min</p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Observações */}
@@ -346,6 +454,21 @@ export function RouteHistory({ selectedVehicle }: RouteHistoryProps) {
         onClose={() => setAtribuirDialogOpen(false)}
         rota={rotaSelecionada}
         onSuccess={handleAtribuicaoSuccess}
+      />
+
+      {/* Dialog de Criação de Rota */}
+      <CriarRotaDialog
+        open={criarRotaOpen}
+        onClose={() => { setCriarRotaOpen(false); setPedidoParaRota(null) }}
+        pedido={pedidoParaRota ? {
+          id: pedidoParaRota.id,
+          numero_pedido: pedidoParaRota.numero_pedido,
+          supervisor_nome: pedidoParaRota.supervisor_nome,
+          contrato_nome: pedidoParaRota.contrato_nome,
+          contrato_endereco: pedidoParaRota.contrato_endereco,
+          urgencia: pedidoParaRota.urgencia,
+        } : null}
+        onSuccess={() => { setCriarRotaOpen(false); setPedidoParaRota(null); loadAll() }}
       />
 
       {/* Resumo */}

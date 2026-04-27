@@ -4,12 +4,13 @@ import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import {  X, Package, User, Calendar, AlertCircle, CheckCircle, Clock, Truck, MapPin, Building2, Download } from 'lucide-react'
+import { X, Package, User, Calendar, AlertCircle, CheckCircle, Clock, Truck, MapPin, Building2, Download, Route } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { PedidoMobile, aprovarAutorizacaoPedido, updatePedidoMobileStatus } from '@/services/pedidosMobileService'
 import { useToast } from '@/hooks/use-toast'
 import { gerarPedidoPDF } from '@/services/pdfService'
+import { CriarRotaDialog } from '@/components/rastreamento/criar-rota-dialog'
 
 interface MobileOrderViewDialogProps {
   open: boolean
@@ -37,7 +38,8 @@ const urgenciaConfig = {
 export function MobileOrderViewDialog({ open, onClose, order }: MobileOrderViewDialogProps) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
-  
+  const [criarRotaOpen, setCriarRotaOpen] = useState(false)
+
   if (!order) return null
 
   const statusInfo = statusConfig[order.status] || statusConfig['Pendente']
@@ -508,9 +510,39 @@ export function MobileOrderViewDialog({ open, onClose, order }: MobileOrderViewD
                 {loading ? 'Processando...' : 'Confirmar Entrega'}
               </Button>
             )}
+            {/* Botão Criar Rota — disponível a partir do status Separado */}
+            {(order.status === 'Separado' || order.status === 'Em Separação') && (
+              <Button
+                variant="outline"
+                className="border-blue-300 text-blue-700 hover:bg-blue-50 gap-1.5"
+                onClick={() => setCriarRotaOpen(true)}
+                disabled={loading}
+              >
+                <Route className="w-4 h-4" />
+                Criar Rota de Entrega
+              </Button>
+            )}
           </div>
         </div>
       </DialogContent>
+
+      {/* Dialog de criação de rota */}
+      <CriarRotaDialog
+        open={criarRotaOpen}
+        onClose={() => setCriarRotaOpen(false)}
+        pedido={order ? {
+          id: order.id,
+          numero_pedido: order.numero_pedido,
+          supervisor_nome: order.supervisor_nome,
+          contrato_nome: order.contrato_nome,
+          contrato_endereco: order.contrato_endereco,
+          urgencia: order.urgencia,
+        } : null}
+        onSuccess={() => {
+          setCriarRotaOpen(false)
+          toast({ title: 'Rota criada!', description: 'Acesse Rastreamento → Rotas para acompanhar.' })
+        }}
+      />
     </Dialog>
   )
 }
