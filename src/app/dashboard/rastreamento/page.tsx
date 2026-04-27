@@ -17,7 +17,19 @@ import {
   Route,
   Truck,
 } from 'lucide-react'
-import { TrackingMap } from '@/components/rastreamento/tracking-map'
+import dynamic from 'next/dynamic'
+
+const TrackingMap = dynamic(
+  () => import('@/components/rastreamento/tracking-map').then((m) => m.TrackingMap),
+  { ssr: false, loading: () => (
+    <div className="flex items-center justify-center bg-slate-50 rounded-xl" style={{ height: 480 }}>
+      <div className="text-center text-slate-400">
+        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+        <p className="text-sm">Carregando mapa...</p>
+      </div>
+    </div>
+  )}
+)
 import { VehiclesTable } from '@/components/rastreamento/vehicles-table'
 import { RouteHistory } from '@/components/rastreamento/route-history'
 import { RastreamentoAnalytics } from '@/components/rastreamento/rastreamento-analytics'
