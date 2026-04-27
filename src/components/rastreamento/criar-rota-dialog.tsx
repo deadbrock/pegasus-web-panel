@@ -39,6 +39,8 @@ interface PedidoRef {
   contrato_nome?: string
   contrato_endereco?: string
   urgencia: string
+  /** 'supervisores' = pedidos_supervisores (mobile); 'materiais' = pedidos_materiais (portal) */
+  tipo?: 'supervisores' | 'materiais'
 }
 
 interface CriarRotaDialogProps {
@@ -232,8 +234,10 @@ export function CriarRotaDialog({ open, onClose, pedido, onSuccess }: CriarRotaD
     try {
       const { data: { user } } = await supabase.auth.getUser()
 
+      const ehMaterial = pedido.tipo === 'materiais'
       const payload: CriarRotaPayload = {
-        pedido_id:           pedido.id,
+        pedido_id:           ehMaterial ? undefined : pedido.id,
+        pedido_material_id:  ehMaterial ? pedido.id : undefined,
         ponto_partida:       pontoPartida.trim() || undefined,
         endereco_completo:   enderecoEntrega.trim(),
         paradas:             paradas.filter((p) => p.endereco.trim()),

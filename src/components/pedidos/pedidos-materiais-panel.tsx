@@ -489,6 +489,7 @@ export function PedidosMateriaisPanel() {
           supervisor_nome: pedidoParaRota.supervisor_nome ?? pedidoParaRota.solicitante_nome,
           contrato_nome: pedidoParaRota.solicitante_setor ?? undefined,
           urgencia: pedidoParaRota.urgencia,
+          tipo: 'materiais',
         } : null}
         onSuccess={() => setPedidoParaRota(null)}
       />

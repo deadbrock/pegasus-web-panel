@@ -51,14 +51,21 @@ export type RotaEntrega = {
   created_at: string
   updated_at: string
 
+  // ID alternativo para pedidos do portal operacional
+  pedido_material_id?: string
+
   // Joins
   pedido?: any
+  pedido_material?: any
   motorista?: any
   veiculo?: any
 }
 
 export type CriarRotaPayload = {
-  pedido_id: string
+  /** ID em pedidos_supervisores (mobile) */
+  pedido_id?: string
+  /** ID em pedidos_materiais (portal operacional) */
+  pedido_material_id?: string
   ponto_partida?: string
   endereco_completo: string
   endereco_cidade?: string
@@ -93,8 +100,14 @@ export async function criarRota(payload: CriarRotaPayload): Promise<RotaEntrega>
   const numero_rota = gerarNumeroRota()
   const temAtribuicao = !!payload.motorista_id && !!payload.veiculo_id
 
+  if (!payload.pedido_id && !payload.pedido_material_id) {
+    throw new Error('criarRota: informe pedido_id ou pedido_material_id')
+  }
+
   const insert: Record<string, unknown> = {
-    pedido_id:            payload.pedido_id,
+    // Usar a referência correta
+    pedido_id:            payload.pedido_id ?? null,
+    pedido_material_id:   payload.pedido_material_id ?? null,
     numero_rota,
     data_prevista_entrega: payload.data_prevista_entrega ?? null,
     endereco_completo:    payload.endereco_completo,
@@ -122,6 +135,7 @@ export async function criarRota(payload: CriarRotaPayload): Promise<RotaEntrega>
     .select(`
       *,
       pedido:pedidos_supervisores(numero_pedido, supervisor_nome, contrato_nome, contrato_endereco),
+      pedido_material:pedidos_materiais(numero_pedido, solicitante_nome, solicitante_setor),
       motorista:motoristas(nome, telefone),
       veiculo:veiculos(placa, modelo)
     `)
@@ -143,6 +157,7 @@ export async function fetchRotas(status?: string): Promise<RotaEntrega[]> {
     .select(`
       *,
       pedido:pedidos_supervisores(numero_pedido, supervisor_nome, contrato_nome, contrato_endereco, created_at),
+      pedido_material:pedidos_materiais(numero_pedido, solicitante_nome, solicitante_setor),
       motorista:motoristas(nome, telefone),
       veiculo:veiculos(placa, modelo)
     `)
