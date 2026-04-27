@@ -12,6 +12,7 @@ import {
   Package,
   PackageCheck,
   PackageSearch,
+  Route,
   Search,
   ShieldAlert,
   Trash2,
@@ -25,6 +26,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAuth } from '@/lib/auth/auth-context'
 import { cn } from '@/lib/utils'
+import { CriarRotaDialog } from '@/components/rastreamento/criar-rota-dialog'
 import {
   aprovarPedidoMaterial,
   calcularStatsPedidos,
@@ -206,6 +208,7 @@ function PedidoCard({
               <button onClick={() => onAction(pedido, 'separado')}
                 className="flex-1 min-w-[140px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">
                 <PackageCheck className="w-3.5 h-3.5" />Marcar Separado
+                <Route className="w-3 h-3 opacity-70" />
               </button>
             )}
             {canManage && pedido.status === 'Separado' && (
@@ -284,6 +287,7 @@ export function PedidosMateriaisPanel() {
   const [search, setSearch] = useState('')
   const [apenasUrgentes, setApenasUrgentes] = useState(false)
   const [pedidoParaRejeitar, setPedidoParaRejeitar] = useState<PedidoMaterial | null>(null)
+  const [pedidoParaRota, setPedidoParaRota] = useState<PedidoMaterial | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
   const load = useCallback(async () => {
@@ -326,12 +330,22 @@ export function PedidosMateriaisPanel() {
 
   async function handleAction(pedido: PedidoMaterial, acao: string) {
     if (acao === 'rejeitar') { setPedidoParaRejeitar(pedido); return }
+
+    // Quando marcar como Separado: atualiza status e abre dialog de rota
+    if (acao === 'separado') {
+      setActionLoading(pedido.id)
+      await updateStatusPedidoMaterial(pedido.id, 'Separado')
+      await load()
+      setActionLoading(null)
+      setPedidoParaRota(pedido)
+      return
+    }
+
     setActionLoading(pedido.id)
     const map: Record<string, () => Promise<boolean>> = {
       'em-analise': () => updateStatusPedidoMaterial(pedido.id, 'Em Análise'),
       'aprovar':    () => aprovarPedidoMaterial(pedido.id, user?.name ?? 'Sistema'),
       'separacao':  () => updateStatusPedidoMaterial(pedido.id, 'Em Separação'),
-      'separado':   () => updateStatusPedidoMaterial(pedido.id, 'Separado'),
       'entregar':   () => updateStatusPedidoMaterial(pedido.id, 'Entregue'),
       'cancelar':   () => cancelarPedidoMaterial(pedido.id),
     }
@@ -463,6 +477,20 @@ export function PedidosMateriaisPanel() {
         userName={user?.name ?? 'Sistema'}
         onClose={() => setPedidoParaRejeitar(null)}
         onRejeitado={load}
+      />
+
+      {/* Dialog de criação de rota — abre após marcar como Separado */}
+      <CriarRotaDialog
+        open={!!pedidoParaRota}
+        onClose={() => setPedidoParaRota(null)}
+        pedido={pedidoParaRota ? {
+          id: pedidoParaRota.id,
+          numero_pedido: pedidoParaRota.numero_pedido,
+          supervisor_nome: pedidoParaRota.supervisor_nome ?? pedidoParaRota.solicitante_nome,
+          contrato_nome: pedidoParaRota.solicitante_setor ?? undefined,
+          urgencia: pedidoParaRota.urgencia,
+        } : null}
+        onSuccess={() => setPedidoParaRota(null)}
       />
     </div>
   )
