@@ -149,6 +149,94 @@ export async function criarRota(payload: CriarRotaPayload): Promise<RotaEntrega>
 }
 
 /**
+ * Criar uma rota mínima (placeholder) ao marcar pedido como Separado.
+ * O usuário completa os detalhes depois via atualizarRotaDetalhes().
+ */
+export async function criarRotaMinima(
+  pedidoMaterialId: string,
+  prioridade: RotaEntrega['prioridade'] = 'Normal'
+): Promise<RotaEntrega> {
+  const numero_rota = gerarNumeroRota()
+
+  const { data, error } = await supabase
+    .from('rotas_entrega')
+    .insert({
+      pedido_material_id: pedidoMaterialId,
+      pedido_id:          null,
+      numero_rota,
+      endereco_completo:  '',
+      endereco_cidade:    '',
+      endereco_estado:    '',
+      paradas:            [],
+      prioridade,
+      status:             'Aguardando Atribuição',
+    })
+    .select('*')
+    .single()
+
+  if (error) {
+    console.error('[criarRotaMinima] error:', error)
+    throw error
+  }
+  return data as RotaEntrega
+}
+
+/**
+ * Atualizar os detalhes de uma rota já existente (modo edição no dialog).
+ */
+export type AtualizarRotaPayload = Omit<CriarRotaPayload, 'pedido_id' | 'pedido_material_id'>
+
+export async function atualizarRotaDetalhes(
+  rotaId: string,
+  payload: AtualizarRotaPayload
+): Promise<RotaEntrega> {
+  const temAtribuicao = !!payload.motorista_id && !!payload.veiculo_id
+
+  const update: Record<string, unknown> = {
+    endereco_completo:     payload.endereco_completo,
+    endereco_cidade:       payload.endereco_cidade   ?? '',
+    endereco_estado:       payload.endereco_estado   ?? '',
+    ponto_partida:         payload.ponto_partida     ?? null,
+    paradas:               payload.paradas           ?? [],
+    destinatario_nome:     payload.destinatario_nome ?? null,
+    destinatario_tel:      payload.destinatario_tel  ?? null,
+    destinatario_doc:      payload.destinatario_doc  ?? null,
+    distancia_est_km:      payload.distancia_est_km  ?? null,
+    tempo_est_min:         payload.tempo_est_min     ?? null,
+    prioridade:            payload.prioridade        ?? 'Normal',
+    observacoes:           payload.observacoes       ?? null,
+    data_prevista_entrega: payload.data_prevista_entrega ?? null,
+  }
+
+  if (temAtribuicao) {
+    update.motorista_id     = payload.motorista_id
+    update.veiculo_id       = payload.veiculo_id
+    update.status           = 'Atribuída'
+    update.data_atribuicao  = new Date().toISOString()
+    update.atribuido_por    = payload.atribuido_por ?? 'Sistema'
+  }
+
+  const { data, error } = await supabase
+    .from('rotas_entrega')
+    .update(update)
+    .eq('id', rotaId)
+    .select(`
+      *,
+      pedido:pedidos_supervisores(numero_pedido, supervisor_nome, contrato_nome, contrato_endereco),
+      pedido_material:pedidos_materiais(numero_pedido, solicitante_nome, solicitante_setor),
+      motorista:motoristas(nome, telefone),
+      veiculo:veiculos(placa, modelo)
+    `)
+    .single()
+
+  if (error) {
+    console.error('[atualizarRotaDetalhes] error:', error)
+    throw error
+  }
+  return data as RotaEntrega
+}
+
+/**
  * Buscar todas as rotas
  */
 export async function fetchRotas(status?: string): Promise<RotaEntrega[]> {

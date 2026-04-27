@@ -27,6 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/lib/auth/auth-context'
 import { cn } from '@/lib/utils'
 import { CriarRotaDialog } from '@/components/rastreamento/criar-rota-dialog'
+import { criarRotaMinima } from '@/lib/services/rotas-service'
 import {
   aprovarPedidoMaterial,
   calcularStatsPedidos,
@@ -212,10 +213,12 @@ function PedidoCard({
               </button>
             )}
             {canManage && pedido.status === 'Separado' && (
-              <button onClick={() => onAction(pedido, 'entregar')}
-                className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-green-600 text-white hover:bg-green-700 transition-colors">
-                <PackageCheck className="w-3.5 h-3.5" />Entregar
-              </button>
+              <div className="w-full flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-2">
+                <Route className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                <p className="text-xs text-indigo-800">
+                  Pedido separado. Acesse <span className="font-semibold">Rastreamento → Rotas</span> para criar a rota de entrega e vincular motorista/veículo.
+                </p>
+              </div>
             )}
           </div>
         </div>
@@ -288,6 +291,7 @@ export function PedidosMateriaisPanel() {
   const [apenasUrgentes, setApenasUrgentes] = useState(false)
   const [pedidoParaRejeitar, setPedidoParaRejeitar] = useState<PedidoMaterial | null>(null)
   const [pedidoParaRota, setPedidoParaRota] = useState<PedidoMaterial | null>(null)
+  const [rotaIdParaEditar, setRotaIdParaEditar] = useState<string | undefined>(undefined)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
   const load = useCallback(async () => {
@@ -331,13 +335,26 @@ export function PedidosMateriaisPanel() {
   async function handleAction(pedido: PedidoMaterial, acao: string) {
     if (acao === 'rejeitar') { setPedidoParaRejeitar(pedido); return }
 
-    // Quando marcar como Separado: atualiza status e abre dialog de rota
+    // Quando marcar como Separado: atualiza status, cria rota mínima e abre dialog
     if (acao === 'separado') {
       setActionLoading(pedido.id)
-      await updateStatusPedidoMaterial(pedido.id, 'Separado')
-      await load()
-      setActionLoading(null)
-      setPedidoParaRota(pedido)
+      try {
+        await updateStatusPedidoMaterial(pedido.id, 'Separado')
+        // Cria placeholder em rotas_entrega — pedido já aparece em Rastreamento
+        const prioridadeRota =
+          pedido.urgencia === 'Urgente' ? 'Urgente' :
+          pedido.urgencia === 'Alta'    ? 'Alta'    : 'Normal'
+        const rota = await criarRotaMinima(pedido.id, prioridadeRota)
+        await load()
+        setRotaIdParaEditar(rota.id)
+        setPedidoParaRota(pedido)
+      } catch (err) {
+        console.error('[PedidosMateriaisPanel] erro ao separar pedido:', err)
+        // Mesmo com erro na rota, a separação foi feita — recarrega
+        await load()
+      } finally {
+        setActionLoading(null)
+      }
       return
     }
 
@@ -346,7 +363,6 @@ export function PedidosMateriaisPanel() {
       'em-analise': () => updateStatusPedidoMaterial(pedido.id, 'Em Análise'),
       'aprovar':    () => aprovarPedidoMaterial(pedido.id, user?.name ?? 'Sistema'),
       'separacao':  () => updateStatusPedidoMaterial(pedido.id, 'Em Separação'),
-      'entregar':   () => updateStatusPedidoMaterial(pedido.id, 'Entregue'),
       'cancelar':   () => cancelarPedidoMaterial(pedido.id),
     }
     const fn = map[acao]
@@ -479,10 +495,11 @@ export function PedidosMateriaisPanel() {
         onRejeitado={load}
       />
 
-      {/* Dialog de criação de rota — abre após marcar como Separado */}
+      {/* Dialog de rota — abre após marcar como Separado */}
       <CriarRotaDialog
         open={!!pedidoParaRota}
-        onClose={() => setPedidoParaRota(null)}
+        onClose={() => { setPedidoParaRota(null); setRotaIdParaEditar(undefined) }}
+        rotaExistenteId={rotaIdParaEditar}
         pedido={pedidoParaRota ? {
           id: pedidoParaRota.id,
           numero_pedido: pedidoParaRota.numero_pedido,
@@ -491,7 +508,7 @@ export function PedidosMateriaisPanel() {
           urgencia: pedidoParaRota.urgencia,
           tipo: 'materiais',
         } : null}
-        onSuccess={() => setPedidoParaRota(null)}
+        onSuccess={() => { setPedidoParaRota(null); setRotaIdParaEditar(undefined) }}
       />
     </div>
   )

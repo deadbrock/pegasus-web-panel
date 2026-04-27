@@ -26,7 +26,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase'
-import { criarRota, type CriarRotaPayload, type Parada } from '@/lib/services/rotas-service'
+import { atualizarRotaDetalhes, criarRota, type CriarRotaPayload, type Parada } from '@/lib/services/rotas-service'
 import { fetchMotoristas } from '@/lib/services/motoristas-service'
 import { cn } from '@/lib/utils'
 
@@ -48,6 +48,8 @@ interface CriarRotaDialogProps {
   onClose: () => void
   pedido: PedidoRef | null
   onSuccess?: () => void
+  /** Quando fornecido, o dialog opera em modo EDIÇÃO (atualiza a rota existente) */
+  rotaExistenteId?: string
 }
 
 type Motorista = { id: string; nome: string; cpf: string; telefone?: string; status: string }
@@ -165,7 +167,8 @@ function ParadasEditor({
 
 // ─── Dialog Principal ─────────────────────────────────────────────────────────
 
-export function CriarRotaDialog({ open, onClose, pedido, onSuccess }: CriarRotaDialogProps) {
+export function CriarRotaDialog({ open, onClose, pedido, onSuccess, rotaExistenteId }: CriarRotaDialogProps) {
+  const modoEdicao = !!rotaExistenteId
   const { toast } = useToast()
 
   // Listas
@@ -233,40 +236,47 @@ export function CriarRotaDialog({ open, onClose, pedido, onSuccess }: CriarRotaD
     setSaving(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
+      const autorEmail = user?.email ?? 'Sistema'
 
-      const ehMaterial = pedido.tipo === 'materiais'
-      const payload: CriarRotaPayload = {
-        pedido_id:           ehMaterial ? undefined : pedido.id,
-        pedido_material_id:  ehMaterial ? pedido.id : undefined,
-        ponto_partida:       pontoPartida.trim() || undefined,
-        endereco_completo:   enderecoEntrega.trim(),
-        paradas:             paradas.filter((p) => p.endereco.trim()),
-        destinatario_nome:   destinatarioNome.trim() || undefined,
-        destinatario_tel:    destinatarioTel.trim() || undefined,
-        destinatario_doc:    destinatarioDoc.trim() || undefined,
-        motorista_id:        motoristaId || undefined,
-        veiculo_id:          veiculoId || undefined,
+      const detalhes = {
+        ponto_partida:        pontoPartida.trim() || undefined,
+        endereco_completo:    enderecoEntrega.trim(),
+        paradas:              paradas.filter((p) => p.endereco.trim()),
+        destinatario_nome:    destinatarioNome.trim() || undefined,
+        destinatario_tel:     destinatarioTel.trim() || undefined,
+        destinatario_doc:     destinatarioDoc.trim() || undefined,
+        motorista_id:         motoristaId && motoristaId !== 'none' ? motoristaId : undefined,
+        veiculo_id:           veiculoId && veiculoId !== 'none' ? veiculoId : undefined,
         prioridade,
         data_prevista_entrega: dataPrevista ? new Date(dataPrevista).toISOString() : undefined,
-        distancia_est_km:    distancia ? parseFloat(distancia) : undefined,
-        tempo_est_min:       tempo ? parseInt(tempo, 10) : undefined,
-        observacoes:         observacoes.trim() || undefined,
-        atribuido_por:       user?.email ?? 'Sistema',
+        distancia_est_km:     distancia ? parseFloat(distancia) : undefined,
+        tempo_est_min:        tempo ? parseInt(tempo, 10) : undefined,
+        observacoes:          observacoes.trim() || undefined,
+        atribuido_por:        autorEmail,
       }
 
-      await criarRota(payload)
-
-      toast({
-        title: 'Rota criada!',
-        description: `Rota de entrega para o pedido ${pedido.numero_pedido} criada com sucesso.`,
-      })
+      if (modoEdicao) {
+        // Atualizar rota existente (criada automaticamente ao marcar Separado)
+        await atualizarRotaDetalhes(rotaExistenteId!, detalhes)
+        toast({ title: 'Rota atualizada!', description: `Detalhes da rota do pedido ${pedido.numero_pedido} salvos.` })
+      } else {
+        // Criar nova rota (fluxo manual via RouteHistory)
+        const ehMaterial = pedido.tipo === 'materiais'
+        const payload: CriarRotaPayload = {
+          pedido_id:          ehMaterial ? undefined : pedido.id,
+          pedido_material_id: ehMaterial ? pedido.id : undefined,
+          ...detalhes,
+        }
+        await criarRota(payload)
+        toast({ title: 'Rota criada!', description: `Rota de entrega para ${pedido.numero_pedido} criada com sucesso.` })
+      }
 
       resetForm()
       onSuccess?.()
       onClose()
     } catch (err) {
       console.error('[CriarRotaDialog]', err)
-      toast({ title: 'Erro ao criar rota', description: 'Verifique os dados e tente novamente.', variant: 'destructive' })
+      toast({ title: modoEdicao ? 'Erro ao salvar rota' : 'Erro ao criar rota', description: 'Verifique os dados e tente novamente.', variant: 'destructive' })
     } finally {
       setSaving(false)
     }
@@ -285,7 +295,7 @@ export function CriarRotaDialog({ open, onClose, pedido, onSuccess }: CriarRotaD
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg font-bold">
             <Route className="w-5 h-5 text-blue-600" />
-            Criar Rota de Entrega
+            {modoEdicao ? 'Configurar Rota de Entrega' : 'Criar Rota de Entrega'}
           </DialogTitle>
         </DialogHeader>
 
@@ -295,6 +305,17 @@ export function CriarRotaDialog({ open, onClose, pedido, onSuccess }: CriarRotaD
           </div>
         ) : (
           <div className="space-y-6 py-2">
+
+            {/* Banner modo edição */}
+            {modoEdicao && (
+              <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5">
+                <Route className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div className="text-xs text-blue-800">
+                  <span className="font-semibold">Pedido já enviado ao Rastreamento.</span>
+                  {' '}Complete os detalhes abaixo para facilitar a entrega. Você pode fechar e preencher depois.
+                </div>
+              </div>
+            )}
 
             {/* Info do pedido */}
             <div className={cn('flex items-start gap-3 rounded-xl border px-4 py-3', URGENCIA_COLORS[pedido.urgencia] ?? URGENCIA_COLORS['Baixa'])}>
@@ -468,7 +489,9 @@ export function CriarRotaDialog({ open, onClose, pedido, onSuccess }: CriarRotaD
               <Button variant="outline" onClick={handleClose} disabled={saving}>Cancelar</Button>
               <Button onClick={handleSalvar} disabled={saving} className="bg-blue-600 hover:bg-blue-700 gap-2">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Route className="w-4 h-4" />}
-                {saving ? 'Criando...' : 'Criar Rota'}
+                {saving
+                  ? (modoEdicao ? 'Salvando...' : 'Criando...')
+                  : (modoEdicao ? 'Salvar Rota' : 'Criar Rota')}
               </Button>
             </div>
           </div>
