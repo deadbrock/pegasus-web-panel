@@ -1,379 +1,276 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useEffect, useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
-import { 
-  MapPin, 
-  Truck,
-  Navigation,
+import { Card, CardContent } from '@/components/ui/card'
+import {
   Activity,
+  AlertTriangle,
   Clock,
-  Route,
-  Eye,
-  RefreshCw,
-  Filter,
   Download,
-  Play,
+  MapPin,
+  Navigation,
   Pause,
-  Settings
+  Play,
+  RefreshCw,
+  Route,
+  Truck,
 } from 'lucide-react'
-import { exportRastreamentoVeiculos, exportRastreamentoRotas, exportRastreamentoKPIs, exportTemplateImportPositions } from '@/components/rastreamento/reports'
-import { useToast } from '@/hooks/use-toast'
-import { MetricCard } from '@/components/dashboard/metric-card'
 import { TrackingMap } from '@/components/rastreamento/tracking-map'
 import { VehiclesTable } from '@/components/rastreamento/vehicles-table'
 import { RouteHistory } from '@/components/rastreamento/route-history'
-import { TrackingMetrics } from '@/components/rastreamento/tracking-metrics'
-import { AlertsPanel } from '@/components/rastreamento/alerts-panel'
-import { TelemetriaTab } from '@/components/rastreamento/telemetria-tab'
+import { RastreamentoAnalytics } from '@/components/rastreamento/rastreamento-analytics'
+import { RastreamentoAlertas } from '@/components/rastreamento/rastreamento-alertas'
 import { fetchVeiculos, subscribePosicoes, subscribeVeiculos } from '@/lib/services/rastreamento-realtime'
+import { fetchRotas } from '@/lib/services/rotas-service'
+import { exportRastreamentoKPIs } from '@/components/rastreamento/reports'
+import { cn } from '@/lib/utils'
 
-export default function RastreamentoPage() {
-  const [isRealTimeActive, setIsRealTimeActive] = useState(true)
-  const [selectedVehicle, setSelectedVehicle] = useState(null)
-  const [lastUpdate, setLastUpdate] = useState(new Date())
-  const [rows, setRows] = useState<any[]>([])
-  const [stats, setStats] = useState({
-    veiculosAtivos: 0,
-    emMovimento: 0,
-    entregasHoje: 0,
-    kmPercorridos: 0
-  })
-  const [loading, setLoading] = useState(true)
-  const { toast } = useToast()
+// ─── KPI Card ─────────────────────────────────────────────────────────────────
 
-  // Carrega dados e assina Realtime para posições
-  useEffect(() => {
-    let unsub: any
-    const load = async () => {
-      setLoading(true)
-      try {
-        const v = await fetchVeiculos()
-        setRows(v)
-        
-        // Calcular estatísticas reais
-        const ativos = v.filter(veiculo => veiculo.status === 'Ativo' || veiculo.status === 'Em Rota').length
-        const movimento = v.filter(veiculo => veiculo.status === 'Em Rota').length
-        
-        setStats({
-          veiculosAtivos: ativos,
-          emMovimento: movimento,
-          entregasHoje: 0, // Será calculado quando houver integração com entregas
-          kmPercorridos: 0 // Será calculado quando houver histórico de rotas
-        })
-        
-        setLastUpdate(new Date())
-      } catch (error) {
-        console.error('Erro ao carregar veículos:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-    const unsubPos = subscribePosicoes(() => load())
-    const unsubVeh = subscribeVeiculos(() => load())
-    return () => { unsubPos && unsubPos(); unsubVeh && unsubVeh() }
-  }, [])
-
-  const handleVehicleSelect = (vehicle: any) => {
-    setSelectedVehicle(vehicle)
-  }
-
-  const toggleRealTime = () => {
-    setIsRealTimeActive(!isRealTimeActive)
-  }
-
-  const handleRefresh = () => {
-    setLastUpdate(new Date())
-    // Atualização manual dos dados
-  }
+function KpiCard({
+  label, value, sub, icon: Icon, color = 'blue', loading,
+}: {
+  label: string
+  value: string | number
+  sub?: string
+  icon: React.ElementType
+  color?: 'blue' | 'green' | 'amber' | 'violet' | 'red' | 'slate'
+  loading?: boolean
+}) {
+  const palette = {
+    blue:   { bg: 'bg-blue-50',   icon: 'text-blue-600',   val: 'text-blue-700' },
+    green:  { bg: 'bg-green-50',  icon: 'text-green-600',  val: 'text-green-700' },
+    amber:  { bg: 'bg-amber-50',  icon: 'text-amber-600',  val: 'text-amber-700' },
+    violet: { bg: 'bg-violet-50', icon: 'text-violet-600', val: 'text-violet-700' },
+    red:    { bg: 'bg-red-50',    icon: 'text-red-600',    val: 'text-red-700' },
+    slate:  { bg: 'bg-slate-50',  icon: 'text-slate-500',  val: 'text-slate-700' },
+  }[color]
 
   return (
-    <div className="space-y-6">
-      {/* Header Section */}
-      <div className="flex items-center justify-between bg-white p-6 rounded-lg shadow-sm border">
+    <Card className="shadow-sm hover:shadow-md transition-shadow">
+      <CardContent className="p-5 flex items-center gap-4">
+        <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0', palette.bg)}>
+          <Icon className={cn('w-5 h-5', palette.icon)} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs text-slate-500 font-medium">{label}</p>
+          <p className={cn('text-2xl font-bold leading-none mt-0.5', loading ? 'text-slate-300' : palette.val)}>
+            {loading ? '—' : value}
+          </p>
+          {sub && <p className="text-xs text-slate-400 mt-0.5 truncate">{sub}</p>}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default function RastreamentoPage() {
+  const [realtime, setRealtime]         = useState(true)
+  const [lastUpdate, setLastUpdate]     = useState(new Date())
+  const [veiculos, setVeiculos]         = useState<any[]>([])
+  const [rotas, setRotas]               = useState<any[]>([])
+  const [selectedVehicle, setSelectedVehicle] = useState<any>(null)
+  const [loading, setLoading]           = useState(true)
+
+  const loadAll = async () => {
+    setLoading(true)
+    try {
+      const [v, r] = await Promise.all([fetchVeiculos(), fetchRotas()])
+      setVeiculos(v)
+      setRotas(r)
+      setLastUpdate(new Date())
+    } catch (e) {
+      console.error('[Rastreamento] load error:', e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadAll()
+    const unPos = subscribePosicoes(() => loadAll())
+    const unVeh = subscribeVeiculos(() => loadAll())
+    return () => { unPos?.(); unVeh?.() }
+  }, [])
+
+  // ── KPIs derivados ────────────────────────────────────────────────────
+  const veiculosAtivos  = veiculos.filter((v) => v.status === 'Ativo' || v.status === 'Em Rota').length
+  const emMovimento     = veiculos.filter((v) => v.status === 'Em Rota').length
+  const emManutencao    = veiculos.filter((v) => v.status === 'Manutenção').length
+  const rotasAtribuidas = rotas.filter((r) => r.status === 'Atribuída' || r.status === 'Em Rota').length
+  const rotasEntregues  = rotas.filter((r) => r.status === 'Entregue').length
+  const rotasPendentes  = rotas.filter((r) => r.status === 'Aguardando Atribuição').length
+
+  const alertCount = rotasPendentes + emManutencao
+  
+  return (
+    <div className="space-y-5">
+
+      {/* ── Header ──────────────────────────────────────────────────────── */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm px-6 py-5 flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Rastreamento da Frota</h1>
-          <p className="text-gray-600 mt-1">
-            Monitoramento em tempo real de veículos e entregas
+          <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+            <Navigation className="w-5 h-5 text-blue-600" />
+            Rastreamento da Frota
+          </h1>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Monitoramento em tempo real · veículos, rotas e entregas
           </p>
         </div>
-        <div className="flex gap-3">
-          <Button 
-            variant={isRealTimeActive ? "default" : "outline"} 
-            size="sm"
-            onClick={toggleRealTime}
-          >
-            {isRealTimeActive ? <Pause className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
-            {isRealTimeActive ? 'Pausar' : 'Iniciar'}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Status badge */}
+          <div className={cn(
+            'flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border',
+            realtime
+              ? 'bg-green-50 text-green-700 border-green-200'
+              : 'bg-slate-50 text-slate-500 border-slate-200'
+          )}>
+            <span className={cn('w-2 h-2 rounded-full', realtime ? 'bg-green-500 animate-pulse' : 'bg-slate-400')} />
+            {realtime ? 'Tempo Real Ativo' : 'Pausado'}
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setRealtime((v) => !v)} className="gap-1.5">
+            {realtime ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+            {realtime ? 'Pausar' : 'Retomar'}
           </Button>
-          <Button variant="outline" size="sm" onClick={handleRefresh}>
-            <RefreshCw className="w-4 h-4 mr-2" />
+          <Button variant="outline" size="sm" onClick={loadAll} className="gap-1.5">
+            <RefreshCw className="w-3.5 h-3.5" />
             Atualizar
           </Button>
-          <Button variant="outline" size="sm" onClick={() => exportTemplateImportPositions()}>
-            <Filter className="w-4 h-4 mr-2" />
-            Importar
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => {
-            const resumo = { 
-              'Veículos Ativos': stats.veiculosAtivos, 
-              'Em Movimento': stats.emMovimento, 
-              'Entregas Hoje': stats.entregasHoje, 
-              'KM Hoje': stats.kmPercorridos 
-            }
-            exportRastreamentoKPIs(resumo)
-          }}>
-            <Download className="w-4 h-4 mr-2" />
+          <Button variant="outline" size="sm" className="gap-1.5"
+            onClick={() => exportRastreamentoKPIs({
+              'Veículos Ativos': veiculosAtivos,
+              'Em Movimento': emMovimento,
+              'Em Manutenção': emManutencao,
+              'Rotas Atribuídas': rotasAtribuidas,
+              'Rotas Entregues': rotasEntregues,
+              'Rotas Pendentes': rotasPendentes,
+            })}>
+            <Download className="w-3.5 h-3.5" />
             Exportar
           </Button>
         </div>
       </div>
 
-      {/* Status e última atualização */}
-      <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex items-center gap-3">
-          <div className={`w-3 h-3 rounded-full ${isRealTimeActive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
-          <span className="text-sm font-medium">
-            {isRealTimeActive ? 'Rastreamento Ativo' : 'Rastreamento Pausado'}
+      {/* ── Última atualização ───────────────────────────────────────────── */}
+      <div className="flex items-center gap-2 text-xs text-slate-400">
+        <Clock className="w-3.5 h-3.5" />
+        Última atualização: {lastUpdate.toLocaleTimeString('pt-BR')}
+        {alertCount > 0 && (
+          <span className="ml-2 flex items-center gap-1 text-amber-600 font-medium">
+            <AlertTriangle className="w-3.5 h-3.5" />
+            {alertCount} alerta{alertCount !== 1 ? 's' : ''} pendente{alertCount !== 1 ? 's' : ''}
           </span>
-        </div>
-        <div className="flex items-center gap-2 text-sm text-gray-600">
-          <Clock className="w-4 h-4" />
-          <span>Última atualização: {lastUpdate.toLocaleTimeString()}</span>
-        </div>
+        )}
       </div>
 
-      {/* KPI Cards - Dados Reais */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard
-          title="Veículos Ativos"
-          value={loading ? '...' : stats.veiculosAtivos.toString()}
-          change={loading ? '' : `${rows.length} total`}
-          changeType="neutral"
-          icon={Truck}
-          description="Em operação"
-        />
-        <MetricCard
-          title="Em Movimento"
-          value={loading ? '...' : stats.emMovimento.toString()}
-          change={loading ? '' : `${((stats.emMovimento / (stats.veiculosAtivos || 1)) * 100).toFixed(0)}%`}
-          changeType="positive"
-          icon={Navigation}
-          description="Trafegando"
-        />
-        <MetricCard
-          title="Entregas Hoje"
-          value={loading ? '...' : stats.entregasHoje.toString()}
-          change={loading ? '' : 'Em desenvolvimento'}
-          changeType="neutral"
-          icon={MapPin}
-          description="Finalizadas"
-        />
-        <MetricCard
-          title="KM Percorridos"
-          value={loading ? '...' : stats.kmPercorridos.toString()}
-          change={loading ? '' : 'Em desenvolvimento'}
-          changeType="neutral"
-          icon={Route}
-          description="Hoje"
-        />
+      {/* ── KPIs ─────────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
+        <KpiCard label="Veículos Ativos"  value={veiculosAtivos}   sub={`${veiculos.length} total`}   icon={Truck}    color="blue"   loading={loading} />
+        <KpiCard label="Em Movimento"     value={emMovimento}      sub="Em Rota"                       icon={Navigation} color="green" loading={loading} />
+        <KpiCard label="Em Manutenção"    value={emManutencao}     sub="Fora de operação"              icon={Activity} color="amber"  loading={loading} />
+        <KpiCard label="Rotas Ativas"     value={rotasAtribuidas}  sub="Atribuída / Em Rota"           icon={Route}    color="violet" loading={loading} />
+        <KpiCard label="Entregas Feitas"  value={rotasEntregues}   sub="Total histórico"               icon={MapPin}   color="green"  loading={loading} />
+        <KpiCard label="Ag. Atribuição"   value={rotasPendentes}   sub="Precisam de motorista"         icon={AlertTriangle} color={rotasPendentes > 0 ? 'red' : 'slate'} loading={loading} />
       </div>
 
-      {/* Tracking Tabs */}
-      <Tabs defaultValue="telemetria" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="telemetria">Telemetria</TabsTrigger>
-          <TabsTrigger value="map">Mapa</TabsTrigger>
-          <TabsTrigger value="vehicles">Veículos</TabsTrigger>
-          <TabsTrigger value="routes">Rotas</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="alerts">Alertas</TabsTrigger>
+      {/* ── Tabs ─────────────────────────────────────────────────────────── */}
+      <Tabs defaultValue="mapa" className="space-y-5">
+        <TabsList className="grid w-full grid-cols-5 h-11">
+          <TabsTrigger value="mapa"     className="gap-1.5 text-xs"><MapPin    className="w-3.5 h-3.5" />Mapa</TabsTrigger>
+          <TabsTrigger value="veiculos" className="gap-1.5 text-xs"><Truck     className="w-3.5 h-3.5" />Veículos</TabsTrigger>
+          <TabsTrigger value="rotas"    className="gap-1.5 text-xs"><Route     className="w-3.5 h-3.5" />Rotas</TabsTrigger>
+          <TabsTrigger value="analytics" className="gap-1.5 text-xs"><Activity className="w-3.5 h-3.5" />Analytics</TabsTrigger>
+          <TabsTrigger value="alertas"  className="gap-1.5 text-xs relative">
+            <AlertTriangle className="w-3.5 h-3.5" />Alertas
+            {alertCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                {alertCount > 9 ? '9+' : alertCount}
+              </span>
+            )}
+          </TabsTrigger>
         </TabsList>
 
-        {/* Telemetria Tab */}
-        <TabsContent value="telemetria" className="space-y-6">
-          <TelemetriaTab />
-        </TabsContent>
-
-        {/* Map Tab */}
-        <TabsContent value="map" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Mapa Principal */}
+        {/* Mapa */}
+        <TabsContent value="mapa">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
             <div className="lg:col-span-3">
-              <Card>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <MapPin className="w-5 h-5" />
-                      Rastreamento em Tempo Real
-                    </CardTitle>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => toast({ title: 'Ver Tudo', description: 'Centralizando no mapa (simulado)' })}>
-                        <Eye className="w-4 h-4 mr-2" />
-                        Ver Tudo
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => toast({ title: 'Configurações', description: 'Em breve' })}>
-                        <Settings className="w-4 h-4 mr-2" />
-                        Config
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <TrackingMap 
+              <Card className="shadow-sm">
+                <CardContent className="p-0 overflow-hidden rounded-xl">
+                  <TrackingMap
                     selectedVehicle={selectedVehicle}
-                    isRealTime={isRealTimeActive}
-                    data={rows}
+                    isRealTime={realtime}
+                    data={veiculos}
                   />
                 </CardContent>
               </Card>
             </div>
-
-            {/* Painel Lateral */}
-            <div className="space-y-6">
-              {/* Veículos Online */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">Veículos Online</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <VehiclesTable 
-                    compact={true}
-                    onVehicleSelect={handleVehicleSelect}
+            <div className="space-y-3">
+              <Card className="shadow-sm">
+                <CardContent className="p-4">
+                  <p className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-1.5">
+                    <Truck className="w-4 h-4 text-blue-500" />Frota ({veiculos.length})
+                  </p>
+                  <VehiclesTable
+                    compact
+                    onVehicleSelect={setSelectedVehicle}
                     selectedVehicle={selectedVehicle}
-                    data={rows}
+                    data={veiculos}
                   />
                 </CardContent>
               </Card>
-
-              {/* Métricas Rápidas */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">Métricas</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <TrackingMetrics compact={true} />
+              <Card className="shadow-sm">
+                <CardContent className="p-4 space-y-3">
+                  <p className="text-sm font-semibold text-slate-700">Resumo rápido</p>
+                  {[
+                    { label: 'Ativos',       val: veiculosAtivos,  cls: 'text-blue-600' },
+                    { label: 'Em movimento', val: emMovimento,      cls: 'text-green-600' },
+                    { label: 'Parados',      val: veiculosAtivos - emMovimento, cls: 'text-amber-600' },
+                    { label: 'Manutenção',   val: emManutencao,     cls: 'text-red-500' },
+                    { label: 'Rotas ativas', val: rotasAtribuidas,  cls: 'text-violet-600' },
+                  ].map(({ label, val, cls }) => (
+                    <div key={label} className="flex justify-between text-sm">
+                      <span className="text-slate-500">{label}</span>
+                      <span className={cn('font-semibold', cls)}>{val}</span>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
             </div>
           </div>
         </TabsContent>
 
-        {/* Vehicles Tab */}
-        <TabsContent value="vehicles" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Lista de Veículos</CardTitle>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
-                    <Filter className="w-4 h-4 mr-2" />
-                    Filtrar Status
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => exportRastreamentoVeiculos([])}>
-                    <Download className="w-4 h-4 mr-2" />
-                    Exportar Lista
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <VehiclesTable 
-                onVehicleSelect={handleVehicleSelect}
+        {/* Veículos */}
+        <TabsContent value="veiculos">
+          <Card className="shadow-sm">
+            <CardContent className="p-5">
+              <VehiclesTable
+                onVehicleSelect={setSelectedVehicle}
                 selectedVehicle={selectedVehicle}
-                data={rows}
+                data={veiculos}
               />
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Routes Tab */}
-        <TabsContent value="routes" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Histórico de Rotas */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Route className="w-5 h-5" />
-                  Histórico de Rotas
-                </CardTitle>
-                <div className="ml-auto">
-                  <Button variant="outline" size="sm" onClick={() => exportRastreamentoRotas([])}>
-                    <Download className="w-4 h-4 mr-2" />
-                    Exportar Rotas
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <RouteHistory selectedVehicle={selectedVehicle} />
-              </CardContent>
-            </Card>
-
-            {/* Estatísticas de Rotas - Dados Reais */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Estatísticas do Dia</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="flex items-center justify-center h-48">
-                    <Activity className="w-8 h-8 text-gray-400 animate-spin" />
-                  </div>
-                ) : rows.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <Route className="mx-auto h-12 w-12 mb-4 text-gray-400" />
-                    <p>Nenhum veículo cadastrado</p>
-                    <p className="text-sm mt-2">Cadastre veículos para visualizar estatísticas</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Veículos Ativos</span>
-                      <span className="font-semibold">{stats.veiculosAtivos}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Em Movimento</span>
-                      <span className="font-semibold text-blue-600">{stats.emMovimento}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Parados</span>
-                      <span className="font-semibold text-orange-600">{stats.veiculosAtivos - stats.emMovimento}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Total de Veículos</span>
-                      <span className="font-semibold">{rows.length}</span>
-                    </div>
-                    <div className="pt-2 border-t">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Entregas Hoje</span>
-                        <span className="font-semibold text-gray-400">{stats.entregasHoje}</span>
-                      </div>
-                      <p className="text-xs text-gray-400 mt-1">Em desenvolvimento</p>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">KM Percorridos</span>
-                      <span className="font-semibold text-gray-400">{stats.kmPercorridos} km</span>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+        {/* Rotas */}
+        <TabsContent value="rotas">
+          <RouteHistory selectedVehicle={selectedVehicle} rotas={rotas} onReload={loadAll} />
         </TabsContent>
 
-        {/* Analytics Tab */}
-        <TabsContent value="analytics" className="space-y-6">
-          <TrackingMetrics />
+        {/* Analytics */}
+        <TabsContent value="analytics">
+          <RastreamentoAnalytics veiculos={veiculos} rotas={rotas} loading={loading} />
         </TabsContent>
 
-        {/* Alerts Tab */}
-        <TabsContent value="alerts" className="space-y-6">
-          <AlertsPanel />
+        {/* Alertas */}
+        <TabsContent value="alertas">
+          <RastreamentoAlertas veiculos={veiculos} rotas={rotas} onReload={loadAll} />
         </TabsContent>
       </Tabs>
     </div>
   )
-} 
+}
