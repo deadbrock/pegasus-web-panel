@@ -12,6 +12,7 @@ const PEDIDO_SELECT = `
   solicitante_nome, solicitante_email, solicitante_setor,
   portal_supervisor_id, portal_encarregado_id,
   supervisor_nome, aprovado_por, data_aprovacao, motivo_rejeicao,
+  causa_reprovacao, ajustes_necessarios, reprovado_por,
   urgencia, status, observacoes, created_at, updated_at,
   itens:itens_pedido_material(
     id, pedido_id, produto_id,
@@ -119,7 +120,11 @@ export async function PATCH(request: Request) {
   try {
     const db = getAdmin()
     const body = await request.json()
-    const { id, status, motivo_rejeicao, supervisor_nome } = body
+    const {
+      id, status,
+      motivo_rejeicao, causa_reprovacao, ajustes_necessarios,
+      reprovado_por, supervisor_nome,
+    } = body
 
     if (!id || !status) {
       return NextResponse.json({ error: 'id e status são obrigatórios' }, { status: 400 })
@@ -129,8 +134,11 @@ export async function PATCH(request: Request) {
       status,
       updated_at: new Date().toISOString(),
     }
-    if (motivo_rejeicao) payload.motivo_rejeicao = motivo_rejeicao
-    if (supervisor_nome) payload.aprovado_por = supervisor_nome
+    if (motivo_rejeicao)    payload.motivo_rejeicao    = motivo_rejeicao
+    if (causa_reprovacao)   payload.causa_reprovacao   = causa_reprovacao
+    if (ajustes_necessarios) payload.ajustes_necessarios = ajustes_necessarios
+    if (reprovado_por)      payload.reprovado_por      = reprovado_por
+    if (supervisor_nome)    payload.aprovado_por       = supervisor_nome
 
     const { error } = await db
       .from('pedidos_materiais')

@@ -40,6 +40,9 @@ export interface PedidoMaterial {
   aprovado_por?: string | null
   data_aprovacao?: string | null
   motivo_rejeicao?: string | null
+  causa_reprovacao?: string | null
+  ajustes_necessarios?: string | null
+  reprovado_por?: string | null
   urgencia: PedidoMaterialUrgencia
   status: PedidoMaterialStatus
   observacoes?: string | null
@@ -109,6 +112,7 @@ export async function fetchPedidosMateriais(): Promise<PedidoMaterial[]> {
       portal_supervisor_id, portal_encarregado_id,
       supervisor_id, supervisor_nome,
       aprovado_por, data_aprovacao, motivo_rejeicao,
+      causa_reprovacao, ajustes_necessarios, reprovado_por,
       urgencia, status, observacoes,
       created_at, updated_at,
       itens:itens_pedido_material(
@@ -133,6 +137,7 @@ export async function fetchPedidoMaterialById(id: string): Promise<PedidoMateria
       solicitante_id, solicitante_nome, solicitante_email, solicitante_setor,
       supervisor_id, supervisor_nome,
       aprovado_por, data_aprovacao, motivo_rejeicao,
+      causa_reprovacao, ajustes_necessarios, reprovado_por,
       urgencia, status, observacoes,
       created_at, updated_at,
       itens:itens_pedido_material(
@@ -188,6 +193,9 @@ export async function updateStatusPedidoMaterial(
     aprovado_por?: string
     motivo_rejeicao?: string
     data_aprovacao?: string
+    causa_reprovacao?: string
+    ajustes_necessarios?: string
+    reprovado_por?: string
   }
 ): Promise<boolean> {
   const payload: Record<string, unknown> = {
@@ -224,12 +232,15 @@ export async function aprovarPedidoMaterial(
 
 export async function rejeitarPedidoMaterial(
   id: string,
-  motivo: string,
-  rejeitadoPor: string
+  causa: string,
+  ajustes: string,
+  reprovadoPor: string
 ): Promise<boolean> {
   return updateStatusPedidoMaterial(id, 'Rejeitado', {
-    motivo_rejeicao: motivo,
-    aprovado_por: rejeitadoPor,
+    causa_reprovacao: causa,
+    ajustes_necessarios: ajustes,
+    motivo_rejeicao: causa,
+    reprovado_por: reprovadoPor,
   })
 }
 

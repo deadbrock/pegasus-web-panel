@@ -23,13 +23,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAuth } from '@/lib/auth/auth-context'
 import { cn } from '@/lib/utils'
 import { CriarRotaDialog } from '@/components/rastreamento/criar-rota-dialog'
 import { criarRotaMinima } from '@/lib/services/rotas-service'
 import { gerarPedidoMaterialPDF } from '@/services/pdfService'
+import { ReprovacaoDialog, ReprovacaoInfo } from '@/components/pedidos/reprovacao-dialog'
 import {
   aprovarPedidoMaterial,
   calcularStatsPedidos,
@@ -150,24 +150,22 @@ function PedidoCard({
             </div>
           )}
 
-          {pedido.motivo_rejeicao && (
-            <div className="mx-4 mb-3 flex items-start gap-2 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">
-              <XCircle className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-xs font-semibold text-rose-700">Motivo da rejeição</p>
-                <p className="text-xs text-rose-600">{pedido.motivo_rejeicao}</p>
-              </div>
+          {pedido.status === 'Rejeitado' ? (
+            <div className="mx-4 mb-3">
+              <ReprovacaoInfo
+                causa={pedido.causa_reprovacao ?? pedido.motivo_rejeicao}
+                ajustes={pedido.ajustes_necessarios}
+                reprovadoPor={pedido.reprovado_por ?? pedido.aprovado_por}
+              />
             </div>
-          )}
-
-          {pedido.aprovado_por && (
+          ) : pedido.aprovado_por ? (
             <div className="px-4 pb-3">
               <p className="text-xs text-slate-400">
-                {pedido.status === 'Rejeitado' ? 'Rejeitado' : 'Aprovado'} por:{' '}
+                Aprovado por:{' '}
                 <span className="font-medium text-slate-600">{pedido.aprovado_por}</span>
               </p>
             </div>
-          )}
+          ) : null}
 
           {/* Botão PDF — disponível para qualquer status */}
           <div className="px-4 pb-2 pt-1">
@@ -240,55 +238,6 @@ function PedidoCard({
   )
 }
 
-// ─── Dialog: Rejeitar ─────────────────────────────────────────────────────────
-function RejeitarDialog({ pedido, userName, onClose, onRejeitado }: {
-  pedido: PedidoMaterial | null
-  userName: string
-  onClose: () => void
-  onRejeitado: () => void
-}) {
-  const [motivo, setMotivo] = useState('')
-  const [saving, setSaving] = useState(false)
-
-  async function handleRejeitar() {
-    if (!pedido) return
-    setSaving(true)
-    await rejeitarPedidoMaterial(pedido.id, motivo, userName)
-    setSaving(false)
-    onRejeitado()
-    onClose()
-  }
-
-  return (
-    <Dialog open={!!pedido} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-md w-full">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base font-bold text-rose-700">
-            <XCircle className="w-5 h-5" />Rejeitar Pedido
-          </DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 py-2">
-          <p className="text-sm text-slate-600">
-            Informe o motivo para <span className="font-semibold">{pedido?.numero_pedido}</span>.
-          </p>
-          <div className="space-y-1">
-            <Label>Motivo</Label>
-            <textarea value={motivo} onChange={(e) => setMotivo(e.target.value)}
-              className="w-full min-h-[80px] rounded-lg border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="Explique o motivo..." />
-          </div>
-        </div>
-        <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>
-          <Button onClick={handleRejeitar} disabled={saving} className="bg-rose-600 hover:bg-rose-700">
-            {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <XCircle className="w-4 h-4 mr-2" />}
-            Rejeitar
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
 
 // ─── Painel Principal ─────────────────────────────────────────────────────────
 export function PedidosMateriaisPanel() {
@@ -303,6 +252,7 @@ export function PedidosMateriaisPanel() {
   const [search, setSearch] = useState('')
   const [apenasUrgentes, setApenasUrgentes] = useState(false)
   const [pedidoParaRejeitar, setPedidoParaRejeitar] = useState<PedidoMaterial | null>(null)
+  const [loadingRejeitar, setLoadingRejeitar] = useState(false)
   const [pedidoParaRota, setPedidoParaRota] = useState<PedidoMaterial | null>(null)
   const [rotaIdParaEditar, setRotaIdParaEditar] = useState<string | undefined>(undefined)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
@@ -501,11 +451,27 @@ export function PedidosMateriaisPanel() {
         </div>
       )}
 
-      <RejeitarDialog
-        pedido={pedidoParaRejeitar}
-        userName={user?.name ?? 'Sistema'}
-        onClose={() => setPedidoParaRejeitar(null)}
-        onRejeitado={load}
+      <ReprovacaoDialog
+        open={!!pedidoParaRejeitar}
+        onOpenChange={(v) => !v && setPedidoParaRejeitar(null)}
+        numeroPedido={pedidoParaRejeitar?.numero_pedido ?? ''}
+        solicitanteNome={pedidoParaRejeitar?.solicitante_nome}
+        reprovadoPor={user?.name ?? 'Sistema'}
+        contexto="supervisor"
+        loading={loadingRejeitar}
+        onConfirm={async (causa, ajustes) => {
+          if (!pedidoParaRejeitar) return
+          setLoadingRejeitar(true)
+          await rejeitarPedidoMaterial(
+            pedidoParaRejeitar.id,
+            causa,
+            ajustes,
+            user?.name ?? 'Sistema'
+          )
+          setLoadingRejeitar(false)
+          setPedidoParaRejeitar(null)
+          await load()
+        }}
       />
 
       {/* Dialog de rota — abre após marcar como Separado */}
