@@ -212,17 +212,24 @@ function RoleSelectScreen({ onSelect }: { onSelect: (tipo: 'encarregado' | 'supe
   )
 }
 
-// ─── Setup do Encarregado (selecionar supervisor → encarregado) ───────────────
+// ─── Acesso do Encarregado (2 etapas: selecionar → autenticar com código) ─────
 function EncarregadoSetup({ onReady, onBack }: {
   onReady: (session: PortalSession) => void
   onBack: () => void
 }) {
+  // Etapa 1: seleção; Etapa 2: código
+  const [etapa, setEtapa] = useState<1 | 2>(1)
+
   const [supervisores, setSupervisores] = useState<PortalSupervisor[]>([])
   const [encarregados, setEncarregados] = useState<PortalEncarregado[]>([])
   const [selectedSup, setSelectedSup] = useState<PortalSupervisor | null>(null)
   const [selectedEnc, setSelectedEnc] = useState<PortalEncarregado | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadingEnc, setLoadingEnc] = useState(false)
+
+  const [codigo, setCodigo] = useState('')
+  const [showCodigo, setShowCodigo] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -237,6 +244,7 @@ function EncarregadoSetup({ onReady, onBack }: {
     const sup = supervisores.find((s) => s.id === supId) ?? null
     setSelectedSup(sup)
     setSelectedEnc(null)
+    setError(null)
     if (!sup) return
     setLoadingEnc(true)
     try {
@@ -250,100 +258,214 @@ function EncarregadoSetup({ onReady, onBack }: {
     }
   }
 
-  const handleConfirm = () => {
+  const handleAvancar = () => {
     if (!selectedSup || !selectedEnc) return
-    const session: PortalSession = { tipo: 'encarregado', supervisor: selectedSup, encarregado: selectedEnc }
-    saveSession(session)
-    onReady(session)
+    setError(null)
+    setCodigo('')
+    setEtapa(2)
   }
 
-  return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <div className="w-full bg-white border-b border-slate-200 px-6 py-4">
-        <div className="max-w-md mx-auto flex items-center gap-3">
-          <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
-            <ChevronLeft className="w-4 h-4 text-slate-500" />
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-              <Zap className="w-3.5 h-3.5 text-white" />
-            </div>
-            <p className="text-sm font-bold text-slate-900">Portal Operacional</p>
+  const handleValidarCodigo = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedEnc || !codigo) return
+    setSubmitting(true)
+    setError(null)
+    try {
+      const r = await fetch('/api/portal/validar-encarregado', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ encarregado_id: selectedEnc.id, codigo }),
+      })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error || 'Código inválido')
+      const session: PortalSession = {
+        tipo: 'encarregado',
+        supervisor: selectedSup!,
+        encarregado: d.encarregado,
+      }
+      saveSession(session)
+      onReady(session)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Erro ao validar')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const headerBar = (
+    <div className="w-full bg-white border-b border-slate-200 px-6 py-4">
+      <div className="max-w-md mx-auto flex items-center gap-3">
+        <button
+          onClick={() => etapa === 2 ? (setEtapa(1), setError(null), setCodigo('')) : onBack()}
+          className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
+          <ChevronLeft className="w-4 h-4 text-slate-500" />
+        </button>
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+            <Zap className="w-3.5 h-3.5 text-white" />
           </div>
+          <p className="text-sm font-bold text-slate-900">Portal Operacional</p>
+        </div>
+        {/* Indicador de etapas */}
+        <div className="ml-auto flex items-center gap-1.5">
+          {[1, 2].map((n) => (
+            <div key={n} className={cn(
+              'w-6 h-1.5 rounded-full transition-colors',
+              n <= etapa ? 'bg-blue-500' : 'bg-slate-200'
+            )} />
+          ))}
         </div>
       </div>
+    </div>
+  )
 
-      <div className="flex-1 flex items-center justify-center px-5 py-10">
-        <div className="w-full max-w-sm">
-          <div className="text-center mb-6">
-            <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-3">
-              <UserCheck className="w-7 h-7 text-blue-500" />
-            </div>
-            <h1 className="text-lg font-bold text-slate-900">Identificação</h1>
-            <p className="text-sm text-slate-500 mt-1">Selecione seu supervisor e nome</p>
-          </div>
-
-          {error && (
-            <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3 mb-4">
-              <AlertTriangle className="w-4 h-4 text-rose-500 flex-shrink-0" />
-              <p className="text-sm text-rose-700">{error}</p>
-            </div>
-          )}
-
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-slate-700">Supervisor responsável</Label>
-              {loading ? (
-                <div className="flex items-center gap-2 py-2 text-sm text-slate-400">
-                  <Loader2 className="w-4 h-4 animate-spin" /> Carregando...
-                </div>
-              ) : (
-                <Select value={selectedSup?.id ?? ''} onValueChange={handleSelectSupervisor}>
-                  <SelectTrigger className="rounded-xl"><SelectValue placeholder="Selecione o supervisor..." /></SelectTrigger>
-                  <SelectContent>
-                    {supervisores.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>{s.nome}{s.setor ? ` · ${s.setor}` : ''}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+  /* ── Etapa 1: Selecionar supervisor e encarregado ────────────────────── */
+  if (etapa === 1) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        {headerBar}
+        <div className="flex-1 flex items-center justify-center px-5 py-10">
+          <div className="w-full max-w-sm">
+            <div className="text-center mb-6">
+              <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-3">
+                <UserCheck className="w-7 h-7 text-blue-500" />
+              </div>
+              <h1 className="text-lg font-bold text-slate-900">Identificação</h1>
+              <p className="text-sm text-slate-500 mt-1">Selecione seu supervisor e seu nome</p>
             </div>
 
-            {selectedSup && (
+            {error && (
+              <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3 mb-4">
+                <AlertTriangle className="w-4 h-4 text-rose-500 flex-shrink-0" />
+                <p className="text-sm text-rose-700">{error}</p>
+              </div>
+            )}
+
+            <div className="space-y-4">
               <div className="space-y-1.5">
-                <Label className="text-sm font-medium text-slate-700">Seu nome</Label>
-                {loadingEnc ? (
+                <Label className="text-sm font-medium text-slate-700">Supervisor responsável</Label>
+                {loading ? (
                   <div className="flex items-center gap-2 py-2 text-sm text-slate-400">
-                    <Loader2 className="w-4 h-4 animate-spin" /> Carregando encarregados...
+                    <Loader2 className="w-4 h-4 animate-spin" /> Carregando...
                   </div>
-                ) : encarregados.length === 0 ? (
-                  <p className="text-sm text-slate-400 italic">Nenhum encarregado cadastrado para este supervisor.</p>
                 ) : (
-                  <Select value={selectedEnc?.id ?? ''} onValueChange={(v) => setSelectedEnc(encarregados.find((e) => e.id === v) ?? null)}>
-                    <SelectTrigger className="rounded-xl"><SelectValue placeholder="Selecione seu nome..." /></SelectTrigger>
+                  <Select value={selectedSup?.id ?? ''} onValueChange={handleSelectSupervisor}>
+                    <SelectTrigger className="rounded-xl"><SelectValue placeholder="Selecione o supervisor..." /></SelectTrigger>
                     <SelectContent>
-                      {encarregados.map((e) => (
-                        <SelectItem key={e.id} value={e.id}>{e.nome}{e.setor ? ` · ${e.setor}` : ''}</SelectItem>
+                      {supervisores.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>{s.nome}{s.setor ? ` · ${s.setor}` : ''}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 )}
               </div>
+
+              {selectedSup && (
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-medium text-slate-700">Seu nome</Label>
+                  {loadingEnc ? (
+                    <div className="flex items-center gap-2 py-2 text-sm text-slate-400">
+                      <Loader2 className="w-4 h-4 animate-spin" /> Carregando encarregados...
+                    </div>
+                  ) : encarregados.length === 0 ? (
+                    <p className="text-sm text-slate-400 italic">Nenhum encarregado cadastrado para este supervisor.</p>
+                  ) : (
+                    <Select value={selectedEnc?.id ?? ''} onValueChange={(v) => { setSelectedEnc(encarregados.find((e) => e.id === v) ?? null); setError(null) }}>
+                      <SelectTrigger className="rounded-xl"><SelectValue placeholder="Selecione seu nome..." /></SelectTrigger>
+                      <SelectContent>
+                        {encarregados.map((e) => (
+                          <SelectItem key={e.id} value={e.id}>{e.nome}{e.setor ? ` · ${e.setor}` : ''}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              )}
+
+              <button
+                onClick={handleAvancar}
+                disabled={!selectedSup || !selectedEnc}
+                className={cn(
+                  'w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl mt-2',
+                  'text-sm font-semibold text-white',
+                  'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600',
+                  'shadow-lg shadow-blue-500/25 transition-all duration-150',
+                  'disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none'
+                )}>
+                Avançar <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  /* ── Etapa 2: Inserir código de acesso ──────────────────────────────── */
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      {headerBar}
+      <div className="flex-1 flex items-center justify-center px-5 py-10">
+        <div className="w-full max-w-sm">
+          <div className="text-center mb-6">
+            <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-3">
+              <KeyRound className="w-7 h-7 text-blue-600" />
+            </div>
+            <h1 className="text-lg font-bold text-slate-900">Código de Acesso</h1>
+            <p className="text-sm text-slate-500 mt-1">
+              Olá, <strong>{selectedEnc?.nome}</strong>! Informe seu código pessoal.
+            </p>
+          </div>
+
+          <form onSubmit={handleValidarCodigo} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-slate-700">Código de acesso</Label>
+              <div className="relative">
+                <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type={showCodigo ? 'text' : 'password'}
+                  value={codigo}
+                  onChange={(e) => { setCodigo(e.target.value.toUpperCase()); setError(null) }}
+                  placeholder="Ex.: AB12CD"
+                  maxLength={6}
+                  autoFocus
+                  className={cn(
+                    'w-full pl-10 pr-10 py-2.5 rounded-xl border text-sm bg-white tracking-[0.25em] font-mono',
+                    'placeholder:tracking-normal placeholder:font-sans placeholder:text-slate-400 text-slate-900',
+                    'focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all',
+                    error ? 'border-rose-300' : 'border-slate-200'
+                  )} />
+                <button type="button" tabIndex={-1}
+                  onClick={() => setShowCodigo((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                  {showCodigo ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="text-xs text-slate-400">
+                Código fornecido pelo seu supervisor · {selectedSup?.nome}
+              </p>
+            </div>
+
+            {error && (
+              <div className="flex items-start gap-2.5 bg-rose-50 border border-rose-200 rounded-xl px-3.5 py-3 text-sm text-rose-700">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                {error}
+              </div>
             )}
 
-            <button
-              onClick={handleConfirm}
-              disabled={!selectedSup || !selectedEnc}
+            <button type="submit" disabled={submitting || !codigo}
               className={cn(
-                'w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl mt-2',
+                'w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl',
                 'text-sm font-semibold text-white',
                 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600',
                 'shadow-lg shadow-blue-500/25 transition-all duration-150',
                 'disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none'
               )}>
-              Acessar Portal <ArrowRight className="w-4 h-4" />
+              {submitting
+                ? <><div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />Validando...</>
+                : <>Entrar no Portal <ArrowRight className="w-4 h-4" /></>}
             </button>
-          </div>
+          </form>
         </div>
       </div>
     </div>

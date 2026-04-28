@@ -57,6 +57,7 @@ function SupervisorCard({
   onDeleteEncarregado,
   onToggleEncarregadoAtivo,
   onRegenerarCodigo,
+  onRegenerarCodigoEncarregado,
 }: {
   supervisor: PortalSupervisor
   onToggleAtivo: (sup: PortalSupervisor) => void
@@ -65,6 +66,7 @@ function SupervisorCard({
   onDeleteEncarregado: (enc: PortalEncarregado) => void
   onToggleEncarregadoAtivo: (enc: PortalEncarregado) => void
   onRegenerarCodigo: (sup: PortalSupervisor) => void
+  onRegenerarCodigoEncarregado: (enc: PortalEncarregado) => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const encarregados = supervisor.encarregados ?? []
@@ -156,6 +158,11 @@ function SupervisorCard({
                     <Badge variant={enc.ativo ? 'default' : 'secondary'} className="text-[10px]">
                       {enc.ativo ? 'Ativo' : 'Inativo'}
                     </Badge>
+                    <button className="p-1 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                      title="Gerar/Regenerar código de acesso"
+                      onClick={() => onRegenerarCodigoEncarregado(enc)}>
+                      <KeyRound className="w-3.5 h-3.5" />
+                    </button>
                     <button className="p-1 rounded-md text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
                       title={enc.ativo ? 'Desativar' : 'Ativar'}
                       onClick={() => onToggleEncarregadoAtivo(enc)}>
@@ -196,6 +203,7 @@ export default function SupervisoresPage() {
   const [supAlvo, setSupAlvo] = useState<PortalSupervisor | null>(null)
   const [formEnc, setFormEnc] = useState({ nome: '', telefone: '', setor: '' })
   const [submetendoEnc, setSubmetendoEnc] = useState(false)
+  const [codigoEncCriado, setCodigoEncCriado] = useState<{ encarregado: PortalEncarregado; codigo: string } | null>(null)
 
   const loadSupervisores = useCallback(async () => {
     setLoading(true)
@@ -296,9 +304,10 @@ export default function SupervisoresPage() {
       })
       const d = await r.json()
       if (!r.ok) throw new Error(d.error || 'Erro')
-      toast({ title: `${formEnc.nome} adicionado!` })
       setSupAlvo(null)
       setFormEnc({ nome: '', telefone: '', setor: '' })
+      // Mostrar código gerado UMA ÚNICA VEZ
+      if (d.codigo) setCodigoEncCriado({ encarregado: d.encarregado, codigo: d.codigo })
       await loadSupervisores()
     } catch (err: unknown) {
       toast({ title: 'Erro ao adicionar encarregado', description: err instanceof Error ? err.message : 'Erro', variant: 'destructive' })
@@ -339,7 +348,24 @@ export default function SupervisoresPage() {
     }
   }
 
-  // ── Regenerar código ──────────────────────────────────────────────────────
+  // ── Regenerar código do encarregado ──────────────────────────────────────
+  const handleRegenerarCodigoEncarregado = async (enc: PortalEncarregado) => {
+    if (!confirm(`Regenerar o código de acesso de "${enc.nome}"? O código anterior será invalidado.`)) return
+    try {
+      const r = await fetch('/api/portal/encarregados', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: enc.id, regenerar_codigo: true }),
+      })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error || 'Erro')
+      if (d.codigo) setCodigoEncCriado({ encarregado: enc, codigo: d.codigo })
+    } catch (err: unknown) {
+      toast({ title: 'Erro ao regenerar código', description: err instanceof Error ? err.message : 'Erro', variant: 'destructive' })
+    }
+  }
+
+  // ── Regenerar código do supervisor ────────────────────────────────────────
   const handleRegenerarCodigo = async (sup: PortalSupervisor) => {
     if (!confirm(`Regenerar o código de validação de "${sup.nome}"? O código antigo será invalidado imediatamente.`)) return
     try {
@@ -412,11 +438,12 @@ export default function SupervisoresPage() {
         <div className="text-sm text-blue-800 space-y-1">
           <strong>Como funciona o Portal Operacional</strong>
           <ul className="list-disc list-inside space-y-0.5 text-blue-700 mt-1">
-            <li>Cada supervisor possui um <strong>código único de validação</strong> — gerado automaticamente e mostrado apenas uma vez.</li>
-            <li>O supervisor cadastra os encarregados da sua equipe (usuários filhos).</li>
-            <li>No portal, o encarregado seleciona seu supervisor e nome para criar pedidos.</li>
-            <li>Os pedidos ficam com status <em>"Aguardando Validação"</em> até o supervisor validar com seu código.</li>
+            <li>Cada supervisor possui um <strong>código único de login</strong> — gerado automaticamente, mostrado apenas uma vez.</li>
+            <li>O supervisor cadastra os encarregados da sua equipe. Cada encarregado também recebe um <strong>código de acesso próprio</strong>.</li>
+            <li>No portal, o encarregado seleciona seu supervisor, seu nome e informa seu código para entrar.</li>
+            <li>Os pedidos criados ficam com status <em>"Aguardando Validação"</em> até o supervisor validar com seu código.</li>
             <li>Após validação, o pedido entra no sistema como <em>"Pendente"</em> e segue o fluxo normal.</li>
+            <li>Para regenerar o código de um encarregado, clique no ícone de chave (<KeyRound className="inline w-3 h-3" />) ao lado do nome.</li>
           </ul>
         </div>
       </div>
@@ -468,6 +495,7 @@ export default function SupervisoresPage() {
                   onDeleteEncarregado={handleDeleteEncarregado}
                   onToggleEncarregadoAtivo={handleToggleEncarregado}
                   onRegenerarCodigo={handleRegenerarCodigo}
+                  onRegenerarCodigoEncarregado={handleRegenerarCodigoEncarregado}
                 />
               ))}
             </div>
@@ -561,6 +589,59 @@ export default function SupervisoresPage() {
               </div>
 
               <Button className="w-full bg-emerald-600 hover:bg-emerald-700" onClick={() => setCodigoCriado(null)}>
+                <CheckCircle2 className="w-4 h-4 mr-2" />
+                Entendido — Anotei o Código
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dialog: Código do Encarregado (uma única vez) ── */}
+      <Dialog open={!!codigoEncCriado} onOpenChange={(v) => !v && setCodigoEncCriado(null)}>
+        <DialogContent className="sm:max-w-[460px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-blue-700">
+              <KeyRound className="w-5 h-5" />
+              Código de Acesso do Encarregado
+            </DialogTitle>
+            <DialogDescription>
+              <strong>Guarde este código agora</strong> — ele não será exibido novamente.
+              Entregue pessoalmente ao encarregado.
+            </DialogDescription>
+          </DialogHeader>
+
+          {codigoEncCriado && (
+            <div className="space-y-4 py-2">
+              <div className="text-center">
+                <p className="text-sm text-slate-500 mb-2">
+                  Encarregado: <strong>{codigoEncCriado.encarregado.nome}</strong>
+                </p>
+                <div className="inline-flex items-center gap-3 bg-blue-50 border-2 border-blue-300 rounded-2xl px-8 py-5">
+                  <span className="text-4xl font-mono font-bold tracking-[0.3em] text-blue-800">
+                    {codigoEncCriado.codigo}
+                  </span>
+                </div>
+              </div>
+
+              <Button className="w-full" variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(codigoEncCriado.codigo)
+                  toast({ title: 'Código copiado!' })
+                }}>
+                <Copy className="w-4 h-4 mr-2" />
+                Copiar Código
+              </Button>
+
+              <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-800">
+                  Este código é <strong>único e secreto</strong>. O encarregado o usará para fazer login no Portal Operacional.
+                  Se perdido, clique no ícone de chave <KeyRound className="inline w-3 h-3" /> ao lado do nome dele para gerar um novo.
+                </p>
+              </div>
+
+              <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={() => setCodigoEncCriado(null)}>
                 <CheckCircle2 className="w-4 h-4 mr-2" />
                 Entendido — Anotei o Código
               </Button>
