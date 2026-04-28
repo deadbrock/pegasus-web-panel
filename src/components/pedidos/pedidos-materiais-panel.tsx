@@ -7,6 +7,7 @@ import {
   ChevronDown,
   ClipboardList,
   ExternalLink,
+  FileDown,
   Filter,
   Loader2,
   Package,
@@ -28,6 +29,7 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { cn } from '@/lib/utils'
 import { CriarRotaDialog } from '@/components/rastreamento/criar-rota-dialog'
 import { criarRotaMinima } from '@/lib/services/rotas-service'
+import { gerarPedidoMaterialPDF } from '@/services/pdfService'
 import {
   aprovarPedidoMaterial,
   calcularStatsPedidos,
@@ -166,6 +168,17 @@ function PedidoCard({
               </p>
             </div>
           )}
+
+          {/* Botão PDF — disponível para qualquer status */}
+          <div className="px-4 pb-2 pt-1">
+            <button
+              onClick={() => gerarPedidoMaterialPDF(pedido)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-blue-200 text-blue-700 hover:bg-blue-50 transition-colors"
+            >
+              <FileDown className="w-3.5 h-3.5" />
+              Baixar PDF com Assinaturas
+            </button>
+          </div>
 
           {/* Ações — fluxo completo no sistema principal */}
           <div className="px-4 pb-4 pt-1 flex flex-wrap gap-2">
