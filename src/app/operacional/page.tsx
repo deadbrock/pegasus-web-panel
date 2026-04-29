@@ -23,7 +23,6 @@ import {
   Users,
   X,
   XCircle,
-  Zap,
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
@@ -34,6 +33,20 @@ import { cn } from '@/lib/utils'
 import { fetchProdutos, type Produto } from '@/lib/services/produtos-service'
 import { STATUS_COLORS, STATUS_LABELS, URGENCIA_COLORS, type PedidoMaterialStatus, type PedidoMaterialUrgencia } from '@/services/pedidosMateriaisService'
 import { ReprovacaoDialog, ReprovacaoInfo } from '@/components/pedidos/reprovacao-dialog'
+
+// ─── Ícone Pegasus (SVG personalizado) ───────────────────────────────────────
+function PegasusIcon({ size = 32, className = '' }: { size?: number; className?: string }) {
+  return (
+    <img
+      src="/pegasusicone.svg"
+      alt="Pegasus"
+      width={size}
+      height={size}
+      className={className}
+      style={{ display: 'block' }}
+    />
+  )
+}
 
 // ─── Tipos locais ─────────────────────────────────────────────────────────────
 
@@ -125,9 +138,7 @@ function PortalHeader({ session, onLogout }: { session: PortalSession; onLogout:
     <header className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-sm">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md flex-shrink-0">
-            <Zap className="w-4 h-4 text-white" />
-          </div>
+          <PegasusIcon size={32} className="rounded-lg shadow-md flex-shrink-0" />
           <div className="leading-tight">
             <p className="text-sm font-bold text-slate-900 leading-none">Pegasus</p>
             <p className="text-[10px] text-slate-400 uppercase tracking-widest leading-none mt-0.5">Portal Operacional</p>
@@ -159,9 +170,7 @@ function RoleSelectScreen({ onSelect }: { onSelect: (tipo: 'encarregado' | 'supe
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <div className="w-full bg-white border-b border-slate-200 px-6 py-4">
         <div className="max-w-md mx-auto flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md">
-            <Zap className="w-4 h-4 text-white" />
-          </div>
+          <PegasusIcon size={32} className="rounded-lg shadow-md" />
           <div className="leading-tight">
             <p className="text-sm font-bold text-slate-900">Pegasus</p>
             <p className="text-[10px] text-slate-400 uppercase tracking-widest">Portal Operacional</p>
@@ -172,9 +181,7 @@ function RoleSelectScreen({ onSelect }: { onSelect: (tipo: 'encarregado' | 'supe
       <div className="flex-1 flex items-center justify-center px-5 py-10">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center mx-auto mb-4 shadow-sm">
-              <PackageSearch className="w-8 h-8 text-blue-500" />
-            </div>
+            <PegasusIcon size={80} className="rounded-2xl shadow-md mx-auto mb-4" />
             <h1 className="text-xl font-bold text-slate-900">Bem-vindo ao Portal</h1>
             <p className="text-sm text-slate-500 mt-1">Selecione como deseja acessar</p>
           </div>
@@ -301,9 +308,7 @@ function EncarregadoSetup({ onReady, onBack }: {
           <ChevronLeft className="w-4 h-4 text-slate-500" />
         </button>
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-            <Zap className="w-3.5 h-3.5 text-white" />
-          </div>
+          <PegasusIcon size={28} className="rounded-lg" />
           <p className="text-sm font-bold text-slate-900">Portal Operacional</p>
         </div>
         {/* Indicador de etapas */}
@@ -524,9 +529,7 @@ function SupervisorLogin({ onReady, onBack }: {
             <ChevronLeft className="w-4 h-4 text-slate-500" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-              <Zap className="w-3.5 h-3.5 text-white" />
-            </div>
+            <PegasusIcon size={28} className="rounded-lg" />
             <p className="text-sm font-bold text-slate-900">Portal Operacional</p>
           </div>
         </div>
@@ -1199,9 +1202,7 @@ export default function OperacionalPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md">
-            <Zap className="w-5 h-5 text-white" />
-          </div>
+          <PegasusIcon size={48} className="rounded-xl shadow-md" />
           <div className="w-5 h-5 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
         </div>
       </div>
