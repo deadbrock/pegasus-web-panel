@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { fetchAdmContratos } from '@/services/admContratosService'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -34,6 +35,7 @@ interface PortalSupervisor {
   telefone?: string | null
   setor?: string | null
   ativo: boolean
+  adm_contrato_id?: string | null
   created_at: string
   encarregados?: PortalEncarregado[]
 }
@@ -193,9 +195,12 @@ export default function SupervisoresPage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
 
+  // Contratos ADM para vincular ao supervisor
+  const [admContratos, setAdmContratos] = useState<{ id: string; nome: string; cliente_nome: string }[]>([])
+
   // Dialog: Criar Supervisor
   const [criandoSup, setCriandoSup] = useState(false)
-  const [formSup, setFormSup] = useState({ nome: '', telefone: '', setor: '' })
+  const [formSup, setFormSup] = useState({ nome: '', telefone: '', setor: '', adm_contrato_id: '' })
   const [submetendoSup, setSubmetendoSup] = useState(false)
   const [codigoCriado, setCodigoCriado] = useState<{ supervisor: PortalSupervisor; codigo: string } | null>(null)
 
@@ -229,6 +234,13 @@ export default function SupervisoresPage() {
 
   useEffect(() => { loadSupervisores() }, [loadSupervisores])
 
+  // Carregar contratos ADM para o seletor
+  useEffect(() => {
+    fetchAdmContratos()
+      .then((data) => setAdmContratos(data.map((c) => ({ id: c.id!, nome: c.nome, cliente_nome: c.cliente_nome }))))
+      .catch(() => {})
+  }, [])
+
   // ── Criar supervisor ──────────────────────────────────────────────────────
   const handleCriarSupervisor = async () => {
     if (!formSup.nome.trim()) {
@@ -240,12 +252,17 @@ export default function SupervisoresPage() {
       const r = await fetch('/api/portal/supervisores', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome: formSup.nome.trim(), telefone: formSup.telefone.trim() || undefined, setor: formSup.setor.trim() || undefined }),
+        body: JSON.stringify({
+          nome: formSup.nome.trim(),
+          telefone: formSup.telefone.trim() || undefined,
+          setor: formSup.setor.trim() || undefined,
+          adm_contrato_id: formSup.adm_contrato_id || undefined,
+        }),
       })
       const d = await r.json()
       if (!r.ok) throw new Error(d.error || 'Erro ao criar')
       setCriandoSup(false)
-      setFormSup({ nome: '', telefone: '', setor: '' })
+      setFormSup({ nome: '', telefone: '', setor: '', adm_contrato_id: '' })
       setCodigoCriado({ supervisor: d.supervisor, codigo: d.codigo })
       await loadSupervisores()
     } catch (err: unknown) {
@@ -522,6 +539,24 @@ export default function SupervisoresPage() {
               <Input id="sup-nome" placeholder="Ex.: João Silva" value={formSup.nome}
                 onChange={(e) => setFormSup((p) => ({ ...p, nome: e.target.value }))}
                 disabled={submetendoSup} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sup-contrato">Contrato Vinculado</Label>
+              <select
+                id="sup-contrato"
+                className="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white disabled:opacity-50"
+                value={formSup.adm_contrato_id}
+                onChange={(e) => setFormSup((p) => ({ ...p, adm_contrato_id: e.target.value }))}
+                disabled={submetendoSup}
+              >
+                <option value="">— Sem contrato vinculado —</option>
+                {admContratos.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nome}{c.cliente_nome ? ` — ${c.cliente_nome}` : ''}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-400">Vincula os pedidos deste supervisor ao orçamento do contrato selecionado.</p>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="sup-setor">Setor / Área</Label>

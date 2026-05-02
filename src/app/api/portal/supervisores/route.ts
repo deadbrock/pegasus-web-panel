@@ -19,7 +19,7 @@ export async function GET() {
     const db = getAdmin()
     const { data, error } = await db
       .from('portal_supervisores')
-      .select('id, nome, telefone, setor, ativo, created_at, updated_at')
+      .select('id, nome, telefone, setor, ativo, adm_contrato_id, created_at, updated_at')
       .order('nome')
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   try {
     const db = getAdmin()
     const body = await request.json()
-    const { nome, telefone, setor } = body
+    const { nome, telefone, setor, adm_contrato_id } = body
 
     if (!nome?.trim()) {
       return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
@@ -46,8 +46,14 @@ export async function POST(request: Request) {
 
     const { data, error } = await db
       .from('portal_supervisores')
-      .insert({ nome: nome.trim(), telefone: telefone?.trim() || null, setor: setor?.trim() || null, codigo_hash: codigoHash })
-      .select('id, nome, telefone, setor, ativo, created_at')
+      .insert({
+        nome: nome.trim(),
+        telefone: telefone?.trim() || null,
+        setor: setor?.trim() || null,
+        adm_contrato_id: adm_contrato_id || null,
+        codigo_hash: codigoHash,
+      })
+      .select('id, nome, telefone, setor, ativo, adm_contrato_id, created_at')
       .single()
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
