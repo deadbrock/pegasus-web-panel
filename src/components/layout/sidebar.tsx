@@ -55,6 +55,7 @@ const moduleGroups: ModuleGroup[] = [
       { name: 'Estoque', path: '/dashboard/estoque', icon: Package },
       { name: 'Contratos', path: '/dashboard/contratos', icon: FileText },
       { name: 'Rastreamento', path: '/dashboard/rastreamento', icon: MapPin },
+      { name: 'Contratos ADM', path: '/gestao-adm/contratos', icon: ClipboardList },
     ]
   },
   {

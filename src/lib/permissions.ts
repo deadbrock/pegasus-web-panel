@@ -219,14 +219,16 @@ export const ALL_MODULES: ModulePermission[] = [
     name: 'Gestão ADM',
     icon: 'Briefcase',
     path: '/gestao-adm',
-    allowedRoles: ['admin', 'diretor', 'adm_contratos']
+    // logistica: acesso somente-leitura (apenas custo materiais)
+    allowedRoles: ['admin', 'diretor', 'adm_contratos', 'logistica']
   },
   {
     id: 'gestao-adm-contratos',
     name: 'Contratos ADM',
     icon: 'FileCheck2',
     path: '/gestao-adm/contratos',
-    allowedRoles: ['admin', 'diretor', 'adm_contratos']
+    // logistica: acesso somente-leitura (apenas custo materiais)
+    allowedRoles: ['admin', 'diretor', 'adm_contratos', 'logistica']
   },
   {
     id: 'gestao-adm-analytics',
