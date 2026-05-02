@@ -12,16 +12,19 @@ const navItems = [
     label: 'Contratos',
     path: '/gestao-adm/contratos',
     icon: FileCheck2,
+    roles: null, // visível para todos
   },
   {
     label: 'Analytics',
     path: '/gestao-adm/analytics',
     icon: BarChart3,
+    roles: ['adm_contratos', 'admin', 'diretor'], // oculto para logistica
   },
   {
     label: 'Configurações',
     path: '/dashboard/configuracoes',
     icon: Settings,
+    roles: ['adm_contratos', 'admin', 'diretor'], // oculto para logistica
   },
 ]
 
@@ -60,7 +63,9 @@ export function AdmSidebar() {
           Módulo
         </p>
 
-        {navItems.map((item) => {
+        {navItems
+          .filter((item) => !item.roles || item.roles.includes(user.role))
+          .map((item) => {
           const Icon = item.icon
           const isActive =
             pathname === item.path || pathname.startsWith(item.path + '/')

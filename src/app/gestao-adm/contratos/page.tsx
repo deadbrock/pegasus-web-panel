@@ -5,7 +5,7 @@ import Link from 'next/link'
 import {
   Plus, Search, X, Loader2, FileX, FileCheck2, Edit, Trash2, Eye,
   ChevronRight, DollarSign, LayoutGrid, Users, ShieldAlert, ShieldX,
-  Clock, AlertTriangle,
+  Clock, AlertTriangle, Package, Lock,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,6 +24,10 @@ import {
 import type { AdmContrato, AdmContratoStatus, AdmSaudeStatus, AdmSaudeContrato } from '@/types/adm-contratos'
 import { ADM_STATUS_LABELS, ADM_SAUDE_CONFIG } from '@/types/adm-contratos'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/lib/auth/auth-context'
+
+// Roles com acesso completo (editar, criar, ver valores financeiros)
+const FULL_ACCESS_ROLES = ['adm_contratos', 'admin', 'diretor']
 
 function fmt(v: number | null | undefined) {
   if (v == null) return '—'
@@ -59,6 +63,10 @@ const SAUDE_FILTER_LABELS: Record<SaudeFilter, string> = {
 }
 
 export default function AdmContratosPage() {
+  const { user } = useAuth()
+  const isLogistica = user?.role === 'logistica'
+  const canEdit = FULL_ACCESS_ROLES.includes(user?.role ?? '')
+
   const [contratos, setContratos] = useState<AdmContrato[]>([])
   const [saudeMap, setSaudeMap] = useState<Map<string, AdmSaudeContrato>>(new Map())
   const [loading, setLoading] = useState(true)
@@ -116,6 +124,7 @@ export default function AdmContratosPage() {
     total: contratos.length,
     ativos: contratos.filter((c) => c.status === 'ativo').length,
     totalMensal: contratos.filter((c) => c.status === 'ativo').reduce((s, c) => s + (c.valor_mensal ?? 0), 0),
+    totalMateriais: contratos.filter((c) => c.status === 'ativo').reduce((s, c) => s + (c.valor_materiais ?? 0), 0),
   }), [contratos])
 
   const hasFilter = search.trim() !== '' || statusFilter !== 'todos' || saudeFilter !== 'todas' || vencFilter !== 'todos'
@@ -152,13 +161,28 @@ export default function AdmContratosPage() {
             Gestão de Contratos
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Visão executiva da carteira de contratos, saúde e alertas.
+            {isLogistica
+              ? 'Carteira de contratos — visualização de custos de materiais.'
+              : 'Visão executiva da carteira de contratos, saúde e alertas.'}
           </p>
         </div>
-        <Button onClick={openNew} className="shrink-0">
-          <Plus className="w-4 h-4 mr-2" />Novo Contrato
-        </Button>
+        {canEdit && (
+          <Button onClick={openNew} className="shrink-0">
+            <Plus className="w-4 h-4 mr-2" />Novo Contrato
+          </Button>
+        )}
       </div>
+
+      {/* ── Banner de acesso restrito (logistica) ───────────────────────── */}
+      {isLogistica && (
+        <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl px-5 py-3">
+          <Lock className="w-4 h-4 text-blue-500 flex-shrink-0" />
+          <p className="text-sm text-blue-800">
+            Você está em <strong>modo visualização</strong>. Apenas o{' '}
+            <strong>custo de materiais</strong> de cada contrato está disponível. Informações financeiras completas são restritas ao perfil Gestão ADM.
+          </p>
+        </div>
+      )}
 
       {/* ── Banner de riscos ────────────────────────────────────────────── */}
       {!loading && (resumo.criticos > 0 || resumo.atencao > 0 || resumo.vencendoEm30 > 0) && (
@@ -233,15 +257,27 @@ export default function AdmContratosPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 p-5 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-            <DollarSign className="w-5 h-5 text-blue-600" />
+        {isLogistica ? (
+          <div className="bg-white rounded-xl border border-slate-200 p-5 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center flex-shrink-0">
+              <Package className="w-5 h-5 text-orange-600" />
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 font-medium">Custo Materiais (ativos)</p>
+              <p className="text-lg font-bold text-slate-900">{loading ? '—' : fmt(kpis.totalMateriais)}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-xs text-slate-500 font-medium">Receita Mensal</p>
-            <p className="text-lg font-bold text-slate-900">{loading ? '—' : fmt(kpis.totalMensal)}</p>
+        ) : (
+          <div className="bg-white rounded-xl border border-slate-200 p-5 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+              <DollarSign className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 font-medium">Receita Mensal</p>
+              <p className="text-lg font-bold text-slate-900">{loading ? '—' : fmt(kpis.totalMensal)}</p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* ── Tabela ─────────────────────────────────────────────────────── */}
@@ -322,14 +358,14 @@ export default function AdmContratosPage() {
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/50">
                 {[
-                  { label: 'Código',          align: 'left' },
-                  { label: 'Contrato / Cliente', align: 'left' },
-                  { label: 'Responsável',     align: 'left' },
-                  { label: 'Valor Mensal',    align: 'right' },
-                  { label: 'Período',         align: 'left' },
-                  { label: 'Status',          align: 'left' },
-                  { label: 'Saúde',           align: 'left' },
-                  { label: '',                align: 'right' },
+                  { label: 'Código',                             align: 'left'  },
+                  { label: 'Contrato / Cliente',                 align: 'left'  },
+                  { label: 'Responsável',                        align: 'left'  },
+                  { label: isLogistica ? 'Custo Materiais' : 'Valor Mensal', align: 'right' },
+                  { label: 'Período',                            align: 'left'  },
+                  { label: 'Status',                             align: 'left'  },
+                  { label: 'Saúde',                              align: 'left'  },
+                  { label: '',                                   align: 'right' },
                 ].map((h) => (
                   <th
                     key={h.label}
@@ -402,11 +438,17 @@ export default function AdmContratosPage() {
                         {c.responsavel || <span className="text-slate-300">—</span>}
                       </td>
 
-                      {/* Valor mensal */}
+                      {/* Valor mensal (full) | Custo Materiais (logistica) */}
                       <td className="px-4 py-3 text-right">
-                        <span className={cn('font-medium tabular-nums', c.valor_mensal ? 'text-slate-900' : 'text-slate-300')}>
-                          {fmt(c.valor_mensal)}
-                        </span>
+                        {isLogistica ? (
+                          <span className={cn('font-medium tabular-nums', c.valor_materiais ? 'text-orange-700' : 'text-slate-300')}>
+                            {fmt(c.valor_materiais)}
+                          </span>
+                        ) : (
+                          <span className={cn('font-medium tabular-nums', c.valor_mensal ? 'text-slate-900' : 'text-slate-300')}>
+                            {fmt(c.valor_mensal)}
+                          </span>
+                        )}
                       </td>
 
                       {/* Período */}
@@ -449,12 +491,16 @@ export default function AdmContratosPage() {
                               <Eye className="w-3.5 h-3.5" />
                             </Button>
                           </Link>
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-slate-400 hover:text-slate-700 hover:bg-slate-100" onClick={() => openEdit(c)} title="Editar">
-                            <Edit className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50" onClick={() => setDeleteConfirm(c)} disabled={deletingId === c.id} title="Excluir">
-                            {deletingId === c.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                          </Button>
+                          {canEdit && (
+                            <>
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-slate-400 hover:text-slate-700 hover:bg-slate-100" onClick={() => openEdit(c)} title="Editar">
+                                <Edit className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50" onClick={() => setDeleteConfirm(c)} disabled={deletingId === c.id} title="Excluir">
+                                {deletingId === c.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>

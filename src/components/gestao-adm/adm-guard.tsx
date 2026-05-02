@@ -4,7 +4,8 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
-const ADM_ALLOWED_ROLES = ['adm_contratos', 'admin', 'diretor']
+// logistica: acesso somente-leitura (apenas valor de materiais visível)
+const ADM_ALLOWED_ROLES = ['adm_contratos', 'admin', 'diretor', 'logistica']
 
 interface AdmGuardProps {
   children: React.ReactNode
