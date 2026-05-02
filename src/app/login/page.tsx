@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../../lib/auth/auth-context'
 import { useRouter } from 'next/navigation'
-import { Lock, Mail, Eye, EyeOff, Zap, TrendingUp, Shield, BarChart3, Truck, ArrowRight } from 'lucide-react'
+import { Lock, Mail, Eye, EyeOff, TrendingUp, Shield, BarChart3, Truck, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getDefaultRouteForRole } from '@/lib/permissions'
 
@@ -71,9 +71,7 @@ export default function LoginPage() {
         <div className="relative flex flex-col h-full px-12 py-12">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-xl shadow-blue-500/30">
-              <Zap className="w-5 h-5 text-white" />
-            </div>
+            <img src="/pegasusicone.svg" alt="Pegasus" width={42} height={42} className="rounded-xl shadow-xl flex-shrink-0" />
             <div>
               <p className="text-white font-bold text-lg tracking-tight">Pegasus</p>
               <p className="text-blue-400 text-[10px] font-semibold uppercase tracking-widest">Gestão Logística</p>
@@ -121,9 +119,7 @@ export default function LoginPage() {
         <div className="w-full max-w-sm animate-fade-in">
           {/* Mobile logo */}
           <div className="flex items-center gap-3 mb-8 lg:hidden">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-              <Zap className="w-4 h-4 text-white" />
-            </div>
+            <img src="/pegasusicone.svg" alt="Pegasus" width={36} height={36} className="rounded-xl flex-shrink-0" />
             <p className="text-slate-800 font-bold text-lg">Pegasus</p>
           </div>
 

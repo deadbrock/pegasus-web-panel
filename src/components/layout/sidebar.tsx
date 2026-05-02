@@ -27,7 +27,6 @@ import {
   Briefcase,
   ClipboardList,
   MapPin,
-  Zap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth/auth-context'
@@ -138,8 +137,8 @@ export function Sidebar() {
       {/* Logo */}
       <div className="h-16 flex items-center px-5 border-b border-white/[0.06]">
         <Link href="/dashboard" className="flex items-center gap-3 group">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/25 flex-shrink-0">
-            <Zap className="w-4 h-4 text-white" />
+          <div className="w-8 h-8 flex-shrink-0">
+            <img src="/pegasusicone.svg" alt="Pegasus" width={32} height={32} className="rounded-lg" />
           </div>
           <div className="leading-tight">
             <p className="text-[15px] font-bold text-white tracking-tight">Pegasus</p>
